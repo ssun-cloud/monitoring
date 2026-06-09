@@ -1591,8 +1591,8 @@ async function submitRecommend() {
   console.log('[추천] _supabase 객체 확인:', typeof _supabase);
 
   try {
-    const { data, error } = await _supabase.from('recommendations').insert(payload).select();
-    console.log('[추천] insert 완료 - data:', data, '/ error:', error);
+    const { error } = await _supabase.from('recommendations').insert([payload]);
+    console.log('[추천] insert 완료 - error:', error);
     if (error) {
       console.error('[추천] 오류 상세 - code:', error.code, '/ message:', error.message, '/ details:', error.details, '/ hint:', error.hint);
       showToast('recommend-toast', '⚠️ 저장 중 오류가 발생했어요. 다시 시도해 주세요.', 'error');
