@@ -1548,6 +1548,8 @@ function renderJournalList() {
 
 // ── 상점 추천 제출 ──────────────────────────────────
 async function submitRecommend() {
+  console.log('[추천] submitRecommend() 실행됨');
+
   var name = document.getElementById('r_name').value.trim();
   var addr = document.getElementById('r_addr').value.trim();
   var author = document.getElementById('r_author').value.trim();
@@ -1576,24 +1578,30 @@ async function submitRecommend() {
   // ──────────────────────────────────────────────────────
 
   // ── Supabase insert (recommendations 테이블) ──────────
+  const payload = {
+    store_name:  name,
+    address:     addr,
+    good_points: items,
+    recommender: author,
+    phone:       phone.trim(),
+    intro:       intro.trim(),
+    status:      '추천'
+  };
+  console.log('[추천] insert payload:', JSON.stringify(payload));
+  console.log('[추천] _supabase 객체 확인:', typeof _supabase);
+
   try {
-    const { error } = await _supabase.from('recommendations').insert({
-      store_name:  name,
-      address:     addr,
-      good_points: items,
-      recommender: author,
-      phone:       phone.trim(),
-      intro:       intro.trim(),
-      status:      '추천'
-    });
+    const { data, error } = await _supabase.from('recommendations').insert(payload).select();
+    console.log('[추천] insert 완료 - data:', data, '/ error:', error);
     if (error) {
-      console.warn('Supabase insert 오류:', error.message);
+      console.error('[추천] 오류 상세 - code:', error.code, '/ message:', error.message, '/ details:', error.details, '/ hint:', error.hint);
       showToast('recommend-toast', '⚠️ 저장 중 오류가 발생했어요. 다시 시도해 주세요.', 'error');
       setLoading('recommend-btn', false, '추천 제출하기');
       return;
     }
+    console.log('[추천] ✅ insert 성공');
   } catch(e) {
-    console.warn('Supabase 연결 오류:', e);
+    console.error('[추천] catch 오류:', e.message, e);
     showToast('recommend-toast', '⚠️ 연결 오류가 발생했어요. 다시 시도해 주세요.', 'error');
     setLoading('recommend-btn', false, '추천 제출하기');
     return;
