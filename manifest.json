@@ -2,7 +2,7 @@
   "name": "열린 마을 만들기",
   "short_name": "열린마을만들기",
   "description": "우리 동네 접근성 개선 신청 및 모니터링 - 열린 마을 만들기",
-  "start_url": "/barrier-free-app/",
+  "start_url": "/monitoring/",
   "display": "standalone",
   "background_color": "#f7f8fa",
   "theme_color": "#1a8c6e",
