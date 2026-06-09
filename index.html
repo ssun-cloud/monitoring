@@ -1254,12 +1254,35 @@ async function submitMonitor() {
   const ts = new Date().toLocaleString('ko-KR');
   setLoading('monitor-btn', true, '기록 제출하기');
 
-  // 로컬 먼저 저장 (사진 없이)
+  // ── Supabase insert (monitoring_records 테이블 / 사진 제외) ──────
+  const payload = {
+    place_name:      place,
+    address:         addr,
+    monitored_at:    date,
+    r_braille:       r1 || null,
+    r_ramp:          r2 || null,
+    r_toilet:        r3 || null,
+    r_signage:       r4 || null,
+    action_required: action || null,
+    comment:         comment,
+    extra_notes:     extras,
+    recorder:        author,
+    status:          '확인 중'
+  };
+  console.log('[모니터링] insert payload:', JSON.stringify(payload));
+
   try {
-    await postSheetData({ type: 'monitor', monitorPin: monitorSessionPin, managerPin: managerSessionPin, place, addr, date, r1, r2, r3, r4, action, comment, author, extras, photos: [], timestamp: ts });
+    const { error } = await _supabase.from('monitoring_records').insert([payload]);
+    console.log('[모니터링] insert 완료 - error:', error);
+    if (error) {
+      console.error('[모니터링] 오류 상세 - code:', error.code, '/ message:', error.message, '/ details:', error.details, '/ hint:', error.hint);
+      showToast('monitor-toast', '저장 중 오류가 발생했어요. 콘솔을 확인해 주세요.', 'error');
+      setLoading('monitor-btn', false, '기록 제출하기');
+      return;
+    }
   } catch(e) {
-    console.warn('시트 저장 오류:', e);
-    showToast('monitor-toast', '시트 저장에 실패했어요. 사진을 빼거나 잠시 후 다시 시도해 주세요.', 'error');
+    console.error('[모니터링] catch 오류:', e.message, e);
+    showToast('monitor-toast', '연결 오류가 발생했어요. 다시 시도해 주세요.', 'error');
     setLoading('monitor-btn', false, '기록 제출하기');
     return;
   }
