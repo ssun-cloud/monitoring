@@ -12,6 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="열린마을만들기" />
 <link rel="apple-touch-icon" href="icon-192.png" />
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -869,6 +870,12 @@ const FALLBACK_MONITOR_PIN  = '';   // 서버 확인 실패 시 열지 않음
 const FALLBACK_MANAGER_PIN  = '';   // 서버 확인 실패 시 열지 않음
 // ───────────────────────────────────────────────────────
 let SCRIPT_URL = localStorage.getItem('scriptUrl') || 'https://script.google.com/macros/s/AKfycbxBQWn2adwedy94MWxF3NGjyEnnMHde4vm-6VRXP1PEVGr6mDKQbQm7RFG3vnmrcAQ4/exec';
+
+// ── Supabase 연결 (applications 테이블 전용) ──────────
+const SUPABASE_URL  = 'https://kfymlvnevbchsvwbrwno.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmeW1sdm5ldmJjaHN2d2Jyd25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5OTc0NDIsImV4cCI6MjA5NjU3MzQ0Mn0.BETSnOn8zHtNFmO3K7PfrAnAHticjGQ6zw4RmUS8N8I';
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+// ─────────────────────────────────────────────────────
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 window.addEventListener('load', function() {
   setTimeout(function() { window.scrollTo(0, 0); }, 0);
@@ -1188,9 +1195,32 @@ async function submitApply() {
   const items = [braille && '점자메뉴판', ramp && '경사로', sign && '쉬운 안내판', otherLabel].filter(Boolean).join(', ');
   const ts = new Date().toLocaleString('ko-KR');
   setLoading('apply-btn', true, '신청 제출하기');
+  // ── [GAS 백업] 기존 Google Apps Script 전송 코드 ──────
+  // try {
+  //   await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors',
+  //     body: JSON.stringify({type:'apply', name, addr, items, applyname, phone, memo, privacy: 'Y', timestamp: ts}),
+  //     headers:{'Content-Type':'application/json'} });
+  // } catch(e) {}
+  // ──────────────────────────────────────────────────────
+
+  // ── Supabase insert (applications 테이블) ─────────────
   try {
-    await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', body: JSON.stringify({type:'apply', name, addr, items, applyname, phone, memo, privacy: 'Y', timestamp: ts}), headers:{'Content-Type':'application/json'} });
-  } catch(e) {}
+    const { error } = await _supabase.from('applications').insert({
+      store_name:    name,
+      address:       addr,
+      items:         items,
+      applicant:     applyname,
+      phone:         phone,
+      memo:          memo,
+      privacy_agree: true,
+      status:        '신청 접수'
+    });
+    if (error) console.warn('Supabase insert 오류:', error.message);
+  } catch(e) {
+    console.warn('Supabase 연결 오류:', e);
+  }
+  // ──────────────────────────────────────────────────────
+
   saveRecord({ type:'apply', name, addr, items, applyname, phone, memo, timestamp: ts });
   showToast('apply-toast','✅ 신청이 접수되었습니다. 담당자가 확인 후 연락드릴게요!','success');
   ['a_name','a_addr','a_applyname','a_phone','a_memo','a_other_detail'].forEach(id => document.getElementById(id).value = '');

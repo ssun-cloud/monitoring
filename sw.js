@@ -1,4 +1,4 @@
-const CACHE_NAME = 'barrier-free-v7';
+const CACHE_NAME = 'monitoring-v1';
 const urlsToCache = [
   '/monitoring/',
   '/monitoring/index.html'
