@@ -1,0 +1,2404 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>열린 마을 만들기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#1a8c6e" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="열린마을만들기" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --teal: #1a8c6e; --teal-light: #e6f5f1; --teal-mid: #a8ddd0;
+    --text: #1e1e1e; --text-muted: #6b7280; --border: #e0e0e0;
+    --bg: #f7f8fa; --white: #ffffff; --red: #dc2626;
+    --good: #16a34a; --good-bg: #dcfce7;
+    --fair: #d97706; --fair-bg: #fef3c7;
+    --poor: #dc2626; --poor-bg: #fee2e2;
+    --radius: 12px; --radius-sm: 8px;
+  }
+  body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* 헤더 */
+  .app-header { background: var(--white); border-bottom: 1px solid var(--border); padding: 14px 20px; position: sticky; top: 0; z-index: 100; }
+  .app-header h1 { font-size: 18px; font-weight: 700; color: var(--teal); letter-spacing: -0.3px; }
+  .app-header p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+  /* 탭 */
+  .tabs { display: flex; background: var(--white); border-bottom: 1px solid var(--border); position: sticky; top: 57px; z-index: 99; overflow-x: auto; }
+  .tab { flex: 1; min-width: 64px; padding: 12px 4px; font-size: 13px; font-weight: 500; font-family: 'Noto Sans KR', sans-serif; color: var(--text-muted); background: none; border: none; border-bottom: 3px solid transparent; cursor: pointer; transition: all 0.18s; white-space: nowrap; }
+  .tab.active { color: var(--teal); border-bottom-color: var(--teal); }
+
+  /* 섹션 */
+  .section { display: none; padding: 20px 16px 60px; max-width: 560px; margin: 0 auto; }
+  .section.active { display: block; }
+  #map.section.active { height: calc(100vh - 101px); overflow: hidden; display: flex; flex-direction: column; padding-bottom: 12px; }
+  #map.section.active .notice { flex: 0 0 auto; }
+  #map.section.active #kakao-map { height: 210px !important; }
+  #map .map-sticky { flex: 0 0 auto; }
+  #map .map-list-card { flex: 1 1 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; margin-bottom: 0; }
+  #map .map-list-card .card-title { flex: 0 0 auto; }
+  #map .map-list-card.card { padding: 14px 16px; }
+  #map-list .record-card { padding: 12px 14px; margin-bottom: 8px; }
+  #map-list { flex: 1 1 0; height: 100%; min-height: 0; overflow-y: scroll; padding-right: 4px; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+
+  /* 카카오 장소 검색 모달 */
+  .place-search-modal { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; display:flex; align-items:flex-end; justify-content:center; }
+  .place-search-sheet { background:var(--white); border-radius:20px 20px 0 0; width:100%; max-width:560px; max-height:80vh; display:flex; flex-direction:column; padding:20px 16px 32px; }
+  @media (min-width: 769px) {
+    .place-search-modal { align-items:center; }
+    .place-search-sheet { border-radius:16px; max-width:500px; max-height:70vh; }
+  }
+  .place-search-input-wrap { display:flex; gap:8px; margin-bottom:12px; }
+  .place-search-input-wrap input { flex:1; padding:10px 14px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:15px; font-family:'Noto Sans KR',sans-serif; }
+  .place-search-input-wrap input:focus { border-color:var(--teal); outline:none; }
+  .place-search-input-wrap button { padding:10px 16px; background:var(--teal); color:#fff; border:none; border-radius:var(--radius-sm); font-size:14px; font-family:'Noto Sans KR',sans-serif; cursor:pointer; }
+  .place-list { overflow-y:auto; flex:1; }
+  .place-item { padding:12px 4px; border-bottom:1px solid var(--border); cursor:pointer; }
+  .place-item:hover { background:var(--bg); }
+  .place-item .place-name { font-size:15px; font-weight:600; margin-bottom:3px; }
+  .place-item .place-addr { font-size:13px; color:var(--text-muted); }
+  .place-item .place-category { font-size:11px; color:var(--teal); margin-bottom:3px; }
+  .place-empty { text-align:center; padding:40px 0; color:var(--text-muted); font-size:14px; }
+
+  /* 서브탭 (모니터링 내 체크리스트/일지) */
+  .subtab-bar { display: grid; grid-template-columns: 1fr 1fr; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 16px; overflow: hidden; }
+  .subtab { padding: 12px; font-size: 14px; font-weight: 500; font-family: 'Noto Sans KR', sans-serif; color: var(--text-muted); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; }
+  .subtab.on-check { color: #1565c0; background: #e3f2fd; border-bottom-color: #1565c0; font-weight: 700; }
+  .subtab.on-journal { color: #6a1b9a; background: #f3e8ff; border-bottom-color: #6a1b9a; font-weight: 700; }
+
+  /* 일지 목록 아이템 */
+  .journal-item { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 10px; }
+  .journal-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .journal-item-date { font-size: 13px; font-weight: 700; color: var(--teal); }
+  .journal-item-team { font-size: 12px; color: var(--text-muted); }
+  .journal-item-stores { font-size: 13px; margin-bottom: 4px; }
+  .journal-item-memo { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+  .journal-photo-link { display: inline-block; width: 52px; height: 52px; border-radius: 6px; border: 1px solid var(--border); background: var(--teal-light); font-size: 11px; text-align: center; line-height: 52px; color: var(--teal); text-decoration: none; margin-right: 4px; margin-top: 6px; }
+
+  /* 데스크탑 레이아웃 */
+  @media (min-width: 769px) {
+    .app-header { padding: 16px 40px; display: flex; align-items: center; gap: 24px; }
+    .app-header h1 { font-size: 20px; }
+    .app-header p { margin-top: 0; }
+    .tabs { top: 61px; padding: 0 40px; gap: 4px; }
+    .tab { flex: none; padding: 14px 20px; font-size: 14px; min-width: auto; }
+    .section { max-width: 760px; }
+    #home.section.active { max-width: 1100px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; padding: 28px 40px 60px; }
+    #apply.section.active, #monitor.section.active, #settings.section.active { padding: 28px 40px 60px; }
+    #map.section.active { max-width: 1180px; padding: 28px 40px 24px; height: calc(100vh - 109px); display: grid; grid-template-columns: minmax(0, 1fr) 360px; grid-template-rows: auto minmax(0, 1fr); gap: 14px 18px; }
+    #map.section.active .notice { grid-column: 1 / -1; margin-bottom: 0; }
+    #map .map-sticky { grid-column: 1; grid-row: 2; min-height: 0; height: 100%; display: flex; flex-direction: column; }
+    #map.section.active #kakao-map { flex: 1 1 auto; height: auto !important; min-height: 360px; }
+    #map #map-legend { flex: 0 0 auto; }
+    #map .map-list-card { grid-column: 2; grid-row: 2; height: 100%; }
+    .modal-sheet { border-radius: var(--radius); max-width: 600px; }
+    .modal-overlay { align-items: center; }
+  }
+
+  /* 공통 컴포넌트 */
+  .notice { background: var(--teal-light); border-left: 3px solid var(--teal); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 10px 14px; font-size: 13px; color: #1a5c4a; line-height: 1.6; margin-bottom: 18px; }
+  .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 16px; margin-bottom: 14px; }
+  .card-title { font-size: 14px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.4px; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+  .card-title::before { content: ''; display: inline-block; width: 3px; height: 13px; background: var(--teal); border-radius: 2px; }
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  label.field-label { display: block; font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 6px; }
+  .req { color: var(--red); margin-left: 2px; }
+  .opt { color: var(--text-muted); font-weight: 400; font-size: 12px; margin-left: 4px; }
+  input[type=text], input[type=tel], input[type=date], input[type=url], textarea, select { width: 100%; padding: 10px 12px; font-family: 'Noto Sans KR', sans-serif; font-size: 15px; color: var(--text); background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-sm); outline: none; transition: border-color 0.15s; -webkit-appearance: none; }
+  input:focus, textarea:focus, select:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(26,140,110,0.1); }
+  textarea { resize: vertical; min-height: 88px; line-height: 1.6; }
+  .check-list { display: flex; flex-direction: column; gap: 10px; }
+  .check-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s; }
+  .check-item:has(input:checked) { border-color: var(--teal); background: var(--teal-light); }
+  .check-item input[type=checkbox] { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; accent-color: var(--teal); cursor: pointer; }
+  .check-item .item-info { flex: 1; }
+  .check-item .item-name { font-size: 15px; font-weight: 500; }
+  .check-item .item-desc { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+  .rating-group { display: flex; gap: 8px; }
+  .rating-btn { flex: 1; padding: 10px 6px; font-family: 'Noto Sans KR', sans-serif; font-size: 14px; font-weight: 500; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--white); cursor: pointer; transition: all 0.15s; color: var(--text-muted); }
+  .rating-btn:hover { border-color: #aaa; color: var(--text); }
+  .rating-btn.sel-good { background: var(--good-bg); border-color: var(--good); color: var(--good); font-weight: 700; }
+  .rating-btn.sel-fair { background: var(--fair-bg); border-color: var(--fair); color: var(--fair); font-weight: 700; }
+  .rating-btn.sel-poor { background: var(--poor-bg); border-color: var(--poor); color: var(--poor); font-weight: 700; }
+  .pill-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pill { display: flex; align-items: center; gap: 5px; padding: 7px 14px; border: 1px solid var(--border); border-radius: 20px; font-family: 'Noto Sans KR', sans-serif; font-size: 13px; color: var(--text-muted); background: var(--white); cursor: pointer; transition: all 0.15s; user-select: none; }
+  .pill.active-yes { border-color: var(--poor); color: var(--poor); background: var(--poor-bg); }
+  .pill.active-no { border-color: var(--good); color: var(--good); background: var(--good-bg); }
+  .pill.active-follow { border-color: var(--fair); color: var(--fair); background: var(--fair-bg); }
+  .photo-drop { border: 1.5px dashed var(--teal-mid); border-radius: var(--radius-sm); padding: 20px; text-align: center; cursor: pointer; background: var(--teal-light); transition: all 0.15s; }
+  .photo-drop:hover { border-color: var(--teal); }
+  .photo-drop .drop-icon { font-size: 28px; margin-bottom: 6px; }
+  .photo-drop p { font-size: 13px; color: var(--teal); font-weight: 500; }
+  .photo-drop small { font-size: 11px; color: var(--text-muted); }
+  .photo-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .photo-thumb { width: 72px; height: 72px; border-radius: var(--radius-sm); object-fit: cover; border: 1px solid var(--border); }
+  .submit-btn { width: 100%; padding: 14px; background: var(--teal); color: var(--white); font-family: 'Noto Sans KR', sans-serif; font-size: 15px; font-weight: 700; border: none; border-radius: var(--radius); cursor: pointer; margin-top: 6px; transition: all 0.15s; }
+  .submit-btn:hover { background: #167a5e; }
+  .submit-btn:active { transform: scale(0.99); }
+  .submit-btn:disabled { background: #aaa; cursor: not-allowed; }
+  .toast { display: none; margin-top: 12px; padding: 12px 16px; border-radius: var(--radius-sm); font-size: 14px; text-align: center; line-height: 1.5; }
+  .toast.success { display: block; background: var(--good-bg); color: var(--good); border: 1px solid #86efac; }
+  .toast.error { display: block; background: var(--poor-bg); color: var(--poor); border: 1px solid #fca5a5; }
+  .loading-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* 대시보드 */
+  .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+  .stat-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; }
+  .stat-card .stat-num { font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .stat-card .stat-label { font-size: 13px; color: var(--text-muted); }
+  .stat-card.teal .stat-num { color: var(--teal); }
+  .stat-card.red .stat-num { color: var(--poor); }
+  .stat-card.amber .stat-num { color: var(--fair); }
+  .stat-card.green .stat-num { color: var(--good); }
+  .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: all 0.15s; }
+  .chart-row { margin-bottom: 12px; }
+  .chart-row:last-child { margin-bottom: 0; }
+  .chart-label { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px; }
+  .chart-label span:first-child { color: var(--text); }
+  .chart-label span:last-child { color: var(--text-muted); font-weight: 500; }
+  .chart-bar-bg { background: var(--bg); border-radius: 4px; height: 8px; overflow: hidden; }
+  .chart-bar { height: 8px; border-radius: 4px; background: var(--teal); transition: width 0.6s ease; }
+  .good-case-item { padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .good-case-item:last-child { border-bottom: none; }
+  .good-case-name { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .good-case-comment { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+  .good-case-meta { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+
+  /* 전체 기록 목록 */
+  .record-item { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 8px; }
+  .record-item .rec-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .record-item .rec-name { font-size: 15px; font-weight: 700; }
+  .record-item .rec-addr { font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
+  .record-item .rec-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag { font-size: 12px; padding: 3px 8px; border-radius: 10px; font-weight: 500; }
+  .tag-apply { background: #e0f2fe; color: #0369a1; }
+  .tag-monitor { background: #f3e8ff; color: #7c3aed; }
+  .tag-action { background: var(--poor-bg); color: var(--poor); }
+  .tag-good { background: var(--good-bg); color: var(--good); }
+  .tag-fair { background: var(--fair-bg); color: var(--fair); }
+  .rec-date { font-size: 11px; color: var(--text-muted); }
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 15px; }
+  .empty-state .empty-icon { font-size: 36px; margin-bottom: 10px; }
+  .record-detail { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .record-detail.open { display: block; }
+  .detail-row { display: flex; gap: 8px; margin-bottom: 6px; font-size: 14px; }
+  .detail-row:last-child { margin-bottom: 0; }
+  .detail-label { color: var(--text-muted); flex-shrink: 0; width: 72px; }
+  .detail-value { color: var(--text); line-height: 1.5; }
+  .record-item { cursor: pointer; }
+  .rec-toggle { font-size: 11px; color: var(--text-muted); margin-left: auto; padding-left: 8px; flex-shrink: 0; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 300; align-items: flex-end; justify-content: center; }
+  .modal-overlay.show { display: flex; }
+  .modal-sheet { background: var(--white); border-radius: 20px 20px 0 0; width: 100%; max-width: 560px; max-height: 85vh; overflow-y: auto; padding: 24px 20px 40px; }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .modal-header h3 { font-size: 16px; font-weight: 700; }
+  .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); padding: 4px; }
+  .edit-btn { font-size: 11px; color: var(--teal); background: var(--teal-light); border: 1px solid var(--teal-mid); border-radius: 10px; padding: 3px 8px; cursor: pointer; font-family: "Noto Sans KR", sans-serif; margin-left: 6px; }
+
+  /* 설정 */
+  .settings-status { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 12px; }
+  .settings-status.connected { background: var(--good-bg); color: var(--good); }
+  .settings-status.disconnected { background: var(--poor-bg); color: var(--poor); }
+  .sec-btn { padding: 10px 16px; font-family: 'Noto Sans KR', sans-serif; font-size: 13px; font-weight: 500; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--white); cursor: pointer; transition: all 0.15s; color: var(--text); margin-right: 8px; margin-top: 8px; }
+  .sec-btn:hover { background: var(--bg); }
+  .sec-btn.danger { border-color: var(--poor); color: var(--poor); }
+  .sec-btn.danger:hover { background: var(--poor-bg); }
+  .sec-btn.primary { background: var(--teal); color: white; border-color: var(--teal); }
+  .sec-btn.primary:hover { background: #167a5e; }
+
+  /* 비밀번호 잠금 */
+  .lock-screen { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 200; align-items: center; justify-content: center; flex-direction: column; }
+  .lock-screen.show { display: flex; }
+  .lock-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px 28px; width: 300px; text-align: center; }
+  .lock-icon { font-size: 36px; margin-bottom: 12px; }
+  .lock-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .lock-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; }
+  .pin-dots { display: flex; justify-content: center; gap: 12px; margin-bottom: 24px; }
+  .pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); background: var(--white); transition: all 0.15s; }
+  .pin-dot.filled { background: var(--teal); border-color: var(--teal); }
+  .pin-dot.error { background: var(--red); border-color: var(--red); }
+  .pin-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .pin-key { padding: 14px; font-family: 'Noto Sans KR', sans-serif; font-size: 20px; font-weight: 500; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.1s; color: var(--text); }
+  .pin-key:hover { background: var(--teal-light); border-color: var(--teal-mid); }
+  .pin-key:active { transform: scale(0.95); }
+  .pin-key.del { font-size: 15px; color: var(--text-muted); }
+  .pin-key.empty { visibility: hidden; }
+  .lock-error { font-size: 12px; color: var(--red); margin-top: 12px; min-height: 18px; }
+
+  @media (min-width: 769px) {
+    body #map.section.active {
+      max-width: 1500px !important;
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) 380px !important;
+      grid-template-rows: auto minmax(0, 1fr) !important;
+      gap: 14px 18px !important;
+      padding: 28px 40px 24px !important;
+      height: calc(100vh - 109px) !important;
+      overflow: hidden !important;
+    }
+    body #map.section.active .notice {
+      grid-column: 1 / -1 !important;
+      margin-bottom: 0 !important;
+    }
+    body #map.section.active .map-sticky {
+      grid-column: 1 !important;
+      grid-row: 2 !important;
+      height: auto !important;
+      min-height: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+    }
+    body #map.section.active #kakao-map {
+      flex: 0 0 auto !important;
+      height: clamp(520px, 64vh, 720px) !important;
+      min-height: 520px !important;
+    }
+    body #map.section.active .map-list-card {
+      grid-column: 2 !important;
+      grid-row: 2 !important;
+      height: 100% !important;
+      min-height: 0 !important;
+      margin-bottom: 0 !important;
+    }
+  }
+
+  @media (max-width: 768px) {
+    body #map.section.active {
+      height: calc(100vh - 101px) !important;
+      min-height: 0 !important;
+      overflow: hidden !important;
+      display: flex !important;
+      flex-direction: column !important;
+      padding-bottom: 12px !important;
+    }
+    body #map.section.active .notice {
+      flex: 0 0 auto !important;
+    }
+    body #map.section.active .map-sticky {
+      position: static !important;
+      flex: 0 0 auto !important;
+      display: flex !important;
+      flex-direction: column !important;
+      height: auto !important;
+      min-height: 0 !important;
+      padding-bottom: 8px !important;
+    }
+    body #map.section.active #map-legend {
+      order: -1 !important;
+      margin-top: 0 !important;
+      margin-bottom: 6px !important;
+    }
+    body #map.section.active #kakao-map {
+      height: 230px !important;
+      min-height: 230px !important;
+    }
+    body #map.section.active .map-list-card {
+      flex: 1 1 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      height: auto !important;
+      min-height: 0 !important;
+      overflow: hidden !important;
+      margin-bottom: 0 !important;
+    }
+    body #map.section.active #map-list {
+      flex: 1 1 0 !important;
+      height: 100% !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      overflow-y: auto !important;
+      padding-right: 4px !important;
+      -webkit-overflow-scrolling: touch !important;
+      overscroll-behavior: contain !important;
+    }
+  }
+</style>
+
+</head>
+<body>
+
+<!-- 비밀번호 잠금 -->
+<div class="lock-screen" id="lock-screen" role="dialog" aria-modal="true" aria-labelledby="lock-title" aria-describedby="lock-sub">
+  <div class="lock-card">
+    <div class="lock-icon">🔒</div>
+    <div class="lock-title" id="lock-title">모니터링단 전용</div>
+    <div class="lock-sub" id="lock-sub">4자리 비밀번호를 입력해 주세요</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="dot0"></div>
+      <div class="pin-dot" id="dot1"></div>
+      <div class="pin-dot" id="dot2"></div>
+      <div class="pin-dot" id="dot3"></div>
+    </div>
+    <div class="pin-keypad" role="group" aria-label="숫자 키패드">
+      <button class="pin-key" onclick="pinInput('1')" aria-label="1">1</button>
+      <button class="pin-key" onclick="pinInput('2')" aria-label="2">2</button>
+      <button class="pin-key" onclick="pinInput('3')" aria-label="3">3</button>
+      <button class="pin-key" onclick="pinInput('4')" aria-label="4">4</button>
+      <button class="pin-key" onclick="pinInput('5')" aria-label="5">5</button>
+      <button class="pin-key" onclick="pinInput('6')" aria-label="6">6</button>
+      <button class="pin-key" onclick="pinInput('7')" aria-label="7">7</button>
+      <button class="pin-key" onclick="pinInput('8')" aria-label="8">8</button>
+      <button class="pin-key" onclick="pinInput('9')" aria-label="9">9</button>
+      <button class="pin-key empty" aria-hidden="true"></button>
+      <button class="pin-key" onclick="pinInput('0')" aria-label="0">0</button>
+      <button class="pin-key del" onclick="pinDelete()" aria-label="마지막 숫자 지우기">지우기</button>
+    </div>
+    <div class="lock-error" id="lock-error" role="alert"></div>
+    <div id="pin-status" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)"></div>
+    <button onclick="closeLock()" style="margin-top:16px;background:none;border:none;font-family:'Noto Sans KR',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;text-decoration:underline;">취소</button>
+  </div>
+</div>
+
+<!-- 수정 모달 -->
+<div class="modal-overlay" id="edit-modal" onclick="closeEditModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <h3>기록 수정</h3>
+      <button class="modal-close" onclick="document.getElementById('edit-modal').classList.remove('show')">✕</button>
+    </div>
+    <div id="edit-form-body"></div>
+    <button class="submit-btn" onclick="saveEdit()">수정 저장</button>
+    <div id="edit-toast" class="toast" style="margin-top:10px"></div>
+  </div>
+</div>
+
+<a href="#apply" class="sr-only" style="position:absolute;left:-9999px;top:0;background:var(--teal);color:white;padding:8px 16px;z-index:9999;border-radius:4px" onfocus="this.style.left='0'" onblur="this.style.left='-9999px'">본문으로 바로가기</a>
+<header class="app-header">
+  <h1>🌿 열린 마을 만들기</h1>
+  <p>누구나 편하게 오갈 수 있는 마을을 함께 만들어요</p>
+  <a href="tel:0263957051" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--teal);text-decoration:none;margin-top:4px">📞 02-6395-7051 · 평일 09:00~18:00</a>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="메뉴">
+  <button class="tab active" role="tab" onclick="switchTab('home',    this)">🏠 홈</button>
+  <button class="tab" role="tab"        onclick="switchTab('apply',   this)">📋 신청·추천</button>
+  <button class="tab" role="tab"        onclick="requirePin(this)">🔍 모니터링</button>
+  <button class="tab" role="tab"        onclick="switchTab('map',     this)">🗺️ 지도</button>
+  <button class="tab" role="tab"        onclick="switchTab('settings',this)">⚙️ 설정</button>
+</nav>
+
+<!-- 홈 대시보드 -->
+<div id="home" class="section active" role="tabpanel" aria-label="홈 대시보드">
+
+  <div class="card" style="background:linear-gradient(135deg,var(--teal-light) 0%,#fff 100%);border-color:var(--teal-mid)">
+    <div style="font-size:18px;font-weight:700;color:var(--teal);margin-bottom:8px">열린 마을 만들기 🌿</div>
+    <div style="font-size:14px;color:#1a5c4a;line-height:1.8">
+      누구든 편하게 드나들 수 있는 가게를 함께 찾고, 만들어가요.<br>
+      좋은 가게는 추천하고, 필요한 곳은 신청해주세요.<br>
+      모니터링단이 직접 확인하고 기록합니다.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">참여하기</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <button onclick="switchApplyTab('recommend')" style="padding:14px 10px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;color:var(--teal);line-height:1.6" aria-label="상점 추천하기">
+        <span aria-hidden="true">🌟</span> 상점 추천하기<br><span style="font-size:11px;font-weight:400;color:#1a5c4a">편한 가게를 소개해요</span>
+      </button>
+      <button onclick="switchApplyTab('apply')" style="padding:14px 10px;background:#fff8e1;border:1.5px solid #fdd835;border-radius:var(--radius-sm);cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;color:#b8860b;line-height:1.6" aria-label="보급 신청하기">
+        <span aria-hidden="true">📬</span> 보급 신청하기<br><span style="font-size:11px;font-weight:400">설치가 필요한 곳을 알려요</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">모니터링단</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <button onclick="requirePinDirect('check')" style="padding:14px 10px;background:#e3f2fd;border:1.5px solid #90caf9;border-radius:var(--radius-sm);cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;color:#1565c0;line-height:1.6" aria-label="체크리스트 작성하기">
+        <span aria-hidden="true">🔍</span> 체크리스트<br><span style="font-size:11px;font-weight:400">모니터링 기록하기</span>
+      </button>
+      <button onclick="requirePinDirect('journal')" style="padding:14px 10px;background:#f3e8ff;border:1.5px solid #ce93d8;border-radius:var(--radius-sm);cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;color:#6a1b9a;line-height:1.6" aria-label="활동 일지 쓰기">
+        <span aria-hidden="true">📝</span> 활동 일지<br><span style="font-size:11px;font-weight:400">오늘 활동 기록하기</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px">
+      <div class="card-title" style="margin-bottom:0">현황 지도</div>
+      <button onclick="gotoMapTab()" style="font-size:12px;color:var(--teal);background:none;border:none;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">전체 보기 →</button>
+    </div>
+    <div id="home-map" style="width:100%;height:220px;"></div>
+  </div>
+
+</div>
+
+<!-- 신청·추천 -->
+<div id="apply" class="section" role="tabpanel" aria-label="신청 및 추천">
+  <div class="subtab-bar" role="tablist">
+    <button id="apply-subtab-apply" class="subtab on-check" role="tab" aria-selected="true" onclick="switchApplyTab('apply')">📬 보급 신청</button>
+    <button id="apply-subtab-rec" class="subtab" role="tab" aria-selected="false" onclick="switchApplyTab('recommend')">🌟 상점 추천</button>
+  </div>
+  <div id="apply-form-apply">
+  <div class="notice">
+    <strong>여기도 있으면 좋겠어요!</strong><br>
+    지역주민 누구나 점자메뉴판, 경사로, 쉬운 안내판 등 접근성 개선이 필요한 장소를 알려줄 수 있어요.<br>
+    <span style="display:inline-block;margin-top:6px;font-size:12px;background:rgba(26,140,110,0.12);padding:4px 10px;border-radius:12px;color:#1a5c4a">경사로는 현장 확인 후 지원 가능 여부를 안내드립니다.</span>
+  </div>
+  <div class="card">
+    <div class="card-title">상점 정보</div>
+    <div class="field">
+      <label class="field-label">상호명<span class="req">*</span></label>
+      <input type="text" id="a_name" placeholder="예) 종로분식" / aria-label="상호명">
+    </div>
+    <div class="field">
+      <label class="field-label">주소<span class="opt">(선택)</span></label>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="a_addr" placeholder="상호명 검색으로 자동 입력돼요" aria-label="주소" style="flex:1" />
+        <button type="button" onclick="openPlaceSearch('apply')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="지도에서 장소 찾기">🔍 찾기</button>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">신청 항목</div>
+    <div class="check-list">
+      <label class="check-item">
+        <input type="checkbox" id="a_braille"  aria-label="점자메뉴판 신청"/>
+        <div class="item-info">
+          <div class="item-name">📖 점자메뉴판</div>
+          <div class="item-desc">시각장애인을 위한 음식·메뉴 안내용 점자 메뉴판</div>
+        </div>
+      </label>
+      <label class="check-item">
+        <input type="checkbox" id="a_ramp"  aria-label="경사로 신청"/>
+        <div class="item-info">
+          <div class="item-name">♿ 경사로</div>
+          <div class="item-desc">휠체어·유모차 이용자를 위한 출입구 경사로</div>
+        </div>
+      </label>
+      <label class="check-item">
+        <input type="checkbox" id="a_sign"  aria-label="쉬운 안내판 신청"/>
+        <div class="item-info">
+          <div class="item-name">🔤 쉬운 안내판</div>
+          <div class="item-desc">픽토그램·쉬운 그림으로 된 메뉴판 또는 안내판</div>
+        </div>
+      </label>
+      <label class="check-item">
+        <input type="checkbox" id="a_other" onchange="toggleOtherInput(this)"  aria-label="기타 신청"/>
+        <div class="item-info">
+          <div class="item-name">💬 기타</div>
+          <div class="item-desc">위 항목 외 접근성 관련 지원이 필요한 경우</div>
+        </div>
+      </label>
+    </div>
+    <div id="other-input-wrap" style="display:none;margin-top:10px">
+      <div class="card-title" style="margin-bottom:8px">기타 내용</div>
+      <textarea id="a_other_detail" placeholder="기타를 선택했다면 필요한 내용을 적어주세요." style="min-height:72px" aria-label="기타 내용"></textarea>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">신청자 정보</div>
+    <div class="field">
+      <label class="field-label">이름 또는 닉네임<span class="req">*</span></label>
+      <input type="text" id="a_applyname" placeholder="예) 홍길동 또는 종로주민" / aria-label="이름 또는 닉네임">
+    </div>
+    <div class="field">
+      <label class="field-label">연락처<span class="req">*</span></label>
+      <input type="tel" id="a_phone" placeholder="예) 010-1234-5678" / aria-label="연락처">
+    </div>
+    <div class="field">
+      <label class="field-label">요청 메모<span class="opt">(선택)</span></label>
+      <textarea id="a_memo" placeholder="추가로 전달하고 싶은 내용을 적어주세요." aria-label="요청 메모"></textarea>
+    </div>
+  </div>
+  <div class="card" style="background:var(--teal-light);border-color:var(--teal-mid)">
+    <div style="font-size:13px;color:#1a5c4a;line-height:1.7;margin-bottom:12px">
+      입력하신 개인정보는 종로장애인복지관의 접근성 개선 신청 접수 및 진행 안내를 위해서만 사용되며, 담당자 외에는 공개되지 않습니다.
+    </div>
+    <div style="font-size:12px;color:#1a5c4a;background:rgba(255,255,255,0.5);border-radius:8px;padding:10px 12px;margin-bottom:12px;line-height:1.8">
+      · 수집항목: 이름, 연락처<br>
+      · 이용목적: 접근성 개선 신청 접수 및 진행 안내<br>
+      · 보유기간: 신청 처리 완료 후 1년 보관 후 파기
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:500;color:#1a5c4a">
+      <input type="checkbox" id="a_privacy" style="width:18px;height:18px;accent-color:var(--teal);flex-shrink:0" / aria-label="개인정보 동의">
+      개인정보 수집 및 이용에 동의합니다.
+    </label>
+  </div>
+  <button class="submit-btn" id="apply-btn" onclick="submitApply()">신청 제출하기</button>
+  <div id="apply-toast" class="toast"></div>
+  </div><!-- /apply-form-apply -->
+
+  <div id="apply-form-recommend" style="display:none">
+    <div class="notice"><strong>우리 동네 편한 가게를 소개해요!</strong><br>배리어프리 가게를 발견했다면 알려주세요. 지도에 함께 기록할게요.</div>
+    <div class="card">
+      <div class="card-title">상점 정보</div>
+      <div class="field">
+        <label class="field-label" for="r_name">상호명<span class="req">*</span></label>
+        <input type="text" id="r_name" placeholder="예) 종로분식" aria-label="추천 상호명">
+      </div>
+      <div class="field">
+        <label class="field-label" for="r_addr">주소<span class="opt">(선택)</span></label>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="r_addr" placeholder="상호명 검색으로 자동 입력돼요" aria-label="추천 상점 주소" style="flex:1" />
+          <button type="button" onclick="openPlaceSearch('recommend')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="지도에서 장소 찾기">🔍 찾기</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">어떤 점이 좋았나요?</div>
+      <div class="check-list">
+        <label class="check-item"><input type="checkbox" id="r_braille" aria-label="점자메뉴판 있어요"/><div class="item-info"><div class="item-name">📖 점자메뉴판 있어요</div><div class="item-desc">시각장애인도 메뉴를 확인할 수 있어요</div></div></label>
+        <label class="check-item"><input type="checkbox" id="r_ramp" aria-label="경사로·턱 없어요"/><div class="item-info"><div class="item-name">♿ 경사로·턱 없어요</div><div class="item-desc">휠체어·유모차도 편하게 들어올 수 있어요</div></div></label>
+        <label class="check-item"><input type="checkbox" id="r_toilet" aria-label="화장실 이용 편해요"/><div class="item-info"><div class="item-name">🚻 화장실 이용 편해요</div></div></label>
+        <label class="check-item"><input type="checkbox" id="r_staff" aria-label="직원이 친절해요"/><div class="item-info"><div class="item-name">😊 직원이 친절해요</div><div class="item-desc">장애인·노인 등에게 배려 있게 응대해요</div></div></label>
+        <label class="check-item"><input type="checkbox" id="r_sign" aria-label="쉬운 안내판 있어요"/><div class="item-info"><div class="item-name">🔤 쉬운 안내판 있어요</div></div></label>
+        <label class="check-item"><input type="checkbox" id="r_other_chk" onchange="document.getElementById('r_other_wrap').style.display=this.checked?'block':'none'" aria-label="기타"/><div class="item-info"><div class="item-name">💬 기타</div><div class="item-desc">직접 적어주세요</div></div></label>
+      </div>
+      <div id="r_other_wrap" style="display:none;margin-top:10px">
+        <textarea id="r_other_text" placeholder="어떤 점이 좋았는지 자유롭게 적어주세요." style="min-height:72px" aria-label="기타 좋았던 점"></textarea>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">추천인 정보</div>
+      <div class="field">
+        <label class="field-label" for="r_author">이름 또는 닉네임<span class="req">*</span></label>
+        <input type="text" id="r_author" placeholder="예) 홍길동 또는 종로주민" aria-label="추천인 이름">
+      </div>
+      <div class="field">
+        <label class="field-label" for="r_phone">연락처<span class="opt">(선택)</span></label>
+        <input type="tel" id="r_phone" placeholder="예) 010-1234-5678" aria-label="추천인 연락처">
+      </div>
+      <div class="field">
+        <label class="field-label" for="r_intro">한 줄 소개<span class="opt">(선택)</span></label>
+        <input type="text" id="r_intro" placeholder="예) 경사로도 있고 직원분이 너무 친절해요!" aria-label="한 줄 소개">
+      </div>
+    </div>
+    <button class="submit-btn" id="recommend-btn" onclick="submitRecommend()">추천 제출하기</button>
+    <div id="recommend-toast" class="toast" role="alert" aria-live="polite"></div>
+  </div><!-- /apply-form-recommend -->
+
+</div><!-- /apply section -->
+
+<!-- 모니터링 기록 -->
+<div id="monitor" class="section" role="tabpanel" aria-label="모니터링">
+  <div class="subtab-bar" role="tablist">
+    <button id="subtab-check" class="subtab on-check" role="tab" aria-selected="true" onclick="showSubtab('check')"><span aria-hidden="true">🔍</span> 체크리스트</button>
+    <button id="subtab-journal" class="subtab" role="tab" aria-selected="false" onclick="showSubtab('journal')"><span aria-hidden="true">📝</span> 활동 일지</button>
+  </div>
+  <div id="sub-check">
+  <div class="notice">모니터링단 전용 화면입니다.<br>현장에서 점검한 내용을 기록해 주세요.</div>
+  <div class="card">
+    <div class="card-title">장소 정보</div>
+    <div class="field">
+      <label class="field-label">장소명<span class="req">*</span></label>
+      <input type="text" id="m_place" placeholder="예) 삼청로 카페거리" / aria-label="장소명">
+    </div>
+    <div class="field">
+      <label class="field-label">주소<span class="req">*</span></label>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="m_addr" placeholder="상호명 검색으로 자동 입력돼요" aria-label="모니터링 주소" style="flex:1" />
+        <button type="button" onclick="openPlaceSearch('monitor')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="지도에서 장소 찾기">🔍 찾기</button>
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label">모니터링 날짜<span class="req">*</span></label>
+      <input type="date" id="m_date" / aria-label="모니터링 날짜">
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">항목별 평가</div>
+    <div class="field">
+      <label class="field-label">점자메뉴판 구비 여부</label>
+      <div class="rating-group" id="rg_r1">
+        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r1','rg_r1',this,'good')">👍 좋음</button>
+        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r1','rg_r1',this,'fair')">😐 보통</button>
+        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r1','rg_r1',this,'poor')">👎 미흡</button>
+      </div>
+      <input type="hidden" id="m_r1" />
+    </div>
+    <div class="field">
+      <label class="field-label">경사로 및 출입 접근성</label>
+      <div class="rating-group" id="rg_r2">
+        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r2','rg_r2',this,'good')">👍 좋음</button>
+        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r2','rg_r2',this,'fair')">😐 보통</button>
+        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r2','rg_r2',this,'poor')">👎 미흡</button>
+      </div>
+      <input type="hidden" id="m_r2" />
+    </div>
+    <div class="field">
+      <label class="field-label">화장실 접근성</label>
+      <div class="rating-group" id="rg_r3">
+        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r3','rg_r3',this,'good')">👍 좋음</button>
+        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r3','rg_r3',this,'fair')">😐 보통</button>
+        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r3','rg_r3',this,'poor')">👎 미흡</button>
+      </div>
+      <input type="hidden" id="m_r3" />
+    </div>
+    <div class="field">
+      <label class="field-label">안내판·표지판 가독성</label>
+      <div class="rating-group" id="rg_r4">
+        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r4','rg_r4',this,'good')">👍 좋음</button>
+        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r4','rg_r4',this,'fair')">😐 보통</button>
+        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r4','rg_r4',this,'poor')">👎 미흡</button>
+      </div>
+      <input type="hidden" id="m_r4" />
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">추가 확인 항목</div>
+    <div class="field">
+      <label class="field-label">해당하는 항목을 모두 선택해 주세요<span class="opt">(선택)</span></label>
+      <div class="check-list">
+        <label class="check-item">
+          <input type="checkbox" id="m_easysign"  aria-label="쉬운 안내판 필요"/>
+          <div class="item-info">
+            <div class="item-name">🔤 쉬운 안내판 필요</div>
+            <div class="item-desc">픽토그램·그림 안내판 또는 쉬운 메뉴판이 필요한 곳</div>
+          </div>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" id="m_goodstaff"  aria-label="직원 응대 좋음"/>
+          <div class="item-info">
+            <div class="item-name">😊 직원 응대 좋음</div>
+            <div class="item-desc">장애인·노인 등에게 친절하고 배려 있는 응대를 하는 곳</div>
+          </div>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" id="m_goodcase"  aria-label="좋은 사례"/>
+          <div class="item-info">
+            <div class="item-name">⭐ 좋은 사례</div>
+            <div class="item-desc">다른 곳에 소개하고 싶은 배리어프리 우수 사례</div>
+          </div>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">현장 사진</div>
+    <div class="photo-drop" onclick="document.getElementById('m_photos').click()">
+      <div class="drop-icon">📷</div>
+      <p>탭해서 사진 추가하기</p>
+      <small>최대 6장</small>
+    </div>
+    <input type="file" id="m_photos" accept="image/*" multiple style="display:none" aria-label="현장 사진 업로드" onchange="previewPhotos(this)" />
+    <div class="photo-grid" id="photo-grid"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">종합 의견</div>
+    <div class="field">
+      <label class="field-label">조치 필요 여부</label>
+      <div class="pill-group">
+        <button class="pill" id="pill_yes"    onclick="selectPill('yes')">🚨 조치 필요</button>
+        <button class="pill" id="pill_no"     onclick="selectPill('no')">✅ 양호</button>
+        <button class="pill" id="pill_follow" onclick="selectPill('follow')">🕐 추후 확인</button>
+      </div>
+      <input type="hidden" id="m_action" />
+    </div>
+    <div class="field">
+      <label class="field-label">종합 의견<span class="req">*</span></label>
+      <textarea id="m_comment" placeholder="전반적인 점검 소감, 개선이 필요한 부분, 잘 된 점 등을 자유롭게 적어주세요." style="min-height:110px" aria-label="종합 의견"></textarea>
+    </div>
+    <div class="field">
+      <label class="field-label">기록자 이름<span class="req">*</span></label>
+      <input type="text" id="m_author" placeholder="예) 홍길동" / aria-label="기록자 이름">
+    </div>
+  </div>
+  <button class="submit-btn" id="monitor-btn" onclick="submitMonitor()">기록 제출하기</button>
+  <div id="monitor-toast" class="toast"></div>
+  </div><!-- /sub-check -->
+
+  <div id="sub-journal" style="display:none">
+    <div class="notice">그날 방문한 상점과 체크리스트가 자동으로 불러와져요. 활동 소감을 추가로 작성하고 제출하세요.</div>
+    <div class="card">
+      <div class="card-title">활동 기본 정보</div>
+      <div class="field">
+        <label class="field-label" for="j_date">활동 날짜<span class="req">*</span></label>
+        <input type="date" id="j_date" aria-label="활동 날짜" onchange="loadJournalStores()" />
+      </div>
+      <div class="field">
+        <label class="field-label" for="j_time">활동 시간<span class="req">*</span></label>
+        <input type="time" id="j_time" aria-label="활동 시간" />
+      </div>
+      <div class="field">
+        <label class="field-label" for="j_team">활동 팀<span class="req">*</span></label>
+        <select id="j_team" aria-label="활동 팀 선택" onchange="loadJournalStores()">
+          <option value="">-- 팀을 선택하세요 --</option>
+        </select>
+        <p id="j_team_members" style="font-size:12px;color:var(--text-muted);margin-top:5px"></p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">방문 상점 (자동 불러오기)</div>
+      <div id="j_stores_wrap"><p style="font-size:13px;color:var(--text-muted)">날짜와 팀을 선택하면 자동으로 표시됩니다.</p></div>
+      <div class="field" style="margin-top:12px">
+        <label class="field-label" for="j_extra">직접 추가<span class="opt">(선택)</span></label>
+        <input type="text" id="j_extra" placeholder="추가 방문 상점명 (쉼표로 구분)" aria-label="추가 상점명" />
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">활동 소감 / 메모</div>
+      <textarea id="j_memo" placeholder="오늘 활동하면서 느낀 점, 특이사항, 다음에 확인할 것들을 자유롭게 적어주세요." style="min-height:120px" aria-label="활동 소감"></textarea>
+    </div>
+    <button class="submit-btn" id="journal-btn" onclick="submitJournal()">일지 제출하기</button>
+    <div id="journal-toast" class="toast" role="alert" aria-live="polite"></div>
+    <div class="card" style="margin-top:20px">
+      <div class="card-title">제출된 일지 목록</div>
+      <div id="journal-list" role="list" aria-live="polite" aria-label="제출된 일지 목록"><div class="empty-state"><div class="empty-icon" aria-hidden="true">📝</div>아직 작성된 일지가 없어요</div></div>
+    </div>
+  </div><!-- /sub-journal -->
+
+</div><!-- /monitor section -->
+
+<!-- 전체 기록 -->
+<div id="records" class="section" role="tabpanel" aria-label="전체 기록">
+  <div class="card" style="margin-bottom:14px">
+    <div style="display:flex;gap:8px;align-items:center" role="group" aria-label="기록 필터">
+      <label for="filter-type" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">유형 필터</label>
+      <select id="filter-type" onchange="renderRecords()" style="flex:1" aria-label="유형으로 필터">
+        <option value="">전체 유형</option>
+        <option value="apply">보급 신청</option>
+        <option value="monitor">모니터링</option>
+      </select>
+      <label for="filter-action" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">상태 필터</label>
+      <select id="filter-action" onchange="renderRecords()" style="flex:1" aria-label="상태로 필터">
+        <option value="">전체 상태</option>
+        <option value="조치 필요">조치 필요</option>
+        <option value="양호">양호</option>
+        <option value="추후 확인">추후 확인</option>
+      </select>
+    </div>
+  </div>
+  <div id="records-count" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)"></div>
+  <div id="records-list" role="list" aria-label="전체 기록 목록"></div>
+</div>
+
+<!-- 지도 -->
+<div id="map" class="section" role="tabpanel" aria-label="현황 지도">
+  <div class="notice">신청이 접수된 상점 위치를 지도에서 확인할 수 있어요.<br>주소가 입력된 신청 기록만 표시됩니다.</div>
+  <div class="map-sticky" style="background:var(--bg);padding-bottom:8px">
+    <div style="position:relative">
+      <div id="kakao-map" role="application" aria-label="배리어프리 상점 지도" style="width:100%;height:240px;border-radius:12px;border:1px solid var(--border);"></div>
+      <button onclick="moveToMyLocation()" style="position:absolute;bottom:12px;right:12px;background:white;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:500;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.12);display:flex;align-items:center;gap:6px;z-index:10">
+        📍 내 위치
+      </button>
+    </div>
+    <div id="map-legend" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;font-size:11px;color:var(--text-muted);align-items:center;padding:8px 10px;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#1a8c6e;display:inline-block"></span> 보급 신청</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#ec4899;display:inline-block"></span> 상점 추천</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block"></span> 조치 필요</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#9ca3af;display:inline-block"></span> 미검증 (모니터링단만 표시)</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#d97706;display:inline-block"></span> 추후 확인</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#3b82f6;display:inline-block"></span> 모니터링 양호</span>
+    </div>
+  </div>
+  <div class="card map-list-card">
+    <div class="card-title" id="map-list-title">지도 목록</div>
+    <div id="map-list" role="list" aria-labelledby="map-list-title" aria-live="polite"></div>
+  </div>
+</div>
+
+<!-- 카카오 장소 검색 모달 -->
+<div id="place-search-modal" class="place-search-modal" style="display:none" role="dialog" aria-modal="true" aria-label="장소 검색">
+  <div class="place-search-sheet">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-size:16px;font-weight:700">장소 검색</div>
+      <button onclick="closePlaceSearch()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted)" aria-label="닫기">✕</button>
+    </div>
+    <div class="place-search-input-wrap">
+      <input type="text" id="place-search-input" placeholder="상호명으로 검색해보세요" aria-label="장소 검색어" onkeydown="if(event.key==='Enter')searchPlace()" />
+      <button onclick="searchPlace()">검색</button>
+    </div>
+    <div class="place-list" id="place-list" role="list" aria-label="검색 결과">
+      <div class="place-empty">상호명을 입력하고 검색하세요</div>
+    </div>
+  </div>
+</div>
+
+<!-- 설정 -->
+<div id="settings" class="section" role="tabpanel" aria-label="설정">
+  <div class="card">
+    <div class="card-title">담당자 인증</div>
+    <div id="manager-auth-status" style="font-size:13px;color:var(--text-muted);margin-bottom:12px">🔒 인증되지 않았어요. 담당자 비번으로 로그인하면 개인정보와 상태 변경이 가능해요.</div>
+    <button class="sec-btn primary" id="manager-auth-btn" onclick="toggleManagerAuth()" aria-describedby="manager-auth-status">담당자 로그인</button>
+  </div>
+  <div id="manager-only-section" style="display:none">
+    <div class="card">
+      <div class="card-title">전체 기록</div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <select id="rec-filter-type" onchange="renderSettingsRecords()" aria-label="유형 필터" style="flex:1;min-width:100px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:'Noto Sans KR',sans-serif">
+          <option value="">전체 유형</option>
+          <option value="apply">보급 신청</option>
+          <option value="monitor">모니터링</option>
+          <option value="recommend">상점 추천</option>
+        </select>
+        <select id="rec-filter-action" onchange="renderSettingsRecords()" aria-label="상태 필터" style="flex:1;min-width:100px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:'Noto Sans KR',sans-serif">
+          <option value="">전체 상태</option>
+          <option value="조치 필요">조치 필요</option>
+          <option value="양호">양호</option>
+          <option value="추후 확인">추후 확인</option>
+          <option value="신청 접수">신청 접수</option>
+          <option value="처리 완료">처리 완료</option>
+          <option value="추천">추천</option>
+        </select>
+      </div>
+      <div id="settings-records-list" role="list" aria-label="기록 목록" aria-live="polite">
+        <div class="empty-state"><div class="empty-icon" aria-hidden="true">📋</div>기록이 없어요. 시트에서 불러오기를 해주세요.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Google 시트 연결</div>
+      <div id="sheet-status" class="settings-status connected">✅ 시트가 연결되어 있어요</div>
+      <p style="font-size:13px;color:var(--text-muted);margin-top:8px">신청 및 모니터링 기록이 Google 시트에 자동으로 저장됩니다.</p>
+      <button class="sec-btn primary" onclick="loadFromSheet()" style="margin-top:12px" aria-label="Google 시트에서 기록 불러오기">📥 시트에서 불러오기</button>
+      <button class="sec-btn" onclick="testSheet()" style="margin-top:8px" aria-label="Google 시트 연결 테스트 전송">테스트 전송</button>
+      <div id="settings-toast" class="toast" style="margin-top:10px"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">앱 데이터</div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">시트에서 불러온 후 로컬 데이터를 초기화할 수 있어요.</p>
+      <button class="sec-btn danger" onclick="clearAllData()" aria-label="앱 로컬 기록 초기화, 시트 데이터는 유지됩니다">모든 기록 초기화</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 설정 ──────────────────────────────────────────
+// ── 비밀번호 설정 (변경 시 아래 숫자만 수정) ────────────
+const FALLBACK_MONITOR_PIN  = '';   // 서버 확인 실패 시 열지 않음
+const FALLBACK_MANAGER_PIN  = '';   // 서버 확인 실패 시 열지 않음
+// ───────────────────────────────────────────────────────
+let SCRIPT_URL = localStorage.getItem('scriptUrl') || 'https://script.google.com/macros/s/AKfycbxBQWn2adwedy94MWxF3NGjyEnnMHde4vm-6VRXP1PEVGr6mDKQbQm7RFG3vnmrcAQ4/exec';
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+window.addEventListener('load', function() {
+  setTimeout(function() { window.scrollTo(0, 0); }, 0);
+});
+
+// ── 로컬 스토리지 데이터 ──────────────────────────
+function getRecords() { return JSON.parse(localStorage.getItem('records') || '[]'); }
+function saveRecord(rec) {
+  const records = getRecords();
+  records.unshift(rec);
+  localStorage.setItem('records', JSON.stringify(records));
+  updateDashboard();
+}
+
+// ── 팀 구성 (연도 초에 이 부분만 수정하세요) ──────────
+let TEAMS = [
+  { name: '1팀', members: ['홍길동', '김철수'] },
+  { name: '2팀', members: ['이영희', '박지민'] },
+];
+try {
+  const savedTeams = JSON.parse(localStorage.getItem('appTeams') || '[]');
+  if (Array.isArray(savedTeams) && savedTeams.length) TEAMS = savedTeams;
+} catch(e) {}
+let appSettingsPromise = null;
+
+async function loadAppSettings(force) {
+  if (appSettingsPromise && !force) return appSettingsPromise;
+  appSettingsPromise = fetch(SCRIPT_URL + '?type=settings', { cache: 'no-store' })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      if (data && data.result === 'ok' && data.settings && Array.isArray(data.settings.teams) && data.settings.teams.length) {
+        TEAMS = data.settings.teams;
+        localStorage.setItem('appTeams', JSON.stringify(TEAMS));
+      }
+      return TEAMS;
+    })
+    .catch(function(e) {
+      console.warn('설정 불러오기 실패:', e);
+      return TEAMS;
+    });
+  return appSettingsPromise;
+}
+
+async function verifyPin(pinType, pin) {
+  try {
+    const data = await postSheetData({ type: 'checkPin', pinType: pinType, pin: pin });
+    if (data && data.result === 'ok' && typeof data.valid === 'boolean') return data.valid;
+  } catch(e) {
+    console.warn('서버 비밀번호 확인 실패:', e);
+  }
+  return pinType === 'manager' ? pin === FALLBACK_MANAGER_PIN : pin === FALLBACK_MONITOR_PIN;
+}
+
+// ── 탭 전환 ──────────────────────────────────────
+function switchTab(id, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab[role="tab"]').forEach(t => t.setAttribute('aria-selected', 'false'));
+  document.getElementById(id).classList.add('active');
+  if (el) {
+    el.classList.add('active');
+    el.setAttribute('aria-selected', 'true');
+  }
+  if (id === 'home') updateDashboard();
+  if (id === 'settings') loadSettingsUI();
+  if (id === 'map') initMap();
+}
+
+// ── 서브탭 전환 (모니터링: 체크리스트/일지) ──────────
+function showSubtab(tab) {
+  var isCheck = (tab === 'check');
+  document.getElementById('sub-check').style.display = isCheck ? 'block' : 'none';
+  document.getElementById('sub-journal').style.display = isCheck ? 'none' : 'block';
+  var cb = document.getElementById('subtab-check');
+  var jb = document.getElementById('subtab-journal');
+  cb.className = 'subtab' + (isCheck ? ' on-check' : '');
+  jb.className = 'subtab' + (isCheck ? '' : ' on-journal');
+  cb.setAttribute('aria-selected', isCheck ? 'true' : 'false');
+  jb.setAttribute('aria-selected', isCheck ? 'false' : 'true');
+  if (!isCheck) initJournal();
+}
+
+// ── 서브탭 전환 (신청: 보급신청/추천) ──────────────
+function switchApplyTab(tab) {
+  var isApply = (tab === 'apply');
+  document.getElementById('apply-form-apply').style.display = isApply ? 'block' : 'none';
+  document.getElementById('apply-form-recommend').style.display = isApply ? 'none' : 'block';
+  var ab = document.getElementById('apply-subtab-apply');
+  var rb = document.getElementById('apply-subtab-rec');
+  ab.className = 'subtab' + (isApply ? ' on-check' : '');
+  rb.className = 'subtab' + (isApply ? '' : ' on-journal');
+  ab.setAttribute('aria-selected', isApply ? 'true' : 'false');
+  rb.setAttribute('aria-selected', isApply ? 'false' : 'true');
+  var applyTab = document.querySelector('.tabs .tab:nth-child(2)');
+  switchTab('apply', applyTab);
+}
+
+// ── 홈에서 모니터링단 버튼 ──────────────────────────
+function requirePinDirect(subtab) {
+  if (subtab === 'checklist') subtab = 'check';
+  var monTab = document.querySelector('.tabs .tab:nth-child(3)');
+  if (monitorUnlocked) {
+    switchTab('monitor', monTab);
+    setTimeout(function() { showSubtab(subtab); }, 50);
+    return;
+  }
+  window._pendingSubtab = subtab;
+  requirePin(monTab);
+}
+
+// ── 홈 지도 전체보기 ────────────────────────────────
+function gotoMapTab() {
+  var mapTab = document.querySelector('.tabs .tab:nth-child(4)');
+  switchTab('map', mapTab);
+}
+
+// ── PIN 잠금 ──────────────────────────────────────
+let pinValue = '', monitorUnlocked = false, managerUnlocked = false, monitorSessionPin = '', managerSessionPin = '', pendingTabEl = null, pendingPinType = 'monitor';
+
+function requirePin(el) {
+  if (monitorUnlocked) { switchTab('monitor', el); return; }
+  pendingTabEl = el;
+  pendingPinType = 'monitor';
+  pinValue = '';
+  updateDots();
+  document.getElementById('lock-title').textContent = '모니터링단 전용';
+  document.getElementById('lock-sub').textContent = '4자리 비밀번호를 입력해 주세요';
+  document.getElementById('lock-error').textContent = '';
+  document.getElementById('lock-screen').classList.add('show');
+}
+
+function requireManagerPin(callback) {
+  if (managerUnlocked) { callback(); return; }
+  pendingPinType = 'manager';
+  pendingManagerCallback = callback;
+  pinValue = '';
+  updateDots();
+  document.getElementById('lock-title').textContent = '담당자 확인';
+  document.getElementById('lock-sub').textContent = '담당자 비밀번호를 입력해 주세요';
+  document.getElementById('lock-error').textContent = '';
+  document.getElementById('lock-screen').classList.add('show');
+}
+let pendingManagerCallback = null;
+function pinInput(num) {
+  if (pinValue.length >= 4) return;
+  pinValue += num; updateDots();
+  if (pinValue.length === 4) setTimeout(checkPin, 120);
+}
+function pinDelete() { pinValue = pinValue.slice(0, -1); updateDots(); document.getElementById('lock-error').textContent = ''; }
+function updateDots() {
+  for (let i = 0; i < 4; i++) {
+    const d = document.getElementById('dot' + i);
+    d.classList.toggle('filled', i < pinValue.length);
+    d.classList.remove('error');
+  }
+  // 스크린리더에 현재 입력 상태 알림
+  const status = document.getElementById('pin-status');
+  if (status) {
+    if (pinValue.length === 0) {
+      status.textContent = '비밀번호를 입력해 주세요. 4자리 숫자입니다.';
+    } else if (pinValue.length < 4) {
+      status.textContent = `${pinValue.length}자리 입력됨. ${4 - pinValue.length}자리 더 입력하세요.`;
+    } else {
+      status.textContent = '4자리 입력 완료. 확인 중입니다.';
+    }
+  }
+}
+function closeLock() {
+  document.getElementById('lock-screen').classList.remove('show');
+  pinValue = '';
+  updateDots();
+}
+
+async function checkPin() {
+  if (pendingPinType === 'manager') {
+    document.getElementById('lock-error').textContent = '확인 중...';
+    if (await verifyPin('manager', pinValue)) {
+      managerUnlocked = true;
+      managerSessionPin = pinValue;
+      document.getElementById('lock-screen').classList.remove('show');
+      if (pendingManagerCallback) { pendingManagerCallback(); pendingManagerCallback = null; }
+    } else {
+      for (let i = 0; i < 4; i++) document.getElementById('dot' + i).classList.add('error');
+      document.getElementById('lock-error').textContent = '비밀번호가 맞지 않아요.';
+      setTimeout(() => { pinValue = ''; updateDots(); }, 800);
+    }
+  } else {
+    document.getElementById('lock-error').textContent = '확인 중...';
+    if (await verifyPin('monitor', pinValue)) {
+      monitorUnlocked = true;
+      monitorSessionPin = pinValue;
+      document.getElementById('lock-screen').classList.remove('show');
+      switchTab('monitor', pendingTabEl);
+      if (window._pendingSubtab) {
+        var _sub = window._pendingSubtab;
+        window._pendingSubtab = null;
+        setTimeout(function() { showSubtab(_sub); }, 50);
+      }
+    } else {
+      for (let i = 0; i < 4; i++) document.getElementById('dot' + i).classList.add('error');
+      document.getElementById('lock-error').textContent = '비밀번호가 맞지 않아요. 다시 시도해 주세요.';
+      setTimeout(() => { pinValue = ''; updateDots(); }, 800);
+    }
+  }
+}
+
+// ── 평가 / 필 ─────────────────────────────────────
+function setRating(fieldId, groupId, btn, level) {
+  document.getElementById(groupId).querySelectorAll('.rating-btn').forEach(b => {
+    b.classList.remove('sel-good','sel-fair','sel-poor');
+    b.setAttribute('aria-pressed', 'false');
+    b.setAttribute('aria-checked', 'false');
+  });
+  btn.classList.add('sel-' + level);
+  btn.setAttribute('aria-pressed', 'true');
+  btn.setAttribute('aria-checked', 'true');
+  document.getElementById(fieldId).value = level === 'good' ? '좋음' : level === 'fair' ? '보통' : '미흡';
+}
+function selectPill(val) {
+  ['yes','no','follow'].forEach(v => {
+    const el = document.getElementById('pill_' + v);
+    el.className = 'pill';
+    el.setAttribute('aria-pressed', v === val ? 'true' : 'false');
+    if (v === val) el.classList.add('active-' + v);
+  });
+  document.getElementById('m_action').value = val === 'yes' ? '조치 필요' : val === 'no' ? '양호' : '추후 확인';
+}
+let selectedPhotos = [];
+
+function toggleOtherInput(checkbox) {
+  const wrap = document.getElementById('other-input-wrap');
+  wrap.style.display = checkbox.checked ? 'block' : 'none';
+  if (!checkbox.checked) document.getElementById('a_other_detail').value = '';
+}
+
+function previewPhotos(input) {
+  const grid = document.getElementById('photo-grid');
+  grid.innerHTML = '';
+  selectedPhotos = [];
+  Array.from(input.files).slice(0, 6).forEach(file => {
+    const img = document.createElement('img');
+    img.className = 'photo-thumb';
+    img.src = URL.createObjectURL(file);
+    grid.appendChild(img);
+    selectedPhotos.push(file);
+  });
+  const count = selectedPhotos.length;
+  document.querySelector('.photo-drop p').textContent = count > 0 ? `${count}장 선택됨` : '탭해서 사진 추가하기';
+}
+
+async function filesToBase64(files) {
+  return Promise.all(files.map(file => new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = function() {
+      // 400px로 강하게 리사이즈 + 품질 50% → 장당 약 20-30KB
+      const MAX = 400;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      resolve({ data: canvas.toDataURL('image/jpeg', 0.5).split(',')[1], mimeType: 'image/jpeg' });
+    };
+    img.onerror = reject;
+    img.src = url;
+  })));
+}
+
+// ── 토스트 / 로딩 ─────────────────────────────────
+function showToast(id, msg, type) {
+  const el = document.getElementById(id); el.textContent = msg; el.className = 'toast ' + type;
+  setTimeout(() => { el.className = 'toast'; }, 5000);
+}
+function setLoading(btnId, loading, label) {
+  const btn = document.getElementById(btnId);
+  btn.disabled = loading;
+  btn.innerHTML = loading ? '<span class="loading-spinner"></span>전송 중...' : label;
+}
+
+// ── 신청 제출 ─────────────────────────────────────
+async function postSheetData(payload) {
+  const res = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+  if (data.result && data.result !== 'ok') throw new Error(data.message || '시트 저장 실패');
+  return data;
+}
+
+async function submitApply() {
+  const name = document.getElementById('a_name').value.trim();
+  const addr = document.getElementById('a_addr').value.trim();
+  const applyname = document.getElementById('a_applyname').value.trim();
+  const phone = document.getElementById('a_phone').value.trim();
+  const braille = document.getElementById('a_braille').checked;
+  const ramp = document.getElementById('a_ramp').checked;
+  const sign = document.getElementById('a_sign').checked;
+  const other = document.getElementById('a_other').checked;
+  const memo = document.getElementById('a_memo').value.trim();
+  const privacy = document.getElementById('a_privacy').checked;
+  if (!privacy) { showToast('apply-toast','개인정보 수집 및 이용에 동의해 주세요.','error'); return; }
+  if (!name) { showToast('apply-toast','상호명을 입력해 주세요.','error'); return; }
+
+  if (!applyname) { showToast('apply-toast','이름 또는 닉네임을 입력해 주세요.','error'); return; }
+  if (!phone) { showToast('apply-toast','연락처를 입력해 주세요.','error'); return; }
+  if (!braille && !ramp && !sign && !other) { showToast('apply-toast','신청 항목을 하나 이상 선택해 주세요.','error'); return; }
+  const otherDetail = document.getElementById('a_other_detail').value.trim();
+  const otherLabel = other ? (otherDetail ? '기타(' + otherDetail + ')' : '기타') : '';
+  const items = [braille && '점자메뉴판', ramp && '경사로', sign && '쉬운 안내판', otherLabel].filter(Boolean).join(', ');
+  const ts = new Date().toLocaleString('ko-KR');
+  setLoading('apply-btn', true, '신청 제출하기');
+  try {
+    await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', body: JSON.stringify({type:'apply', name, addr, items, applyname, phone, memo, privacy: 'Y', timestamp: ts}), headers:{'Content-Type':'application/json'} });
+  } catch(e) {}
+  saveRecord({ type:'apply', name, addr, items, applyname, phone, memo, timestamp: ts });
+  showToast('apply-toast','✅ 신청이 접수되었습니다. 담당자가 확인 후 연락드릴게요!','success');
+  ['a_name','a_addr','a_applyname','a_phone','a_memo','a_other_detail'].forEach(id => document.getElementById(id).value = '');
+  ['a_braille','a_ramp','a_sign','a_other'].forEach(id => document.getElementById(id).checked = false);
+  document.getElementById('other-input-wrap').style.display = 'none';
+  document.getElementById('a_privacy').checked = false;
+  setLoading('apply-btn', false, '신청 제출하기');
+}
+
+// ── 모니터링 제출 ──────────────────────────────────
+async function submitMonitor() {
+  const place = document.getElementById('m_place').value.trim();
+  const addr = document.getElementById('m_addr').value.trim();
+  const date = document.getElementById('m_date').value;
+  const comment = document.getElementById('m_comment').value.trim();
+  const r1 = document.getElementById('m_r1').value;
+  const r2 = document.getElementById('m_r2').value;
+  const r3 = document.getElementById('m_r3').value;
+  const r4 = document.getElementById('m_r4').value;
+  const action = document.getElementById('m_action').value;
+  const author = document.getElementById('m_author').value.trim();
+  const easysign = document.getElementById('m_easysign').checked;
+  const goodstaff = document.getElementById('m_goodstaff').checked;
+  const goodcase = document.getElementById('m_goodcase').checked;
+  if (!place) { showToast('monitor-toast','장소명을 입력해 주세요.','error'); return; }
+  if (!addr)  { showToast('monitor-toast','주소를 입력해 주세요.','error'); return; }
+  if (!date)  { showToast('monitor-toast','날짜를 선택해 주세요.','error'); return; }
+  if (!comment) { showToast('monitor-toast','종합 의견을 입력해 주세요.','error'); return; }
+  if (!author) { showToast('monitor-toast','기록자 이름을 입력해 주세요.','error'); return; }
+  const extras = [easysign && '쉬운 안내판 필요', goodstaff && '직원 응대 좋음', goodcase && '좋은 사례'].filter(Boolean).join(', ');
+  const ts = new Date().toLocaleString('ko-KR');
+  setLoading('monitor-btn', true, '기록 제출하기');
+
+  // 로컬 먼저 저장 (사진 없이)
+  try {
+    await postSheetData({ type: 'monitor', monitorPin: monitorSessionPin, managerPin: managerSessionPin, place, addr, date, r1, r2, r3, r4, action, comment, author, extras, photos: [], timestamp: ts });
+  } catch(e) {
+    console.warn('시트 저장 오류:', e);
+    showToast('monitor-toast', '시트 저장에 실패했어요. 사진을 빼거나 잠시 후 다시 시도해 주세요.', 'error');
+    setLoading('monitor-btn', false, '기록 제출하기');
+    return;
+  }
+
+  saveRecord({ type:'monitor', name: place, addr, date, r1, r2, r3, r4, action, comment, author, extras, goodcase, timestamp: ts });
+
+  // 사진이 있으면 CORS 방식으로 한 장씩 업로드
+  if (selectedPhotos.length > 0) {
+    showToast('monitor-toast', '✅ 기록 저장됨! 사진 업로드 중...', 'success');
+    uploadPhotosSequentially(selectedPhotos, place, date, ts);
+  } else {
+    showToast('monitor-toast', '✅ 기록이 저장되었습니다!', 'success');
+  }
+
+  // 폼 완전 초기화 (사진 없을 때만 버튼 즉시 복원)
+  if (selectedPhotos.length === 0) setLoading('monitor-btn', false, '기록 제출하기');
+  document.getElementById('m_place').value = '';
+  document.getElementById('m_addr').value = '';
+  document.getElementById('m_comment').value = '';
+  document.getElementById('m_author').value = '';
+  // 평가 버튼 초기화
+  ['m_r1','m_r2','m_r3','m_r4'].forEach(function(id) { document.getElementById(id).value = ''; });
+  document.querySelectorAll('.rating-btn').forEach(function(b) { b.classList.remove('sel-good','sel-fair','sel-poor'); b.setAttribute('aria-pressed','false'); b.setAttribute('aria-checked','false'); });
+  // 조치 필요 pill 초기화
+  document.getElementById('m_action').value = '';
+  ['pill_yes','pill_no','pill_follow'].forEach(function(id) { var el=document.getElementById(id); if(el){el.className='pill';el.setAttribute('aria-pressed','false');} });
+  // 체크박스 초기화
+  ['m_easysign','m_goodstaff','m_goodcase'].forEach(function(id) { var el=document.getElementById(id); if(el) el.checked=false; });
+  // 사진 초기화
+  selectedPhotos = [];
+  document.getElementById('photo-grid').innerHTML = '';
+  var dropP = document.querySelector('.photo-drop p');
+  if (dropP) dropP.textContent = '탭해서 사진 추가하기';
+  document.getElementById('m_photos').value = '';
+  document.getElementById('m_date').valueAsDate = new Date();
+}
+
+// ── 사진 순차 업로드 (CORS 방식) ──────────────────────
+function resizePhoto(file, maxSize, quality) {
+  return new Promise(function(resolve, reject) {
+    var img = new Image();
+    var url = URL.createObjectURL(file);
+    img.onload = function() {
+      var w = img.width, h = img.height;
+      if (w > maxSize || h > maxSize) {
+        if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+        else { w = Math.round(w * maxSize / h); h = maxSize; }
+      }
+      var canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg', quality).split(',')[1]);
+    };
+    img.onerror = function() { URL.revokeObjectURL(url); reject(new Error('이미지 로드 실패')); };
+    img.src = url;
+  });
+}
+
+async function uploadPhotosSequentially(files, place, date, timestamp) {
+  var total = files.length;
+  var uploaded = 0;
+  var failed = 0;
+  var photoUrls = [];
+
+  for (var i = 0; i < files.length; i++) {
+    showToast('monitor-toast', '📷 사진 업로드 중... (' + (i+1) + '/' + total + ')', 'success');
+    try {
+      // 500px, 품질 65%로 리사이즈 → 약 20-40KB
+      var photoBase64 = await resizePhoto(files[i], 500, 0.65);
+
+      // text/plain으로 전송 (CORS preflight 방지)
+      var payload = JSON.stringify({
+        type: 'uploadPhoto',
+        monitorPin: monitorSessionPin,
+        managerPin: managerSessionPin,
+        place: place,
+        date: date,
+        photo: photoBase64,
+        photoIndex: i,
+        timestamp: timestamp
+      });
+      var res = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: payload
+      });
+
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var result = await res.json();
+
+      if (result.result === 'ok' && result.url) {
+        uploaded++;
+        photoUrls.push(result.url);
+        // 로컬 기록에 사진 URL 추가
+        var records = getRecords();
+        for (var j = 0; j < records.length; j++) {
+          if (String(records[j].timestamp) === String(timestamp)) {
+            if (!records[j].photoLinks) records[j].photoLinks = '';
+            records[j].photoLinks += (records[j].photoLinks ? '\n' : '') + result.url;
+            break;
+          }
+        }
+        localStorage.setItem('records', JSON.stringify(records));
+
+        // 시트 사진링크 업데이트 (백그라운드)
+        fetch(SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ type: 'addPhotoLink', monitorPin: monitorSessionPin, managerPin: managerSessionPin, timestamp: timestamp, place: place, date: date, url: result.url })
+        }).catch(function(){});
+      } else {
+        failed++;
+        console.warn('사진 업로드 실패:', result);
+      }
+    } catch(e) {
+      failed++;
+      console.warn('사진 ' + (i+1) + '장 오류:', e.message);
+    }
+  }
+
+  if (failed === 0) {
+    showToast('monitor-toast', '✅ 기록과 사진 ' + total + '장이 모두 저장되었습니다!', 'success');
+  } else if (uploaded > 0) {
+    showToast('monitor-toast', '⚠️ ' + uploaded + '장 성공, ' + failed + '장 실패했어요.', 'error');
+  } else {
+    showToast('monitor-toast', '⚠️ 사진 저장 실패. 기록은 저장됐어요.', 'error');
+  }
+  setLoading('monitor-btn', false, '기록 제출하기');
+}
+
+// ── 활동 일지 ──────────────────────────────────────
+function getJournals() { return JSON.parse(localStorage.getItem('journals') || '[]'); }
+
+async function initJournal() {
+  var teamSel = document.getElementById('j_team');
+  if (!teamSel) return;
+  await loadAppSettings();
+  // 팀 목록 업데이트
+  var cur = teamSel.value;
+  teamSel.innerHTML = '<option value="">-- 팀을 선택하세요 --</option>';
+  TEAMS.forEach(function(t) {
+    var opt = document.createElement('option');
+    opt.value = t.name;
+    opt.textContent = t.name + ' (' + t.members.join(', ') + ')';
+    if (t.name === cur) opt.selected = true;
+    teamSel.appendChild(opt);
+  });
+  // 날짜/시간 자동 설정
+  var dateEl = document.getElementById('j_date');
+  var timeEl = document.getElementById('j_time');
+  if (dateEl && !dateEl.value) dateEl.valueAsDate = new Date();
+  if (timeEl && !timeEl.value) {
+    var now = new Date();
+    timeEl.value = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  }
+  loadJournalStores();
+  renderJournalList();
+}
+
+function loadJournalStores() {
+  var dateEl = document.getElementById('j_date');
+  var teamEl = document.getElementById('j_team');
+  var wrap = document.getElementById('j_stores_wrap');
+  var memberEl = document.getElementById('j_team_members');
+  if (!dateEl || !teamEl || !wrap) return;
+  var date = dateEl.value;
+  var teamName = teamEl.value;
+  if (memberEl) memberEl.textContent = '';
+  if (!date || !teamName) {
+    wrap.innerHTML = '<p style="font-size:13px;color:var(--text-muted)">날짜와 팀을 선택하면 해당 팀의 모니터링 상점이 표시됩니다.</p>';
+    return;
+  }
+  var team = TEAMS.find(function(t) { return t.name === teamName; });
+  var members = team ? team.members : [];
+  if (memberEl && members.length) memberEl.textContent = '팀원: ' + members.join(', ');
+  // 날짜 정규화 (YYYY-MM-DD)
+  function normDate(d) {
+    if (!d) return '';
+    var s = String(d);
+    // Date 객체가 문자열로 변환된 경우 YYYY-MM-DD 추출
+    var m = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+    return m ? m[0] : s.trim();
+  }
+  var normToday = normDate(date);
+  var records = getRecords().filter(function(r) {
+    if (r.type !== 'monitor') return false;
+    if (normDate(r.date) !== normToday) return false;
+    if (!members.length) return true;
+    return members.some(function(m) { return r.author && r.author.includes(m); });
+  });
+  if (!records.length) {
+    wrap.innerHTML = '<p style="font-size:13px;color:var(--text-muted)">' + date + '에 ' + teamName + '의 모니터링 기록이 없어요. 직접 추가할 수 있어요.</p>';
+    return;
+  }
+  var actionColor = function(a) { return a==='조치 필요'?'#dc2626':a==='추후 확인'?'#d97706':'#1a8c6e'; };
+  var html = '<div style="display:flex;flex-direction:column;gap:8px">';
+  records.forEach(function(r) {
+    var photoHtml = '';
+    if (r.photoLinks) {
+      var links = r.photoLinks.split('\n').filter(Boolean);
+      links.forEach(function(url, i) {
+        photoHtml += '<a href="' + url + '" target="_blank" rel="noopener" class="journal-photo-link" aria-label="' + (r.name||'') + ' 사진 ' + (i+1) + ' 열기">📷' + (i+1) + '</a>';
+      });
+    }
+    html += '<div style="padding:10px 12px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border)">'
+      + '<div style="display:flex;align-items:center;gap:8px">'
+      + '<span style="width:8px;height:8px;border-radius:50%;background:' + actionColor(r.action) + ';flex-shrink:0"></span>'
+      + '<div><div style="font-size:14px;font-weight:500">' + (r.name||'') + '</div>'
+      + '<div style="font-size:12px;color:var(--text-muted)">' + (r.addr||'') + (r.action?' · '+r.action:'') + (r.author?' · '+r.author:'') + '</div>'
+      + (photoHtml ? '<div>' + photoHtml + '</div>' : '')
+      + '</div></div></div>';
+  });
+  html += '</div>';
+  wrap.innerHTML = html;
+}
+
+async function submitJournal() {
+  var dateEl = document.getElementById('j_date');
+  var timeEl = document.getElementById('j_time');
+  var teamEl = document.getElementById('j_team');
+  var memoEl = document.getElementById('j_memo');
+  var extraEl = document.getElementById('j_extra');
+  if (!dateEl || !timeEl || !teamEl) return;
+  var date = dateEl.value;
+  var time = timeEl.value;
+  var teamName = teamEl.value;
+  var memo = memoEl ? memoEl.value.trim() : '';
+  var extra = extraEl ? extraEl.value.trim() : '';
+  if (!date) { showToast('journal-toast','활동 날짜를 선택해 주세요.','error'); return; }
+  if (!time) { showToast('journal-toast','활동 시간을 입력해 주세요.','error'); return; }
+  if (!teamName) { showToast('journal-toast','활동 팀을 선택해 주세요.','error'); return; }
+  await loadAppSettings();
+  var team = TEAMS.find(function(t) { return t.name === teamName; });
+  var members = team ? team.members : [];
+  var author = members.join(', ');
+  function normDate2(d) {
+    if (!d) return '';
+    var s = String(d);
+    var m = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+    return m ? m[0] : s.trim();
+  }
+  var monRecords = getRecords().filter(function(r) {
+    if (r.type !== 'monitor') return false;
+    if (normDate2(r.date) !== normDate2(date)) return false;
+    return !members.length || members.some(function(m) { return r.author && r.author.includes(m); });
+  });
+  var stores = monRecords.map(function(r) { return r.name; });
+  if (extra) extra.split(',').map(function(s) { return s.trim(); }).filter(Boolean).forEach(function(s) { stores.push(s); });
+  if (!stores.length && !memo) { showToast('journal-toast','방문 상점이 없어요. 날짜·팀을 확인하거나 직접 추가해 주세요.','error'); return; }
+  var storeList = stores.join(', ');
+  var ts = new Date().toLocaleString('ko-KR');
+  setLoading('journal-btn', true, '일지 제출하기');
+  // 로컬 먼저 저장
+  var journals = getJournals();
+  journals.unshift({date, time, team:teamName, author, stores:storeList, memo, timestamp:ts});
+  localStorage.setItem('journals', JSON.stringify(journals));
+  showToast('journal-toast','✅ 활동 일지가 제출되었습니다!','success');
+  // 시트 전송 (백그라운드)
+  fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', body: JSON.stringify({type:'journal', monitorPin:monitorSessionPin, managerPin:managerSessionPin, date, time, team:teamName, author, stores:storeList, memo, timestamp:ts}), headers:{'Content-Type':'application/json'} }).catch(function(){});
+  if (memoEl) memoEl.value = '';
+  if (extraEl) extraEl.value = '';
+  setLoading('journal-btn', false, '일지 제출하기');
+  renderJournalList();
+}
+
+function renderJournalList() {
+  var el = document.getElementById('journal-list');
+  if (!el) return;
+  var journals = getJournals();
+  if (!journals.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon" aria-hidden="true">📝</div>아직 작성된 일지가 없어요</div>';
+    return;
+  }
+  el.innerHTML = journals.map(function(j) {
+    return '<div class="journal-item">'
+      + '<div class="journal-item-header">'
+      + '<span class="journal-item-date">📅 ' + (j.date||'') + (j.time?' '+j.time:'') + '</span>'
+      + '<span class="journal-item-team">👥 ' + (j.team||'') + (j.author?' ('+j.author+')':'') + '</span>'
+      + '</div>'
+      + '<div class="journal-item-stores">🏪 ' + (j.stores||'상점 정보 없음') + '</div>'
+      + (j.memo ? '<div class="journal-item-memo">💬 ' + j.memo + '</div>' : '')
+      + '</div>';
+  }).join('');
+}
+
+// ── 상점 추천 제출 ──────────────────────────────────
+async function submitRecommend() {
+  var name = document.getElementById('r_name').value.trim();
+  var addr = document.getElementById('r_addr').value.trim();
+  var author = document.getElementById('r_author').value.trim();
+  var phone = (document.getElementById('r_phone')||{}).value || '';
+  var intro = (document.getElementById('r_intro')||{}).value || '';
+  if (!name) { showToast('recommend-toast','상호명을 입력해 주세요.','error'); return; }
+
+  if (!author) { showToast('recommend-toast','이름 또는 닉네임을 입력해 주세요.','error'); return; }
+  var goods = [];
+  if (document.getElementById('r_braille').checked) goods.push('점자메뉴판');
+  if (document.getElementById('r_ramp').checked) goods.push('경사로·턱없음');
+  if (document.getElementById('r_toilet').checked) goods.push('화장실 편함');
+  if (document.getElementById('r_staff').checked) goods.push('직원 친절');
+  if (document.getElementById('r_sign').checked) goods.push('쉬운 안내판');
+  var otherChk = document.getElementById('r_other_chk');
+  var otherTxt = (document.getElementById('r_other_text')||{}).value || '';
+  if (otherChk && otherChk.checked && otherTxt) goods.push('기타: '+otherTxt);
+  var items = goods.join(', ') || '항목 미선택';
+  var ts = new Date().toLocaleString('ko-KR');
+  setLoading('recommend-btn', true, '추천 제출하기');
+  saveRecord({type:'recommend', name, addr, items, recommender:author, action:'추천', timestamp:ts});
+  showToast('recommend-toast','✅ 추천이 접수되었습니다! 감사해요 😊','success');
+  fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', body: JSON.stringify({type:'recommend', name, addr, items, recommender:author, phone:phone.trim(), memo:intro.trim(), timestamp:ts}), headers:{'Content-Type':'application/json'} }).catch(function(){});
+  ['r_name','r_addr','r_author','r_phone','r_intro','r_other_text'].forEach(function(id) { var el=document.getElementById(id); if(el) el.value=''; });
+  ['r_braille','r_ramp','r_toilet','r_staff','r_sign','r_other_chk'].forEach(function(id) { var el=document.getElementById(id); if(el) el.checked=false; });
+  document.getElementById('r_other_wrap').style.display = 'none';
+  setLoading('recommend-btn', false, '추천 제출하기');
+}
+
+// ── 기록 상태 변경 ───────────────────────────────────
+async function updateRecordStatus(timestamp, type, status) {
+  // 로컬 업데이트
+  var records = getRecords();
+  records = records.map(function(r) {
+    if (String(r.timestamp) === String(timestamp)) r.action = status;
+    return r;
+  });
+  localStorage.setItem('records', JSON.stringify(records));
+  // 시트 업데이트
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST', mode: 'no-cors',
+      body: JSON.stringify({ type: 'updateStatus', managerPin: managerSessionPin, timestamp: timestamp, recordType: type, status: status }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch(e) {}
+}
+
+// ── 대시보드 ──────────────────────────────────────
+function updateDashboard() {
+  var records = getRecords();
+  renderHomeMap(records);
+}
+
+function renderHomeMap(records) {
+  const container = document.getElementById('home-map');
+  if (!container || !window.kakaoMapReady) {
+    // 카카오맵 준비되면 다시 시도
+    setTimeout(() => renderHomeMap(records), 500);
+    return;
+  }
+  // 모니터링단이면 전체, 아니면 검증된 것만 표시
+  const mapRecords = records.filter(r => {
+    if (!r.addr) return false;
+    if (monitorUnlocked || managerUnlocked) return true;
+    return isVerified(r);
+  });
+  if (mapRecords.length === 0) {
+    container.style.background = 'var(--bg)';
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.justifyContent = 'center';
+    container.innerHTML = '<div style="color:var(--text-muted);font-size:13px">📍 아직 기록이 없어요</div>';
+    return;
+  }
+  const homeMap = new kakao.maps.Map(container, {
+    center: new kakao.maps.LatLng(37.5726, 126.9793),
+    level: 6
+  });
+  const geocoder = new kakao.maps.services.Geocoder();
+  mapRecords.forEach(rec => {
+    const color = getMarkerColor(rec);
+    geocoder.addressSearch(rec.addr, function(result, status) {
+      if (status !== kakao.maps.services.Status.OK) return;
+      const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+      new kakao.maps.Marker({
+        map: homeMap,
+        position: coords,
+        image: makeMarkerImage(color)
+      });
+    });
+  });
+}
+
+function renderTypeChart(records) {
+  const el = document.getElementById('type-chart');
+  if (!el) return;
+
+  // 신청 항목별 카운트
+  const counts = {};
+  records.forEach(r => {
+    if (r.type === 'apply' && r.items) {
+      r.items.split(', ').forEach(item => {
+        counts[item] = (counts[item] || 0) + 1;
+      });
+    }
+    if (r.type === 'monitor' && r.extras) {
+      r.extras.split(', ').forEach(item => {
+        counts[item] = (counts[item] || 0) + 1;
+      });
+    }
+  });
+
+  const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  if (entries.length === 0) {
+    el.innerHTML = '<div class="empty-state" style="padding:20px"><div class="empty-icon">📊</div>아직 데이터가 없어요</div>';
+    return;
+  }
+
+  const max = entries[0][1];
+  el.innerHTML = entries.map(([label, count]) => `
+    <div class="chart-row">
+      <div class="chart-label">
+        <span>${label}</span>
+        <span>${count}</span>
+      </div>
+      <div class="chart-bar-bg">
+        <div class="chart-bar" style="width:${Math.round(count/max*100)}%;background:${
+          label.includes('조치') || label.includes('필요') ? '#dc2626' :
+          label.includes('좋음') || label.includes('좋은') ? '#16a34a' : 'var(--teal)'
+        }"></div>
+      </div>
+    </div>`).join('');
+}
+
+function renderGoodCases(records) {
+  const el = document.getElementById('good-cases-list');
+  if (!el) return;
+  const goodCases = records.filter(r => r.type === 'monitor' && r.goodcase);
+  if (goodCases.length === 0) {
+    el.innerHTML = '<div class="empty-state" style="padding:20px"><div class="empty-icon">⭐</div>아직 좋은 사례가 없어요</div>';
+    return;
+  }
+  el.innerHTML = goodCases.map(r => `
+    <div class="good-case-item">
+      <div class="good-case-name">⭐ ${r.name}</div>
+      <div class="good-case-comment">${r.comment || ''}</div>
+      <div class="good-case-meta">${r.addr} · ${r.author || ''} · ${r.date || ''}</div>
+    </div>`).join('');
+}
+
+// ── 홈 카드 클릭 → 기록 탭 이동 ─────────────────────
+// goToRecords 제거됨 (기록 탭 설정으로 이동)
+
+// ── 카카오 장소 검색 ──────────────────────────────────
+var _placeSearchTarget = ''; // 'apply' | 'recommend' | 'monitor'
+
+function openPlaceSearch(target) {
+  if (!window.kakaoMapReady) {
+    alert('지도가 아직 준비 중이에요. 잠시 후 다시 눌러주세요.');
+    return;
+  }
+  _placeSearchTarget = target;
+
+  // 이미 입력된 상호명 가져와서 검색창에 자동 입력
+  var nameId = target === 'apply' ? 'a_name' : target === 'recommend' ? 'r_name' : 'm_place';
+  var existingName = (document.getElementById(nameId) || {}).value || '';
+  var searchInput = document.getElementById('place-search-input');
+  searchInput.value = existingName;
+  document.getElementById('place-list').innerHTML = '<div class="place-empty">검색 버튼을 눌러주세요</div>';
+  document.getElementById('place-search-modal').style.display = 'flex';
+  setTimeout(function() {
+    searchInput.focus();
+    // 기존 이름 있으면 바로 검색
+    if (existingName) searchPlace();
+  }, 150);
+}
+
+function closePlaceSearch() {
+  document.getElementById('place-search-modal').style.display = 'none';
+}
+
+function searchPlace() {
+  var keyword = document.getElementById('place-search-input').value.trim();
+  if (!keyword) return;
+  var ps = new kakao.maps.services.Places();
+  ps.keywordSearch(keyword, function(data, status) {
+    var listEl = document.getElementById('place-list');
+    if (status !== kakao.maps.services.Status.OK || !data.length) {
+      listEl.innerHTML = '<div class="place-empty">검색 결과가 없어요.<br>다른 이름으로 검색해보세요.</div>';
+      return;
+    }
+    listEl.innerHTML = '';
+    data.slice(0, 15).forEach(function(place) {
+      var item = document.createElement('div');
+      item.className = 'place-item';
+      item.setAttribute('role', 'listitem');
+      item.setAttribute('tabindex', '0');
+      item.setAttribute('aria-label', place.place_name + ' ' + place.road_address_name);
+      item.innerHTML =
+        '<div class="place-category">' + (place.category_name ? place.category_name.split(' > ').pop() : '') + '</div>' +
+        '<div class="place-name">' + place.place_name + '</div>' +
+        '<div class="place-addr">' + (place.road_address_name || place.address_name) + '</div>';
+      item.onclick = function() { selectPlace(place); };
+      item.onkeydown = function(e) { if (e.key === 'Enter') selectPlace(place); };
+      listEl.appendChild(item);
+    });
+  });  // 전국 검색 (반경 제한 없음)
+}
+
+function selectPlace(place) {
+  var addr = place.road_address_name || place.address_name;
+  var name = place.place_name;
+  if (_placeSearchTarget === 'apply') {
+    document.getElementById('a_name').value = name;
+    document.getElementById('a_addr').value = addr;
+  } else if (_placeSearchTarget === 'recommend') {
+    document.getElementById('r_name').value = name;
+    document.getElementById('r_addr').value = addr;
+  } else if (_placeSearchTarget === 'monitor') {
+    document.getElementById('m_place').value = name;
+    document.getElementById('m_addr').value = addr;
+  }
+  closePlaceSearch();
+}
+
+// 모달 바깥 클릭시 닫기
+document.getElementById('place-search-modal').addEventListener('click', function(e) {
+  if (e.target === this) closePlaceSearch();
+});
+
+// ── 전체 기록 ─────────────────────────────────────
+function renderRecords() {
+  const filterType = document.getElementById('filter-type').value;
+  const filterAction = document.getElementById('filter-action').value;
+  let records = getRecords();
+  if (filterType) records = records.filter(r => r.type === filterType);
+  if (filterAction) records = records.filter(r => r.action === filterAction);
+  const el = document.getElementById('records-list');
+  const countEl = document.getElementById('records-count');
+  if (records.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div>해당하는 기록이 없어요</div>';
+    if (countEl) countEl.textContent = '검색 결과가 없어요.';
+    return;
+  }
+  if (countEl) countEl.textContent = `총 ${records.length}건의 기록이 있어요.`;
+  el.innerHTML = records.map((r, i) => recordCard(r, 'rec-' + i)).join('');
+}
+
+function recordCard(r, idx) {
+  const typeTag = r.type === 'apply'
+    ? '<span class="tag tag-apply">보급 신청</span>'
+    : '<span class="tag tag-monitor">모니터링</span>';
+  const actionTag = r.action === '조치 필요' ? '<span class="tag tag-action">조치 필요</span>'
+    : r.action === '양호' ? '<span class="tag tag-good">양호</span>'
+    : r.action === '추후 확인' ? '<span class="tag tag-fair">추후 확인</span>'
+    : r.action === '신청 접수' ? '<span class="tag tag-apply">신청 접수</span>'
+    : r.action === '검토 중' ? '<span class="tag" style="background:#f3e8ff;color:#7c3aed">검토 중</span>'
+    : r.action === '보급 완료' ? '<span class="tag tag-good">보급 완료 ✓</span>'
+    : r.action === '조치 완료' ? '<span class="tag tag-good">조치 완료 ✓</span>'
+    : '';
+  const itemsTag = r.items ? `<span class="tag" style="background:#f0fdf4;color:#166534">${r.items}</span>` : '';
+
+  // 상세 내용 (신청 / 모니터링 구분)
+  let detail = '';
+  if (r.type === 'apply') {
+    detail = `
+      ${r.items ? `<div class="detail-row"><span class="detail-label">신청 항목</span><span class="detail-value">${r.items}</span></div>` : ''}
+      ${r.action ? `<div class="detail-row"><span class="detail-label">진행 상태</span><span class="detail-value">${r.action}</span></div>` : ''}
+      ${r.memo ? `<div class="detail-row"><span class="detail-label">요청 메모</span><span class="detail-value">${r.memo}</span></div>` : ''}
+      ${managerUnlocked
+        ? (r.applyname ? `<div class="detail-row"><span class="detail-label">신청자</span><span class="detail-value">${r.applyname}</span></div>` : '')
+          + (r.phone ? `<div class="detail-row"><span class="detail-label">연락처</span><span class="detail-value">${r.phone}</span></div>` : '')
+        : '<div class="detail-row"><span style="font-size:12px;color:var(--text-muted)">🔒 신청자·연락처는 담당자만 볼 수 있어요</span></div>'
+      }
+    `;
+  } else {
+    const ratings = [
+      r.r1 ? `점자메뉴판 ${r.r1}` : '',
+      r.r2 ? `경사로 ${r.r2}` : '',
+      r.r3 ? `화장실 ${r.r3}` : '',
+      r.r4 ? `안내판 ${r.r4}` : ''
+    ].filter(Boolean).join(' · ');
+    detail = `
+      ${r.date ? `<div class="detail-row"><span class="detail-label">점검 날짜</span><span class="detail-value">${r.date}</span></div>` : ''}
+      ${ratings ? `<div class="detail-row"><span class="detail-label">항목 평가</span><span class="detail-value">${ratings}</span></div>` : ''}
+      ${r.comment ? `<div class="detail-row"><span class="detail-label">종합 의견</span><span class="detail-value">${r.comment}</span></div>` : ''}
+      ${r.extras ? `<div class="detail-row"><span class="detail-label">추가 확인</span><span class="detail-value">${r.extras}</span></div>` : ''}
+      ${managerUnlocked
+        ? (r.author ? `<div class="detail-row"><span class="detail-label">기록자</span><span class="detail-value">${r.author}</span></div>` : '')
+        : '<div class="detail-row"><span style="font-size:12px;color:var(--text-muted)">🔒 기록자는 담당자만 볼 수 있어요</span></div>'
+      }
+    `;
+  }
+
+  return `<div class="record-item" data-ts="${r.timestamp}" onclick="toggleDetail('detail-${idx}', this)">
+    <div class="rec-top">
+      <span class="rec-name">${r.name}</span>
+      <div style="display:flex;align-items:center;gap:4px;margin-left:auto">
+        <button class="edit-btn" onclick="openEditModal(event, '${idx}')">✏️ 수정</button>
+        <span class="rec-toggle" id="toggle-${idx}">▼ 상세</span>
+      </div>
+    </div>
+    <div class="rec-addr">${r.addr}</div>
+    <div class="rec-tags">${typeTag}${actionTag}${itemsTag}</div>
+    <div class="record-detail" id="detail-${idx}">
+      ${detail}
+      ${managerUnlocked ? statusDropdown(r) : '<div style="font-size:12px;color:var(--text-muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">🔒 상태 변경은 담당자만 가능해요</div>'}
+    </div>
+  </div>`;
+}
+
+function statusDropdown(r) {
+  const ts = (r.timestamp || '').replace(/'/g, "\\'");
+  return `<select class="status-select" aria-label="${name} 상태 변경" onchange="changeStatus('${ts}', this.value)" onclick="event.stopPropagation()" style="font-family:'Noto Sans KR',sans-serif;font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--white);color:var(--text);cursor:pointer;margin-top:8px">
+    <option value="">── 상태 변경 (담당자)</option>
+    <option value="신청 접수">신청 접수</option>
+    <option value="검토 중">검토 중</option>
+    <option value="확인 완료 ✓" style="font-weight:700;color:#16a34a">✅ 확인 완료 (지도 공개)</option>
+    <option value="보급 완료">보급 완료</option>
+    <option value="조치 필요">조치 필요</option>
+    <option value="조치 완료">조치 완료</option>
+    <option value="양호">양호</option>
+    <option value="추후 확인">추후 확인</option>
+  </select>`;
+}
+
+function changeStatus(ts, newStatus) {
+  if (!newStatus) return;
+  requireManagerPin(function() {
+    const records = getRecords();
+    const realIdx = records.findIndex(r => r.timestamp === ts);
+    if (realIdx === -1) return;
+    records[realIdx].action = newStatus;
+    localStorage.setItem('records', JSON.stringify(records));
+    updateDashboard();
+    // 기록 탭이 열려있으면 갱신
+    const recSection = document.getElementById('records');
+    if (recSection && recSection.classList.contains('active')) {
+      renderRecords();
+    }
+    // 토스트는 신청/모니터링 탭 어디서든 보이도록 body에 붙이기
+    let toast = document.getElementById('status-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'status-toast';
+      toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a8c6e;color:white;padding:10px 20px;border-radius:8px;font-size:13px;font-family:Noto Sans KR,sans-serif;z-index:999;';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = '✅ 상태가 [' + newStatus + ']로 변경되었습니다.';
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+  });
+}
+
+function toggleDetail(detailId, card) {
+  const detail = document.getElementById(detailId);
+  const idx = detailId.replace('detail-', '');
+  const toggle = document.getElementById('toggle-' + idx);
+  const isOpen = detail.classList.toggle('open');
+  toggle.textContent = isOpen ? '▲ 닫기' : '▼ 상세';
+}
+
+let editingRecordIdx = null;
+
+function openEditModal(e, idx) {
+  e.stopPropagation();
+  // idx에서 실제 records 배열 인덱스 찾기
+  const records = getRecords();
+  // idx 형식: 'rec-0', 'home-0' 등 → 숫자만 추출해서 현재 필터된 목록 기준으로 찾기
+  const num = parseInt(idx.split('-').pop());
+  const filterType = document.getElementById('filter-type') ? document.getElementById('filter-type').value : '';
+  const filterAction = document.getElementById('filter-action') ? document.getElementById('filter-action').value : '';
+  let filtered = records;
+  if (filterType) filtered = filtered.filter(r => r.type === filterType);
+  if (filterAction) filtered = filtered.filter(r => r.action === filterAction);
+  const rec = filtered[num] || records[num];
+  // 실제 records에서 인덱스 찾기
+  editingRecordIdx = records.indexOf(rec);
+  if (editingRecordIdx === -1) return;
+  renderEditForm(rec);
+  document.getElementById('edit-modal').classList.add('show');
+}
+
+function renderEditForm(r) {
+  const body = document.getElementById('edit-form-body');
+  if (r.type === 'apply') {
+    body.innerHTML = `
+      <div class="field"><label class="field-label">상호명</label><input type="text" id="ef_name" value="${r.name || ''}" /></div>
+      <div class="field"><label class="field-label">주소</label><input type="text" id="ef_addr" value="${r.addr || ''}" /></div>
+      <div class="field"><label class="field-label">신청 항목</label><input type="text" id="ef_items" value="${r.items || ''}" /></div>
+      <div class="field"><label class="field-label">연락처</label><input type="tel" id="ef_phone" value="${r.phone || ''}" /></div>
+      <div class="field"><label class="field-label">요청 메모</label><textarea id="ef_memo">${r.memo || ''}</textarea></div>
+    `;
+  } else {
+    const ratingOptions = (id, val) => ['좋음','보통','미흡'].map(v =>
+      `<option value="${v}" ${val===v?'selected':''}>${v}</option>`).join('');
+    body.innerHTML = `
+      <div class="field"><label class="field-label">장소명</label><input type="text" id="ef_name" value="${r.name || ''}" /></div>
+      <div class="field"><label class="field-label">주소</label><input type="text" id="ef_addr" value="${r.addr || ''}" /></div>
+      <div class="field"><label class="field-label">점검 날짜</label><input type="date" id="ef_date" value="${r.date || ''}" /></div>
+      <div class="field"><label class="field-label">점자메뉴판</label><select id="ef_r1" aria-label="점자메뉴판 평가">${ratingOptions('r1',r.r1)}</select></div>
+      <div class="field"><label class="field-label">경사로</label><select id="ef_r2" aria-label="경사로 평가">${ratingOptions('r2',r.r2)}</select></div>
+      <div class="field"><label class="field-label">화장실</label><select id="ef_r3" aria-label="화장실 평가">${ratingOptions('r3',r.r3)}</select></div>
+      <div class="field"><label class="field-label">안내판</label><select id="ef_r4" aria-label="안내판 평가">${ratingOptions('r4',r.r4)}</select></div>
+      <div class="field"><label class="field-label">조치 여부</label>
+        <select id="ef_action" aria-label="조치 필요 여부">
+          <option value="조치 필요" ${r.action==='조치 필요'?'selected':''}>조치 필요</option>
+          <option value="양호" ${r.action==='양호'?'selected':''}>양호</option>
+          <option value="추후 확인" ${r.action==='추후 확인'?'selected':''}>추후 확인</option>
+        </select>
+      </div>
+      <div class="field"><label class="field-label">종합 의견</label><textarea id="ef_comment">${r.comment || ''}</textarea></div>
+      <div class="field"><label class="field-label">기록자</label><input type="text" id="ef_author" value="${r.author || ''}" /></div>
+    `;
+  }
+}
+
+function saveEdit() {
+  const records = getRecords();
+  const r = records[editingRecordIdx];
+  if (!r) return;
+  if (r.type === 'apply') {
+    r.name  = document.getElementById('ef_name').value.trim();
+    r.addr  = document.getElementById('ef_addr').value.trim();
+    r.items = document.getElementById('ef_items').value.trim();
+    r.phone = document.getElementById('ef_phone').value.trim();
+    r.memo  = document.getElementById('ef_memo').value.trim();
+  } else {
+    r.name    = document.getElementById('ef_name').value.trim();
+    r.addr    = document.getElementById('ef_addr').value.trim();
+    r.date    = document.getElementById('ef_date').value;
+    r.r1      = document.getElementById('ef_r1').value;
+    r.r2      = document.getElementById('ef_r2').value;
+    r.r3      = document.getElementById('ef_r3').value;
+    r.r4      = document.getElementById('ef_r4').value;
+    r.action  = document.getElementById('ef_action').value;
+    r.comment = document.getElementById('ef_comment').value.trim();
+    r.author  = document.getElementById('ef_author').value.trim();
+  }
+  localStorage.setItem('records', JSON.stringify(records));
+  showToast('edit-toast', '✅ 수정되었습니다!', 'success');
+  setTimeout(() => {
+    document.getElementById('edit-modal').classList.remove('show');
+    updateDashboard();
+    renderRecords();
+  }, 1000);
+}
+
+function closeEditModal(e) {
+  if (e.target === document.getElementById('edit-modal')) {
+    document.getElementById('edit-modal').classList.remove('show');
+  }
+}
+
+// ── 설정 ─────────────────────────────────────────
+function toggleManagerAuth() {
+  if (managerUnlocked) {
+    // 로그아웃
+    managerUnlocked = false;
+    managerSessionPin = '';
+    updateManagerAuthUI();
+    renderRecords();
+  } else {
+    // 로그인
+    requireManagerPin(function() {
+      updateManagerAuthUI();
+      renderRecords();
+    });
+  }
+}
+
+function updateManagerAuthUI() {
+  const status = document.getElementById('manager-auth-status');
+  const btn = document.getElementById('manager-auth-btn');
+  const section = document.getElementById('manager-only-section');
+  if (!status || !btn) return;
+  if (managerUnlocked) {
+    status.textContent = '✅ 담당자로 로그인되어 있어요. 개인정보와 상태 변경이 가능해요.';
+    status.style.color = 'var(--good)';
+    btn.textContent = '로그아웃';
+    btn.className = 'sec-btn danger';
+    if (section) section.style.display = 'block';
+  } else {
+    status.textContent = '🔒 인증되지 않았어요. 담당자 비번으로 로그인하면 개인정보와 상태 변경이 가능해요.';
+    status.style.color = 'var(--text-muted)';
+    btn.textContent = '담당자 로그인';
+    btn.className = 'sec-btn primary';
+    if (section) section.style.display = 'none';
+  }
+}
+
+function loadSettingsUI() {
+  updateManagerAuthUI();
+  renderSettingsRecords();
+}
+
+function renderSettingsRecords() {
+  var el = document.getElementById('settings-records-list');
+  if (!el) return;
+  var typeFilter = (document.getElementById('rec-filter-type')||{}).value || '';
+  var actionFilter = (document.getElementById('rec-filter-action')||{}).value || '';
+  var allRecords = getRecords();
+  var records = allRecords.map(function(r, idx) {
+    var copy = Object.assign({}, r);
+    copy.__recordIndex = idx;
+    return copy;
+  }).filter(function(r) {
+    if (typeFilter && r.type !== typeFilter) return false;
+    if (actionFilter && r.action !== actionFilter) return false;
+    return true;
+  });
+  if (!records.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon" aria-hidden="true">📋</div>기록이 없어요. 시트에서 불러오기를 해주세요.</div>';
+    return;
+  }
+  var typeLabelMap = {apply:'보급 신청', monitor:'모니터링', recommend:'상점 추천'};
+  var tagMap = {apply:'tag-apply', monitor:'tag-monitor', recommend:'tag-good'};
+  var statusList = ['조치 필요','양호','추후 확인','신청 접수','처리 완료','추천'];
+  el.innerHTML = '';
+  records.forEach(function(r) {
+    var ts = String(r.timestamp||'');
+    var name = r.name || r.place || '';
+    var div = document.createElement('div');
+    div.className = 'record-item';
+    div.setAttribute('role','listitem');
+    div.style.marginBottom = '10px';
+    var header = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
+      + '<div style="display:flex;gap:6px;align-items:center">'
+      + '<span class="tag ' + (tagMap[r.type]||'tag-good') + '">' + (typeLabelMap[r.type]||r.type) + '</span>'
+      + '<span style="font-size:13px;font-weight:700">' + name + '</span>'
+      + '</div>'
+      + '<span style="font-size:11px;color:var(--text-muted)">' + ts.slice(0,10) + '</span>'
+      + '</div>'
+      + '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">' + (r.addr||'') + '</div>'
+      + (r.applyname ? '<div style="font-size:12px;margin-bottom:4px">신청자: ' + r.applyname + (r.phone?' · '+r.phone:'') + '</div>' : '')
+      + (r.author ? '<div style="font-size:12px;margin-bottom:4px">기록자: ' + r.author + '</div>' : '')
+      + (r.items||r.comment ? '<div style="font-size:12px;margin-bottom:8px;color:var(--text)">' + (r.items||r.comment||'') + '</div>' : '');
+    div.innerHTML = header;
+    var sel = document.createElement('select');
+    sel.setAttribute('aria-label', name + ' 상태 변경');
+    sel.style.cssText = 'width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:Noto Sans KR,sans-serif';
+    statusList.forEach(function(s) {
+      var opt = document.createElement('option');
+      opt.value = s; opt.textContent = s;
+      if (r.action === s) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', function() { updateRecordStatus(ts, r.type, this.value); });
+    div.appendChild(sel);
+    var delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'sec-btn danger';
+    delBtn.style.cssText = 'width:100%;margin-top:8px;font-size:12px;padding:7px 8px';
+    delBtn.textContent = '로컬 기록 삭제';
+    delBtn.setAttribute('aria-label', name + ' 로컬 기록 삭제');
+    delBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      deleteLocalRecord(r.__recordIndex, ts);
+    });
+    div.appendChild(delBtn);
+    el.appendChild(div);
+  });
+}
+function saveSheetUrl() {}
+
+function deleteLocalRecord(index, timestamp) {
+  var records = getRecords();
+  var target = records[index];
+  var targetName = target ? (target.name || target.place || '이 기록') : '이 기록';
+  if (!target || String(target.timestamp || '') !== String(timestamp || '')) {
+    index = records.findIndex(function(r) { return String(r.timestamp || '') === String(timestamp || ''); });
+    target = records[index];
+    targetName = target ? (target.name || target.place || '이 기록') : targetName;
+  }
+  if (index < 0 || !target) {
+    showToast('settings-toast', '삭제할 로컬 기록을 찾지 못했어요.', 'error');
+    return;
+  }
+  if (!confirm('"' + targetName + '" 로컬 기록을 삭제할까요?\nGoogle 시트의 데이터는 삭제되지 않습니다.')) return;
+  records.splice(index, 1);
+  localStorage.setItem('records', JSON.stringify(records));
+  updateDashboard();
+  renderRecords();
+  renderSettingsRecords();
+  showToast('settings-toast', '로컬 기록을 삭제했어요. 시트 데이터는 유지됩니다.', 'success');
+}
+
+function clearAllData() {
+  if (!confirm('로컬 기록을 모두 삭제할까요?\n시트 데이터는 삭제되지 않아요.')) return;
+  localStorage.removeItem('records');
+  updateDashboard();
+  showToast('settings-toast', '로컬 기록이 초기화되었습니다. 시트에서 다시 불러올 수 있어요.', 'success');
+}
+
+let lastSheetSyncAt = 0;
+
+async function syncRecordsFromSheet(force) {
+  const now = Date.now();
+  if (!force && now - lastSheetSyncAt < 30000) return getRecords();
+  if (!managerUnlocked || !managerSessionPin) throw new Error('manager-auth-required');
+  const authQuery = '&managerPin=' + encodeURIComponent(managerSessionPin);
+
+  const [applyRes, monitorRes, recRes] = await Promise.all([
+    fetch(SCRIPT_URL + '?type=apply' + authQuery, { cache: 'no-store' }),
+    fetch(SCRIPT_URL + '?type=monitor' + authQuery, { cache: 'no-store' }),
+    fetch(SCRIPT_URL + '?type=recommend' + authQuery, { cache: 'no-store' }).catch(() => ({json:()=>({result:'ok',records:[]})}))
+  ]);
+  const [applyData, monitorData, recData] = await Promise.all([applyRes.json(), monitorRes.json(), recRes.json()]);
+  if (applyData.result !== 'ok' || monitorData.result !== 'ok') throw new Error('sheet-load-failed');
+
+  const sheetRecords = [...applyData.records, ...monitorData.records, ...(recData.records||[])];
+  const merged = [...sheetRecords, ...getRecords()];
+  const byKey = new Map();
+  merged.forEach(function(r) {
+    const key = String(r.timestamp || '') + '|' + String(r.type || '') + '|' + String(r.name || r.place || '') + '|' + String(r.addr || '');
+    if (!byKey.has(key)) byKey.set(key, r);
+  });
+  const all = Array.from(byKey.values());
+  all.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  localStorage.setItem('records', JSON.stringify(all));
+  lastSheetSyncAt = now;
+  return all;
+}
+
+async function loadFromSheet() {
+  if (!managerUnlocked || !managerSessionPin) {
+    requireManagerPin(loadFromSheet);
+    return;
+  }
+  const btn = (typeof event !== 'undefined' && event && event.target)
+    ? event.target
+    : document.querySelector('button[onclick="loadFromSheet()"]');
+  btn.disabled = true;
+  btn.textContent = '불러오는 중...';
+  try {
+    const all = await syncRecordsFromSheet(true);
+    // 일지 불러오기
+    let journalMsg = '';
+    try {
+      const jRes = await fetch(SCRIPT_URL + '?type=journal&managerPin=' + encodeURIComponent(managerSessionPin));
+      const jData = await jRes.json();
+      if (jData.result === 'ok' && jData.records) {
+        jData.records.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+        localStorage.setItem('journals', JSON.stringify(jData.records));
+        journalMsg = ', 일지 ' + jData.records.length + '건';
+      }
+    } catch(e) {}
+    updateDashboard();
+    showToast('settings-toast', '✅ ' + all.length + '건' + journalMsg + '을 불러왔어요!', 'success');
+  } catch(e) {
+    showToast('settings-toast', '불러오기 중 오류가 발생했어요.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📥 시트에서 불러오기';
+  }
+}
+async function testSheet() {
+  try {
+    await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', body: JSON.stringify({type:'test', timestamp: new Date().toLocaleString('ko-KR')}), headers:{'Content-Type':'application/json'} });
+    showToast('settings-toast','✅ 테스트 전송 완료! 시트를 확인해 보세요.','success');
+  } catch(e) { showToast('settings-toast','전송 실패. URL을 확인해 주세요.','error'); }
+}
+
+
+
+// ── 지도 ─────────────────────────────────────────
+let mapInstance = null;
+let mapMarkers = [];
+let currentInfoWindow = null;
+
+function initMap() {
+  if (window.kakaoMapReady) {
+    renderMap();
+  } else {
+    window.pendingMapRender = renderMap;
+  }
+}
+
+function makeMarkerImage(color) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40">
+    <path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 24 16 24s16-14 16-24C32 7.163 24.837 0 16 0z" fill="${color}" stroke="white" stroke-width="2"/>
+    <circle cx="16" cy="16" r="6" fill="white"/>
+  </svg>`;
+  const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  return new kakao.maps.MarkerImage(url, new kakao.maps.Size(32, 40), { offset: new kakao.maps.Point(16, 40) });
+}
+
+let myLocationMarker = null;
+
+function moveToMyLocation() {
+  if (!mapInstance) return;
+  if (!navigator.geolocation) {
+    alert('이 브라우저에서는 위치 서비스가 지원되지 않아요.');
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    const myPos = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+    const mySvg = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#6366f1" stroke="white" stroke-width="2"/><circle cx="10" cy="10" r="3" fill="white"/></svg>';
+    const myImg = new kakao.maps.MarkerImage(
+      'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(mySvg),
+      new kakao.maps.Size(20, 20),
+      { offset: new kakao.maps.Point(10, 10) }
+    );
+    if (myLocationMarker) myLocationMarker.setMap(null);
+    myLocationMarker = new kakao.maps.Marker({ map: mapInstance, position: myPos, image: myImg, zIndex: 10 });
+    mapInstance.setCenter(myPos);
+    mapInstance.setLevel(4);
+  }, function() {
+    alert('위치 정보를 가져올 수 없어요.\n브라우저 설정에서 위치 권한을 허용해 주세요.');
+  });
+}
+
+// 검증 완료 여부 판단
+function isVerified(rec) {
+  const verifiedStatuses = ['보급 완료', '조치 완료', '확인 완료', '확인 완료 ✓', '양호'];
+  return verifiedStatuses.includes(rec.action);
+}
+
+function getMarkerColor(rec) {
+  // 미검증은 회색
+  if (!isVerified(rec)) return '#9ca3af';
+  // 검증 완료
+  if (rec.type === 'apply') return '#1a8c6e';
+  if (rec.type === 'recommend') return '#ec4899';
+  if (rec.action === '조치 완료') return '#16a34a';
+  if (rec.action === '양호') return '#3b82f6';
+  return '#1a8c6e';
+}
+
+function getRecordTypeMeta(rec) {
+  if (rec.type === 'apply') return { label: '보급 신청', tagClass: 'tag tag-apply' };
+  if (rec.type === 'recommend') return { label: '상점 추천', tagClass: 'tag tag-good' };
+  if (rec.type === 'monitor') return { label: '모니터링', tagClass: 'tag tag-monitor' };
+  return { label: rec.type || '기록', tagClass: 'tag' };
+}
+
+function renderMap() {
+  const allRecords = getRecords();
+  // 모니터링단(PIN 인증)이면 전체, 아니면 검증된 것만 표시
+  const mapRecords = allRecords.filter(r => {
+    if (!r.addr) return false;
+    if (monitorUnlocked || managerUnlocked) return true;
+    return isVerified(r);
+  });
+  const container = document.getElementById('kakao-map');
+  const listEl = document.getElementById('map-list');
+
+  mapInstance = new kakao.maps.Map(container, {
+    center: new kakao.maps.LatLng(37.5726, 126.9793),
+    level: 6
+  });
+
+  mapMarkers.forEach(m => m.setMap(null));
+  mapMarkers = [];
+  if (currentInfoWindow) {
+    currentInfoWindow.close();
+    currentInfoWindow = null;
+  }
+
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      const myPos = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+      const mySvg = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#6366f1" stroke="white" stroke-width="2"/><circle cx="10" cy="10" r="3" fill="white"/></svg>';
+      new kakao.maps.Marker({
+        map: mapInstance, position: myPos, zIndex: 10,
+        image: new kakao.maps.MarkerImage('data:image/svg+xml;charset=utf-8,'+encodeURIComponent(mySvg), new kakao.maps.Size(20,20), {offset: new kakao.maps.Point(10,10)})
+      });
+    });
+  }
+
+  listEl.innerHTML = '';
+  const recordListEl = listEl;
+
+  if (mapRecords.length === 0) {
+    recordListEl.innerHTML = '<div class="empty-state"><div class="empty-icon" aria-hidden="true">📍</div>아직 기록이 없어요</div>';
+    return;
+  }
+
+  const geocoder = new kakao.maps.services.Geocoder();
+
+  mapRecords.forEach(function(rec, idx) {
+    const markerColor = getMarkerColor(rec);
+    const typeMeta = getRecordTypeMeta(rec);
+    const typeLabel = typeMeta.label;
+    const typeTagStyle = typeMeta.tagClass;
+    const actionLabel = rec.action === '조치 필요' ? '조치 필요'
+      : rec.action === '추후 확인' ? '추후 확인'
+      : rec.action === '양호' ? '양호' : '';
+    const actionTagStyle = rec.action === '조치 필요' ? 'tag tag-action'
+      : rec.action === '추후 확인' ? 'tag tag-fair'
+      : 'tag tag-good';
+
+    const item = document.createElement('div');
+    item.className = 'record-item';
+    item.style.cursor = 'pointer';
+    item.setAttribute('role', 'listitem');
+    item.setAttribute('tabindex', '0');
+    item.setAttribute('aria-label', rec.name + ', ' + rec.addr + ', ' + typeLabel + (actionLabel ? ', ' + actionLabel : '') + (rec.items ? ', ' + rec.items : '') + '. 지도에서 위치 보기');
+    const verifiedBadge = isVerified(rec) ? '' : '<span style="font-size:10px;color:#9ca3af;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px;padding:1px 6px;margin-left:4px">미검증</span>';
+    item.innerHTML = '<div class="rec-top" style="justify-content:flex-start;gap:6px">'
+      + '<span style="width:10px;height:10px;border-radius:50%;background:'+markerColor+';display:inline-block;flex-shrink:0" aria-hidden="true"></span>'
+      + '<span class="rec-name">'+rec.name+'</span>'
+      + verifiedBadge
+      + '</div>'
+      + '<div class="rec-addr">'+rec.addr+'</div>'
+      + '<div class="rec-tags"><span class="'+typeTagStyle+'">'+typeLabel+'</span>'
+      + (actionLabel ? '<span class="'+actionTagStyle+'">'+actionLabel+'</span>' : '')
+      + (rec.items ? '<span class="tag" style="background:#f0fdf4;color:#166534">'+rec.items+'</span>' : '')
+      + '</div>';
+    // 키보드 Enter로도 클릭 가능하게
+    item.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.click(); }
+    });
+    recordListEl.appendChild(item);
+
+    geocoder.addressSearch(rec.addr, function(result, status) {
+      if (status !== kakao.maps.services.Status.OK) return;
+      const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+      const marker = new kakao.maps.Marker({
+        map: mapInstance,
+        position: coords,
+        image: makeMarkerImage(markerColor)
+      });
+      mapMarkers.push(marker);
+
+      const infoHtml = '<div style="padding:8px 12px;font-size:13px;font-family:Noto Sans KR,sans-serif;min-width:130px">'
+        + '<strong>'+rec.name+'</strong><br>'
+        + '<span style="color:'+markerColor+';font-size:12px;font-weight:600">'+typeLabel+'</span>'
+        + (rec.items ? '<br><span style="color:#6b7280;font-size:12px">'+rec.items+'</span>' : '')
+        + '</div>';
+      const info = new kakao.maps.InfoWindow({ content: infoHtml });
+
+      kakao.maps.event.addListener(marker, 'click', function() {
+        if (currentInfoWindow) currentInfoWindow.close();
+        info.open(mapInstance, marker);
+        currentInfoWindow = info;
+      });
+
+      item.addEventListener('click', function() {
+        kakao.maps.event.trigger(mapInstance, 'resize');
+        mapInstance.setCenter(coords);
+        if (currentInfoWindow) currentInfoWindow.close();
+        info.open(mapInstance, marker);
+        currentInfoWindow = info;
+      });
+    });
+  });
+}
+// ── 업데이트 확인 중에는 Service Worker 캐시를 비활성화 ─────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.getRegistrations()
+      .then(registrations => registrations.forEach(reg => reg.unregister()))
+      .catch(() => {});
+  });
+}
+
+// ── 초기화 ────────────────────────────────────────
+
+// 샘플 데이터 없음 (실제 운영용)
+
+document.getElementById('m_date').valueAsDate = new Date();
+loadAppSettings();
+updateDashboard();
+loadSettingsUI();
+</script>
+<script>
+// 카카오맵 SDK 동적 로드
+window.kakaoMapReady = false;
+(function() {
+  const s = document.createElement('script');
+  s.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=80997111825554ef64ddb0481b4c0a76&libraries=services&autoload=false';
+  s.addEventListener('load', function() {
+    kakao.maps.load(function() {
+      window.kakaoMapReady = true;
+      if (window.pendingMapRender) { window.pendingMapRender(); }
+    });
+  });
+  document.head.appendChild(s);
+})();
+</script>
+</body>
+</html>
