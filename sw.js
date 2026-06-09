@@ -1,7 +1,7 @@
 const CACHE_NAME = 'barrier-free-v7';
 const urlsToCache = [
-  '/barrier-free-app/',
-  '/barrier-free-app/index.html'
+  '/monitoring/',
+  '/monitoring/index.html'
 ];
 self.addEventListener('install', event => {
   event.waitUntil(
