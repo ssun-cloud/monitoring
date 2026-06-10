@@ -2214,60 +2214,93 @@ function clearAllData() {
 
 let lastSheetSyncAt = 0;
 
-async function syncRecordsFromSheet(force) {
+// ── [GAS 백업] 기존 Google Apps Script 조회 함수 ──────
+// async function syncRecordsFromSheet(force) {
+//   const now = Date.now();
+//   if (!force && now - lastSheetSyncAt < 30000) return getRecords();
+//   if (!managerUnlocked || !managerSessionPin) throw new Error('manager-auth-required');
+//   const authQuery = '&managerPin=' + encodeURIComponent(managerSessionPin);
+//   const [applyRes, monitorRes, recRes] = await Promise.all([
+//     fetch(SCRIPT_URL + '?type=apply' + authQuery, { cache: 'no-store' }),
+//     fetch(SCRIPT_URL + '?type=monitor' + authQuery, { cache: 'no-store' }),
+//     fetch(SCRIPT_URL + '?type=recommend' + authQuery, { cache: 'no-store' }).catch(() => ({json:()=>({result:'ok',records:[]})}))
+//   ]);
+//   const [applyData, monitorData, recData] = await Promise.all([applyRes.json(), monitorRes.json(), recRes.json()]);
+//   if (applyData.result !== 'ok' || monitorData.result !== 'ok') throw new Error('sheet-load-failed');
+//   const sheetRecords = [...applyData.records, ...monitorData.records, ...(recData.records||[])];
+//   const merged = [...sheetRecords, ...getRecords()];
+//   const byKey = new Map();
+//   merged.forEach(function(r) {
+//     const key = String(r.timestamp||'')+'|'+String(r.type||'')+'|'+String(r.name||r.place||'')+'|'+String(r.addr||'');
+//     if (!byKey.has(key)) byKey.set(key, r);
+//   });
+//   const all = Array.from(byKey.values());
+//   all.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+//   localStorage.setItem('records', JSON.stringify(all));
+//   lastSheetSyncAt = now;
+//   return all;
+// }
+// ──────────────────────────────────────────────────────
+
+// ── Supabase public_map_records 조회 ──────────────────
+async function syncRecordsFromSupabase(force) {
   const now = Date.now();
   if (!force && now - lastSheetSyncAt < 30000) return getRecords();
-  if (!managerUnlocked || !managerSessionPin) throw new Error('manager-auth-required');
-  const authQuery = '&managerPin=' + encodeURIComponent(managerSessionPin);
 
-  const [applyRes, monitorRes, recRes] = await Promise.all([
-    fetch(SCRIPT_URL + '?type=apply' + authQuery, { cache: 'no-store' }),
-    fetch(SCRIPT_URL + '?type=monitor' + authQuery, { cache: 'no-store' }),
-    fetch(SCRIPT_URL + '?type=recommend' + authQuery, { cache: 'no-store' }).catch(() => ({json:()=>({result:'ok',records:[]})}))
-  ]);
-  const [applyData, monitorData, recData] = await Promise.all([applyRes.json(), monitorRes.json(), recRes.json()]);
-  if (applyData.result !== 'ok' || monitorData.result !== 'ok') throw new Error('sheet-load-failed');
+  console.log('[불러오기] syncRecordsFromSupabase() 실행됨');
+  const { data, error } = await _supabase
+    .from('public_map_records')
+    .select('id, created_at, type, name, addr, items, action_required, action')
+    .order('created_at', { ascending: false });
 
-  const sheetRecords = [...applyData.records, ...monitorData.records, ...(recData.records||[])];
-  const merged = [...sheetRecords, ...getRecords()];
-  const byKey = new Map();
-  merged.forEach(function(r) {
-    const key = String(r.timestamp || '') + '|' + String(r.type || '') + '|' + String(r.name || r.place || '') + '|' + String(r.addr || '');
-    if (!byKey.has(key)) byKey.set(key, r);
+  if (error) {
+    console.error('[불러오기] Supabase 조회 오류:', error.message);
+    throw new Error('supabase-load-failed');
+  }
+
+  // 기존 렌더링 함수가 기대하는 형태로 변환
+  const records = (data || []).map(function(r) {
+    return {
+      id:        r.id,
+      timestamp: r.created_at,
+      type:      r.type,
+      name:      r.name,
+      addr:      r.addr,
+      items:     r.items || '',
+      action:    r.action || '',
+      action_required: r.action_required || ''
+    };
   });
-  const all = Array.from(byKey.values());
-  all.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  localStorage.setItem('records', JSON.stringify(all));
+
+  localStorage.setItem('records', JSON.stringify(records));
   lastSheetSyncAt = now;
-  return all;
+  console.log('[불러오기] ✅ ' + records.length + '건 저장 완료');
+  return records;
 }
+// ──────────────────────────────────────────────────────
 
 async function loadFromSheet() {
-  if (!managerUnlocked || !managerSessionPin) {
-    requireManagerPin(loadFromSheet);
-    return;
-  }
   const btn = (typeof event !== 'undefined' && event && event.target)
     ? event.target
     : document.querySelector('button[onclick="loadFromSheet()"]');
   btn.disabled = true;
   btn.textContent = '불러오는 중...';
   try {
-    const all = await syncRecordsFromSheet(true);
-    // 일지 불러오기
-    let journalMsg = '';
-    try {
-      const jRes = await fetch(SCRIPT_URL + '?type=journal&managerPin=' + encodeURIComponent(managerSessionPin));
-      const jData = await jRes.json();
-      if (jData.result === 'ok' && jData.records) {
-        jData.records.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
-        localStorage.setItem('journals', JSON.stringify(jData.records));
-        journalMsg = ', 일지 ' + jData.records.length + '건';
-      }
-    } catch(e) {}
+    // ── [GAS 백업] 일지 불러오기 ──────────────────────
+    // const jRes = await fetch(SCRIPT_URL + '?type=journal&managerPin=' + encodeURIComponent(managerSessionPin));
+    // const jData = await jRes.json();
+    // if (jData.result === 'ok' && jData.records) {
+    //   jData.records.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+    //   localStorage.setItem('journals', JSON.stringify(jData.records));
+    // }
+    // ──────────────────────────────────────────────────
+
+    const all = await syncRecordsFromSupabase(true);
     updateDashboard();
-    showToast('settings-toast', '✅ ' + all.length + '건' + journalMsg + '을 불러왔어요!', 'success');
+    renderMap();
+    showToast('settings-toast', '✅ ' + all.length + '건을 불러왔어요!', 'success');
   } catch(e) {
+    console.error('[불러오기] 오류:', e.message);
     showToast('settings-toast', '불러오기 중 오류가 발생했어요.', 'error');
   } finally {
     btn.disabled = false;
