@@ -1888,8 +1888,18 @@ function recordCard(r, idx) {
       ${r.action ? `<div class="detail-row"><span class="detail-label">진행 상태</span><span class="detail-value">${r.action}</span></div>` : ''}
       ${r.memo ? `<div class="detail-row"><span class="detail-label">요청 메모</span><span class="detail-value">${r.memo}</span></div>` : ''}
       ${managerUnlocked
-        ? (r.applyname ? `<div class="detail-row"><span class="detail-label">신청자</span><span class="detail-value">${r.applyname}</span></div>` : '')
-          + (r.phone ? `<div class="detail-row"><span class="detail-label">연락처</span><span class="detail-value">${r.phone}</span></div>` : '')
+        ? (r.applicant || r.applyname
+            ? `<div class="detail-row"><span class="detail-label">신청자</span><span class="detail-value">${r.applicant || r.applyname}</span></div>`
+            : '')
+          + (r.phone
+            ? `<div class="detail-row"><span class="detail-label">연락처</span><span class="detail-value">${r.phone}</span></div>`
+            : '')
+          + (r.memo
+            ? `<div class="detail-row"><span class="detail-label">메모</span><span class="detail-value">${r.memo}</span></div>`
+            : '')
+          + (r.intro
+            ? `<div class="detail-row"><span class="detail-label">한줄소개</span><span class="detail-value">${r.intro}</span></div>`
+            : '')
         : '<div class="detail-row"><span style="font-size:12px;color:var(--text-muted)">🔒 신청자·연락처는 담당자만 볼 수 있어요</span></div>'
       }
     `;
@@ -1905,9 +1915,11 @@ function recordCard(r, idx) {
       ${ratings ? `<div class="detail-row"><span class="detail-label">항목 평가</span><span class="detail-value">${ratings}</span></div>` : ''}
       ${r.comment ? `<div class="detail-row"><span class="detail-label">종합 의견</span><span class="detail-value">${r.comment}</span></div>` : ''}
       ${r.extras ? `<div class="detail-row"><span class="detail-label">추가 확인</span><span class="detail-value">${r.extras}</span></div>` : ''}
-      ${managerUnlocked
-        ? (r.author ? `<div class="detail-row"><span class="detail-label">기록자</span><span class="detail-value">${r.author}</span></div>` : '')
-        : '<div class="detail-row"><span style="font-size:12px;color:var(--text-muted)">🔒 기록자는 담당자만 볼 수 있어요</span></div>'
+      ${(monitorUnlocked || managerUnlocked)
+        ? (r.recorder || r.author
+            ? `<div class="detail-row"><span class="detail-label">기록자</span><span class="detail-value">${r.recorder || r.author}</span></div>`
+            : '')
+        : '<div class="detail-row"><span style="font-size:12px;color:var(--text-muted)">🔒 기록자는 모니터링단·담당자만 볼 수 있어요</span></div>'
       }
     `;
   }
@@ -2078,6 +2090,8 @@ function toggleManagerAuth() {
     // 로그아웃
     managerUnlocked = false;
     managerSessionPin = '';
+    lastSheetSyncAt = 0;
+    console.log('[조회] 관리자 로그아웃 - 공개 모드로 전환');
     updateManagerAuthUI();
     renderRecords();
   } else {
@@ -2252,24 +2266,35 @@ let lastSheetSyncAt = 0;
 // }
 // ──────────────────────────────────────────────────────
 
-// ── Supabase 조회 (공개 / 모니터링단 분기) ───────────
+// ── Supabase 조회 (관리자 / 모니터링단 / 공개 분기) ──
 async function syncRecordsFromSupabase(force) {
   const now = Date.now();
   if (!force && now - lastSheetSyncAt < 30000) return getRecords();
 
   let data, error;
 
-  if (monitorUnlocked && monitorSessionPin) {
-    // 모니터링단 인증 상태: RPC로 상세 데이터 조회
+  if (managerUnlocked && managerSessionPin) {
+    // 관리자 인증: 전체 상세 데이터 + 개인정보 포함
+    console.log('[조회] 관리자 상세 데이터 RPC 조회');
+    ({ data, error } = await _supabase
+      .rpc('get_manager_detail_records', { pin_input: managerSessionPin }));
+    if (error) {
+      console.error('[조회] RPC error:', error.code, error.message, error.details, error.hint);
+      showToast('settings-toast', '⚠️ 관리자 데이터 불러오기 오류: ' + error.message, 'error');
+      return getRecords(); // 기존 데이터 유지, 덮어쓰지 않음
+    }
+  } else if (monitorUnlocked && monitorSessionPin) {
+    // 모니터링단 인증: 상세 데이터 (개인정보 제외)
     console.log('[조회] 모니터링단 상세 데이터 RPC 조회');
     ({ data, error } = await _supabase
       .rpc('get_monitor_detail_records', { pin_input: monitorSessionPin }));
     if (error) {
       console.error('[조회] RPC error:', error.code, error.message, error.details, error.hint);
-      throw new Error('rpc-load-failed');
+      showToast('settings-toast', '⚠️ 데이터 불러오기 오류: ' + error.message, 'error');
+      return getRecords();
     }
   } else {
-    // 공개 상태: public_map_records 조회
+    // 공개: public_map_records
     console.log('[조회] 공개 데이터 조회');
     ({ data, error } = await _supabase
       .from('public_map_records')
@@ -2281,31 +2306,36 @@ async function syncRecordsFromSupabase(force) {
     }
   }
 
-  // 기존 렌더링 함수가 기대하는 형태로 변환
+  // 렌더링 함수가 기대하는 형태로 변환
   const records = (data || []).map(function(r) {
     return {
-      id:             r.id,
-      timestamp:      r.created_at,
-      type:           r.type,
-      name:           r.name,
-      addr:           r.addr,
-      items:          r.items || '',
-      action:         r.action || '',
+      id:              r.id,
+      timestamp:       r.created_at,
+      type:            r.type,
+      name:            r.name,
+      addr:            r.addr,
+      items:           r.items || '',
+      action:          r.action || '',
       action_required: r.action_required || '',
-      monitored_at:   r.monitored_at || '',
-      r_braille:      r.r_braille || '',
-      r_ramp:         r.r_ramp || '',
-      r_toilet:       r.r_toilet || '',
-      r_signage:      r.r_signage || '',
-      comment:        r.comment || '',
-      extra_notes:    r.extra_notes || '',
-      recorder:       r.recorder || ''
+      monitored_at:    r.monitored_at || '',
+      r_braille:       r.r_braille || '',
+      r_ramp:          r.r_ramp || '',
+      r_toilet:        r.r_toilet || '',
+      r_signage:       r.r_signage || '',
+      comment:         r.comment || '',
+      extra_notes:     r.extra_notes || '',
+      recorder:        r.recorder || '',
+      // 관리자 전용 필드 (공개/모니터링단 상태에서는 빈 값으로 들어옴)
+      applicant:       r.applicant || '',   // 신청자명 / 추천인명
+      phone:           r.phone || '',       // 연락처
+      memo:            r.memo || '',        // 내부 메모
+      intro:           r.intro || ''        // 한줄소개
     };
   });
 
   localStorage.setItem('records', JSON.stringify(records));
   lastSheetSyncAt = now;
-  console.log('[조회] ✅ ' + records.length + '건 저장 완료 (모니터링단: ' + (monitorUnlocked ? 'Y' : 'N') + ')');
+  console.log('[조회] ✅ ' + records.length + '건 저장 완료 (관리자: ' + (managerUnlocked ? 'Y' : 'N') + ' / 모니터링단: ' + (monitorUnlocked ? 'Y' : 'N') + ')');
   return records;
 }
 // ──────────────────────────────────────────────────────
@@ -2327,15 +2357,50 @@ async function loadFromSheet() {
     // ──────────────────────────────────────────────────
 
     const all = await syncRecordsFromSupabase(true);
+
+    // 관리자 인증 시에만 활동일지 불러오기
+    let journalMsg = '';
+    if (managerUnlocked && managerSessionPin) {
+      try {
+        console.log('[조회] 관리자 활동일지 RPC 조회');
+        const { data: jData, error: jError } = await _supabase
+          .rpc('get_manager_journals', { pin_input: managerSessionPin });
+        if (jError) {
+          console.error('[조회] 활동일지 RPC error:', jError.message);
+        } else if (jData && jData.length) {
+          const journals = jData.map(function(j) {
+            return {
+              date:      j.activity_date,
+              time:      j.activity_time || '',
+              team:      j.team_name || '',
+              author:    j.members || '',
+              stores:    j.stores || '',
+              memo:      j.memo || '',
+              timestamp: j.created_at
+            };
+          });
+          localStorage.setItem('journals', JSON.stringify(journals));
+          journalMsg = ', 일지 ' + journals.length + '건';
+          console.log('[조회] ✅ 활동일지 ' + journals.length + '건 저장 완료');
+        }
+      } catch(e) {
+        console.error('[조회] 활동일지 불러오기 오류:', e.message);
+      }
+    }
+
     updateDashboard();
     renderMap();
-    showToast('settings-toast', '✅ ' + all.length + '건을 불러왔어요!', 'success');
+    showToast('settings-toast', '✅ ' + all.length + '건' + journalMsg + '을 불러왔어요!', 'success');
   } catch(e) {
     console.error('[불러오기] 오류:', e.message);
     showToast('settings-toast', '불러오기 중 오류가 발생했어요.', 'error');
   } finally {
     btn.disabled = false;
-    btn.textContent = monitorUnlocked ? '📥 상세 데이터 불러오기' : '📥 공개 데이터 불러오기';
+    btn.textContent = managerUnlocked
+      ? '📥 관리자 상세 데이터 불러오기'
+      : monitorUnlocked
+        ? '📥 상세 데이터 불러오기'
+        : '📥 공개 데이터 불러오기';
   }
 }
 async function testSheet() {
