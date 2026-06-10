@@ -1173,6 +1173,26 @@ async function postSheetData(payload) {
   return data;
 }
 
+// ── 메일 알림 전용 함수 (GAS notify 분기 호출) ────────
+async function sendMailNotify(notifyType, payload) {
+  try {
+    const body = Object.assign({ type: 'notify', notifyType: notifyType }, payload);
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body)
+    });
+    if (res.ok) {
+      console.log('[메일] 알림 발송 요청 완료:', notifyType);
+    } else {
+      console.warn('[메일] 알림 발송 실패 (HTTP ' + res.status + ') - 저장은 완료');
+    }
+  } catch(e) {
+    console.warn('[메일] 알림 발송 오류 (저장은 완료):', e.message);
+  }
+}
+// ──────────────────────────────────────────────────────
+
 async function submitApply() {
   const name = document.getElementById('a_name').value.trim();
   const addr = document.getElementById('a_addr').value.trim();
@@ -1222,6 +1242,8 @@ async function submitApply() {
   // ──────────────────────────────────────────────────────
 
   saveRecord({ type:'apply', name, addr, items, applyname, phone, memo, timestamp: ts });
+  // 메일 알림 (실패해도 저장 성공 유지)
+  sendMailNotify('apply', { name, addr, items, timestamp: ts });
   showToast('apply-toast','✅ 신청이 접수되었습니다. 담당자가 확인 후 연락드릴게요!','success');
   ['a_name','a_addr','a_applyname','a_phone','a_memo','a_other_detail'].forEach(id => document.getElementById(id).value = '');
   ['a_braille','a_ramp','a_sign','a_other'].forEach(id => document.getElementById(id).checked = false);
@@ -1254,17 +1276,21 @@ async function submitMonitor() {
   const ts = new Date().toLocaleString('ko-KR');
   setLoading('monitor-btn', true, '기록 제출하기');
 
-  // 로컬 먼저 저장 (사진 없이)
-  try {
-    await postSheetData({ type: 'monitor', monitorPin: monitorSessionPin, managerPin: managerSessionPin, place, addr, date, r1, r2, r3, r4, action, comment, author, extras, photos: [], timestamp: ts });
-  } catch(e) {
-    console.warn('시트 저장 오류:', e);
-    showToast('monitor-toast', '시트 저장에 실패했어요. 사진을 빼거나 잠시 후 다시 시도해 주세요.', 'error');
-    setLoading('monitor-btn', false, '기록 제출하기');
-    return;
-  }
+  // ── [GAS 백업] 기존 시트 저장 코드 ──────────────────
+  // try {
+  //   await postSheetData({ type: 'monitor', monitorPin: monitorSessionPin, managerPin: managerSessionPin,
+  //     place, addr, date, r1, r2, r3, r4, action, comment, author, extras, photos: [], timestamp: ts });
+  // } catch(e) {
+  //   console.warn('시트 저장 오류:', e);
+  //   showToast('monitor-toast', '시트 저장에 실패했어요.', 'error');
+  //   setLoading('monitor-btn', false, '기록 제출하기');
+  //   return;
+  // }
+  // ──────────────────────────────────────────────────────
 
   saveRecord({ type:'monitor', name: place, addr, date, r1, r2, r3, r4, action, comment, author, extras, goodcase, timestamp: ts });
+  // 메일 알림 (실패해도 저장 성공 유지)
+  sendMailNotify('monitor', { place, addr, date, action, timestamp: ts });
 
   // 사진이 있으면 CORS 방식으로 한 장씩 업로드
   if (selectedPhotos.length > 0) {
@@ -1549,6 +1575,8 @@ async function submitJournal() {
   var journals = getJournals();
   journals.unshift({date, time, team:teamName, author, stores:storeList, memo, timestamp:ts});
   localStorage.setItem('journals', JSON.stringify(journals));
+  // 메일 알림 (실패해도 저장 성공 유지)
+  sendMailNotify('journal', { date, time, team: teamName, stores: storeList, timestamp: ts });
   showToast('journal-toast','✅ 활동일지가 저장되었습니다.','success');
   if (memoEl) memoEl.value = '';
   if (extraEl) extraEl.value = '';
@@ -1639,6 +1667,8 @@ async function submitRecommend() {
   // ──────────────────────────────────────────────────────
 
   saveRecord({type:'recommend', name, addr, items, recommender:author, action:'추천', timestamp:ts});
+  // 메일 알림 (실패해도 저장 성공 유지)
+  sendMailNotify('recommend', { name, addr, items, timestamp: ts });
   showToast('recommend-toast','✅ 추천이 접수되었습니다! 감사해요 😊','success');
   ['r_name','r_addr','r_author','r_phone','r_intro','r_other_text'].forEach(function(id) { var el=document.getElementById(id); if(el) el.value=''; });
   ['r_braille','r_ramp','r_toilet','r_staff','r_sign','r_other_chk'].forEach(function(id) { var el=document.getElementById(id); if(el) el.checked=false; });
