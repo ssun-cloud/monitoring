@@ -2176,8 +2176,15 @@ function renderSettingsRecords() {
       + '<span style="font-size:11px;color:var(--text-muted)">' + ts.slice(0,10) + '</span>'
       + '</div>'
       + '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">' + (r.addr||'') + '</div>'
-      + (r.applyname ? '<div style="font-size:12px;margin-bottom:4px">신청자: ' + r.applyname + (r.phone?' · '+r.phone:'') + '</div>' : '')
-      + (r.author ? '<div style="font-size:12px;margin-bottom:4px">기록자: ' + r.author + '</div>' : '')
+      + (managerUnlocked && (r.applicant || r.applyname)
+          ? '<div style="font-size:12px;margin-bottom:4px">신청자: ' + (r.applicant||r.applyname) + (r.phone?' · '+r.phone:'') + '</div>'
+          : '')
+      + (managerUnlocked && r.memo
+          ? '<div style="font-size:12px;margin-bottom:4px;color:var(--text-muted)">메모: ' + r.memo + '</div>'
+          : '')
+      + ((monitorUnlocked || managerUnlocked) && (r.recorder || r.author)
+          ? '<div style="font-size:12px;margin-bottom:4px">기록자: ' + (r.recorder||r.author) + '</div>'
+          : '')
       + (r.items||r.comment ? '<div style="font-size:12px;margin-bottom:8px;color:var(--text)">' + (r.items||r.comment||'') + '</div>' : '');
     div.innerHTML = header;
     var sel = document.createElement('select');
