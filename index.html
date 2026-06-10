@@ -1647,23 +1647,83 @@ async function submitRecommend() {
 }
 
 // ── 기록 상태 변경 ───────────────────────────────────
+
+// ── [GAS 백업] 기존 Google Apps Script 상태 변경 코드 ──
+// async function updateRecordStatus(timestamp, type, status) {
+//   var records = getRecords();
+//   records = records.map(function(r) {
+//     if (String(r.timestamp) === String(timestamp)) r.action = status;
+//     return r;
+//   });
+//   localStorage.setItem('records', JSON.stringify(records));
+//   try {
+//     await fetch(SCRIPT_URL, {
+//       method: 'POST', mode: 'no-cors',
+//       body: JSON.stringify({ type: 'updateStatus', managerPin: managerSessionPin, timestamp: timestamp, recordType: type, status: status }),
+//       headers: { 'Content-Type': 'application/json' }
+//     });
+//   } catch(e) {}
+// }
+// ──────────────────────────────────────────────────────
+
+// ── Supabase RPC 상태 변경 ────────────────────────────
 async function updateRecordStatus(timestamp, type, status) {
-  // 로컬 업데이트
-  var records = getRecords();
-  records = records.map(function(r) {
-    if (String(r.timestamp) === String(timestamp)) r.action = status;
-    return r;
-  });
-  localStorage.setItem('records', JSON.stringify(records));
-  // 시트 업데이트
+  if (!managerUnlocked || !managerSessionPin) {
+    console.warn('[상태변경] 관리자 인증 필요');
+    return;
+  }
+
+  // 변경 대상 record_id 찾기
+  const records = getRecords();
+  const target = records.find(function(r) { return String(r.timestamp) === String(timestamp); });
+  if (!target || !target.id) {
+    console.warn('[상태변경] record_id를 찾을 수 없음 - timestamp:', timestamp);
+    showToast('settings-toast', '⚠️ 기록을 찾을 수 없어요.', 'error');
+    return;
+  }
+
+  console.log('[상태변경] RPC 호출 - type:', type, '/ id:', target.id, '/ status:', status);
+
   try {
-    await fetch(SCRIPT_URL, {
-      method: 'POST', mode: 'no-cors',
-      body: JSON.stringify({ type: 'updateStatus', managerPin: managerSessionPin, timestamp: timestamp, recordType: type, status: status }),
-      headers: { 'Content-Type': 'application/json' }
+    const { data, error } = await _supabase.rpc('update_record_status', {
+      pin_input:   managerSessionPin,
+      record_type: type,
+      record_id:   target.id,
+      new_status:  status
     });
-  } catch(e) {}
+
+    if (error) {
+      console.error('[상태변경] RPC 오류:', error.code, error.message);
+      showToast('settings-toast', '⚠️ 상태 변경 실패: ' + error.message, 'error');
+      return;
+    }
+
+    console.log('[상태변경] ✅ Supabase 업데이트 성공');
+
+    // 로컬 반영
+    const updated = records.map(function(r) {
+      if (String(r.timestamp) === String(timestamp)) r.action = status;
+      return r;
+    });
+    localStorage.setItem('records', JSON.stringify(updated));
+    updateDashboard();
+
+    // 관리자 데이터 다시 불러오기
+    try {
+      await syncRecordsFromSupabase(true);
+      renderSettingsRecords();
+      renderMap();
+      console.log('[상태변경] ✅ 데이터 재조회 완료');
+    } catch(e) {
+      console.warn('[상태변경] 재조회 실패 (로컬 반영은 완료):', e.message);
+    }
+
+  } catch(e) {
+    console.error('[상태변경] catch 오류:', e.message);
+    showToast('settings-toast', '⚠️ 연결 오류가 발생했어요.', 'error');
+  }
 }
+// ──────────────────────────────────────────────────────
 
 // ── 대시보드 ──────────────────────────────────────
 function updateDashboard() {
@@ -1958,30 +2018,23 @@ function statusDropdown(r) {
 
 function changeStatus(ts, newStatus) {
   if (!newStatus) return;
-  requireManagerPin(function() {
-    const records = getRecords();
-    const realIdx = records.findIndex(r => r.timestamp === ts);
-    if (realIdx === -1) return;
-    records[realIdx].action = newStatus;
-    localStorage.setItem('records', JSON.stringify(records));
-    updateDashboard();
-    // 기록 탭이 열려있으면 갱신
-    const recSection = document.getElementById('records');
-    if (recSection && recSection.classList.contains('active')) {
-      renderRecords();
-    }
-    // 토스트는 신청/모니터링 탭 어디서든 보이도록 body에 붙이기
-    let toast = document.getElementById('status-toast');
-    if (!toast) {
-      toast = document.createElement('div');
-      toast.id = 'status-toast';
-      toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a8c6e;color:white;padding:10px 20px;border-radius:8px;font-size:13px;font-family:Noto Sans KR,sans-serif;z-index:999;';
-      document.body.appendChild(toast);
-    }
-    toast.textContent = '✅ 상태가 [' + newStatus + ']로 변경되었습니다.';
-    toast.style.display = 'block';
-    setTimeout(() => { toast.style.display = 'none'; }, 3000);
-  });
+  if (!managerUnlocked) {
+    console.warn('[상태변경] 관리자 미인증 상태에서 changeStatus 호출됨');
+    return;
+  }
+  updateRecordStatus(ts, getRecords().find(r => String(r.timestamp) === String(ts))?.type || '', newStatus)
+    .then(function() {
+      let toast = document.getElementById('status-toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'status-toast';
+        toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a8c6e;color:white;padding:10px 20px;border-radius:8px;font-size:13px;font-family:Noto Sans KR,sans-serif;z-index:999;';
+        document.body.appendChild(toast);
+      }
+      toast.textContent = '✅ 상태가 [' + newStatus + ']로 변경되었습니다.';
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    });
 }
 
 function toggleDetail(detailId, card) {
