@@ -2089,6 +2089,16 @@ function toggleManagerAuth() {
   }
 }
 
+function toggleMonitorAuth() {
+  if (monitorUnlocked) {
+    monitorUnlocked = false;
+    monitorSessionPin = '';
+    lastSheetSyncAt = 0;
+    console.log('[조회] 모니터링단 로그아웃 - 공개 모드로 전환');
+  }
+}
+// ──────────────────────────────────────────────────────
+
 function updateManagerAuthUI() {
   const status = document.getElementById('manager-auth-status');
   const btn = document.getElementById('manager-auth-btn');
@@ -2242,39 +2252,60 @@ let lastSheetSyncAt = 0;
 // }
 // ──────────────────────────────────────────────────────
 
-// ── Supabase public_map_records 조회 ──────────────────
+// ── Supabase 조회 (공개 / 모니터링단 분기) ───────────
 async function syncRecordsFromSupabase(force) {
   const now = Date.now();
   if (!force && now - lastSheetSyncAt < 30000) return getRecords();
 
-  console.log('[불러오기] syncRecordsFromSupabase() 실행됨');
-  const { data, error } = await _supabase
-    .from('public_map_records')
-    .select('id, created_at, type, name, addr, items, action_required, action')
-    .order('created_at', { ascending: false });
+  let data, error;
 
-  if (error) {
-    console.error('[불러오기] Supabase 조회 오류:', error.message);
-    throw new Error('supabase-load-failed');
+  if (monitorUnlocked && monitorSessionPin) {
+    // 모니터링단 인증 상태: RPC로 상세 데이터 조회
+    console.log('[조회] 모니터링단 상세 데이터 RPC 조회');
+    ({ data, error } = await _supabase
+      .rpc('get_monitor_detail_records', { pin_input: monitorSessionPin }));
+    if (error) {
+      console.error('[조회] RPC error:', error.code, error.message, error.details, error.hint);
+      throw new Error('rpc-load-failed');
+    }
+  } else {
+    // 공개 상태: public_map_records 조회
+    console.log('[조회] 공개 데이터 조회');
+    ({ data, error } = await _supabase
+      .from('public_map_records')
+      .select('id, created_at, type, name, addr, items, action_required, action')
+      .order('created_at', { ascending: false }));
+    if (error) {
+      console.error('[조회] RPC error:', error.code, error.message, error.details, error.hint);
+      throw new Error('supabase-load-failed');
+    }
   }
 
   // 기존 렌더링 함수가 기대하는 형태로 변환
   const records = (data || []).map(function(r) {
     return {
-      id:        r.id,
-      timestamp: r.created_at,
-      type:      r.type,
-      name:      r.name,
-      addr:      r.addr,
-      items:     r.items || '',
-      action:    r.action || '',
-      action_required: r.action_required || ''
+      id:             r.id,
+      timestamp:      r.created_at,
+      type:           r.type,
+      name:           r.name,
+      addr:           r.addr,
+      items:          r.items || '',
+      action:         r.action || '',
+      action_required: r.action_required || '',
+      monitored_at:   r.monitored_at || '',
+      r_braille:      r.r_braille || '',
+      r_ramp:         r.r_ramp || '',
+      r_toilet:       r.r_toilet || '',
+      r_signage:      r.r_signage || '',
+      comment:        r.comment || '',
+      extra_notes:    r.extra_notes || '',
+      recorder:       r.recorder || ''
     };
   });
 
   localStorage.setItem('records', JSON.stringify(records));
   lastSheetSyncAt = now;
-  console.log('[불러오기] ✅ ' + records.length + '건 저장 완료');
+  console.log('[조회] ✅ ' + records.length + '건 저장 완료 (모니터링단: ' + (monitorUnlocked ? 'Y' : 'N') + ')');
   return records;
 }
 // ──────────────────────────────────────────────────────
@@ -2304,7 +2335,7 @@ async function loadFromSheet() {
     showToast('settings-toast', '불러오기 중 오류가 발생했어요.', 'error');
   } finally {
     btn.disabled = false;
-    btn.textContent = '📥 시트에서 불러오기';
+    btn.textContent = monitorUnlocked ? '📥 상세 데이터 불러오기' : '📥 공개 데이터 불러오기';
   }
 }
 async function testSheet() {
