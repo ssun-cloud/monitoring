@@ -1254,35 +1254,12 @@ async function submitMonitor() {
   const ts = new Date().toLocaleString('ko-KR');
   setLoading('monitor-btn', true, '기록 제출하기');
 
-  // ── Supabase insert (monitoring_records 테이블 / 사진 제외) ──────
-  const payload = {
-    place_name:      place,
-    address:         addr,
-    monitored_at:    date,
-    r_braille:       r1 || null,
-    r_ramp:          r2 || null,
-    r_toilet:        r3 || null,
-    r_signage:       r4 || null,
-    action_required: action || null,
-    comment:         comment,
-    extra_notes:     extras,
-    recorder:        author,
-    status:          '확인 중'
-  };
-  console.log('[모니터링] insert payload:', JSON.stringify(payload));
-
+  // 로컬 먼저 저장 (사진 없이)
   try {
-    const { error } = await _supabase.from('monitoring_records').insert([payload]);
-    console.log('[모니터링] insert 완료 - error:', error);
-    if (error) {
-      console.error('[모니터링] 오류 상세 - code:', error.code, '/ message:', error.message, '/ details:', error.details, '/ hint:', error.hint);
-      showToast('monitor-toast', '저장 중 오류가 발생했어요. 콘솔을 확인해 주세요.', 'error');
-      setLoading('monitor-btn', false, '기록 제출하기');
-      return;
-    }
+    await postSheetData({ type: 'monitor', monitorPin: monitorSessionPin, managerPin: managerSessionPin, place, addr, date, r1, r2, r3, r4, action, comment, author, extras, photos: [], timestamp: ts });
   } catch(e) {
-    console.error('[모니터링] catch 오류:', e.message, e);
-    showToast('monitor-toast', '연결 오류가 발생했어요. 다시 시도해 주세요.', 'error');
+    console.warn('시트 저장 오류:', e);
+    showToast('monitor-toast', '시트 저장에 실패했어요. 사진을 빼거나 잠시 후 다시 시도해 주세요.', 'error');
     setLoading('monitor-btn', false, '기록 제출하기');
     return;
   }
@@ -1536,13 +1513,43 @@ async function submitJournal() {
   var storeList = stores.join(', ');
   var ts = new Date().toLocaleString('ko-KR');
   setLoading('journal-btn', true, '일지 제출하기');
-  // 로컬 먼저 저장
+
+  // ── [GAS 백업] 기존 Google Apps Script 전송 코드 ──────
+  // fetch(SCRIPT_URL, { method:'POST', mode:'no-cors',
+  //   body: JSON.stringify({type:'journal', monitorPin:monitorSessionPin, managerPin:managerSessionPin,
+  //     date, time, team:teamName, author, stores:storeList, memo, timestamp:ts}),
+  //   headers:{'Content-Type':'application/json'} }).catch(function(){});
+  // ──────────────────────────────────────────────────────
+
+  // ── Supabase insert (activity_journals 테이블) ─────────
+  const payload = {
+    activity_date: date,
+    activity_time: time,
+    team_name:     teamName,
+    members:       author,
+    stores:        storeList,
+    memo:          memo,
+    photo_links:   null
+  };
+  console.log('[활동일지] submitJournal() 실행됨');
+  console.log('[활동일지] insert payload:', payload);
+
+  const { error } = await _supabase.from('activity_journals').insert([payload]);
+  console.log('[활동일지] insert 완료 - error:', error);
+
+  if (error) {
+    console.error('[활동일지] 오류 상세 - code:', error.code, '/ message:', error.message, '/ details:', error.details, '/ hint:', error.hint);
+    showToast('journal-toast', '⚠️ 저장 중 오류가 발생했어요. 다시 시도해 주세요.', 'error');
+    setLoading('journal-btn', false, '일지 제출하기');
+    return;
+  }
+  // ──────────────────────────────────────────────────────
+
+  // 로컬 저장
   var journals = getJournals();
   journals.unshift({date, time, team:teamName, author, stores:storeList, memo, timestamp:ts});
   localStorage.setItem('journals', JSON.stringify(journals));
-  showToast('journal-toast','✅ 활동 일지가 제출되었습니다!','success');
-  // 시트 전송 (백그라운드)
-  fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', body: JSON.stringify({type:'journal', monitorPin:monitorSessionPin, managerPin:managerSessionPin, date, time, team:teamName, author, stores:storeList, memo, timestamp:ts}), headers:{'Content-Type':'application/json'} }).catch(function(){});
+  showToast('journal-toast','✅ 활동일지가 저장되었습니다.','success');
   if (memoEl) memoEl.value = '';
   if (extraEl) extraEl.value = '';
   setLoading('journal-btn', false, '일지 제출하기');
