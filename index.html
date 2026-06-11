@@ -2904,7 +2904,7 @@ function mapRecordExtraHtml(rec) {
       + (rec.extras ? '<div class="detail-row"><span class="detail-label">추가 확인</span><span class="detail-value">' + rec.extras + '</span></div>' : '')
       + ((rec.recorder || rec.author) ? '<div class="detail-row"><span class="detail-label">기록자</span><span class="detail-value">' + (rec.recorder || rec.author) + '</span></div>' : '')
       + (rec.id ? '<div class="photo-view-wrap" data-record-id="' + rec.id + '" data-loaded="false" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><div style="font-size:12px;color:var(--text-muted)">📷 사진 불러오는 중...</div></div>' : '')
-      + ((managerUnlocked && rec.id) ? '<button type="button" class="sec-btn primary" style="margin-top:10px" onclick="event.stopPropagation(); openPrintMonitorRecord(\'' + String(rec.id).replace(/'/g, \"\\'\") + '\')">🖨️ A4 인쇄용 보기</button>' : '')
+      + ((managerUnlocked && rec.id) ? '<button type="button" class="sec-btn primary" style="margin-top:10px" onclick="event.stopPropagation(); openPrintMonitorRecord(\'' + String(rec.id).replace(/'/g, "\\'") + '\')">🖨️ A4 인쇄용 보기</button>' : '')
       + '</div>';
   }
 
