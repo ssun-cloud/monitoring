@@ -2539,9 +2539,7 @@ function getPrintableJournals() {
     g.time = times.join(', ');
     g.author = authors.join(', ');
     g.stores = stores.join(', ');
-    g.memo = memos.join('
-
-');
+    g.memo = memos.join('\n\n');
     return g;
   }).sort(function(a, b) {
     var ad = String(getJournalPrintDate(a) || '') + ' ' + String(a.time || '') + ' ' + String(a.team || '');
