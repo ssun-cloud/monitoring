@@ -864,6 +864,129 @@
 </div>
 
 <script>
+
+// ── A4 인쇄용 모니터링 기록 ─────────────────────────────
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function detailLine(label, value) {
+  if (value === undefined || value === null || String(value).trim() === '') return '';
+  return '<tr><th>' + escapeHtml(label) + '</th><td>' + escapeHtml(value) + '</td></tr>';
+}
+
+async function getSignedPhotoUrlsForPrint(recordId) {
+  try {
+    const { data: photos, error: dbError } = await _supabase
+      .from('record_photos')
+      .select('storage_path, file_name')
+      .eq('record_type', 'monitor')
+      .eq('record_id', recordId);
+
+    if (dbError || !photos || photos.length === 0) return [];
+
+    const urls = [];
+    for (const photo of photos) {
+      const { data: signed, error: signError } = await _supabase
+        .storage
+        .from('monitoring-photos')
+        .createSignedUrl(photo.storage_path, 600);
+      if (!signError && signed && signed.signedUrl) {
+        urls.push({ url: signed.signedUrl, name: photo.file_name || '현장 사진' });
+      }
+    }
+    return urls;
+  } catch (err) {
+    console.warn('[인쇄] 사진 불러오기 실패:', err.message);
+    return [];
+  }
+}
+
+async function openPrintMonitorRecord(recordId) {
+  if (!managerUnlocked) {
+    alert('인쇄용 보기는 담당자만 사용할 수 있어요.');
+    return;
+  }
+
+  const records = getRecords();
+  const rec = records.find(function(item) { return String(item.id) === String(recordId); });
+  if (!rec) {
+    alert('인쇄할 기록을 찾지 못했어요. 새로고침 후 다시 시도해 주세요.');
+    return;
+  }
+  if (rec.type !== 'monitor') {
+    alert('모니터링 기록만 인쇄할 수 있어요.');
+    return;
+  }
+
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    alert('팝업이 차단되었어요. 브라우저에서 팝업 허용 후 다시 시도해 주세요.');
+    return;
+  }
+
+  printWindow.document.open();
+  printWindow.document.write('<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>인쇄 준비 중</title></head><body style="font-family:sans-serif;padding:24px">인쇄용 화면을 준비하고 있어요...</body></html>');
+  printWindow.document.close();
+
+  const photos = await getSignedPhotoUrlsForPrint(recordId);
+  const ratings = [
+    rec.r1 ? '점자메뉴판: ' + rec.r1 : '',
+    rec.r2 ? '경사로 및 출입 접근성: ' + rec.r2 : '',
+    rec.r3 ? '화장실 접근성: ' + rec.r3 : '',
+    rec.r4 ? '안내판·표지판 가독성: ' + rec.r4 : ''
+  ].filter(Boolean).join('\n');
+
+  const photoHtml = photos.length
+    ? photos.map(function(photo) {
+        return '<figure><img src="' + escapeHtml(photo.url) + '" alt="' + escapeHtml(photo.name) + '"><figcaption>' + escapeHtml(photo.name) + '</figcaption></figure>';
+      }).join('')
+    : '<p class="empty-photo">등록된 사진이 없어요.</p>';
+
+  const today = new Date().toLocaleDateString('ko-KR');
+  const doc = '<!doctype html>'
+    + '<html lang="ko"><head><meta charset="utf-8">'
+    + '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+    + '<title>모니터링 기록 인쇄</title>'
+    + '<style>'
+    + '@page{size:A4;margin:14mm}body{font-family:"Noto Sans KR",Arial,sans-serif;color:#1e1e1e;margin:0;background:#f7f8fa}.page{max-width:794px;margin:0 auto;background:#fff;padding:28px;box-sizing:border-box}.top{display:flex;justify-content:space-between;gap:16px;border-bottom:3px solid #1a8c6e;padding-bottom:14px;margin-bottom:20px}.title{font-size:23px;font-weight:800;color:#1a8c6e}.subtitle{font-size:13px;color:#6b7280;margin-top:4px}.print-actions{display:flex;gap:8px;align-items:flex-start}.print-actions button{border:0;border-radius:8px;padding:9px 12px;font-weight:700;cursor:pointer}.primary{background:#1a8c6e;color:white}.secondary{background:#eef2f7;color:#1e1e1e}table{width:100%;border-collapse:collapse;margin-bottom:16px}th,td{border:1px solid #e0e0e0;padding:9px 10px;vertical-align:top;font-size:13px;line-height:1.6}th{width:130px;background:#f7f8fa;text-align:left;color:#4b5563}.section-title{font-size:15px;font-weight:800;margin:18px 0 8px;color:#1a8c6e}.opinion{border:1px solid #e0e0e0;border-radius:10px;padding:12px;min-height:80px;line-height:1.7;font-size:13px;white-space:pre-wrap}.photos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}figure{margin:0;border:1px solid #e0e0e0;border-radius:10px;padding:8px;break-inside:avoid}figure img{width:100%;height:210px;object-fit:cover;border-radius:8px;display:block}figcaption{font-size:11px;color:#6b7280;margin-top:5px;word-break:break-all}.empty-photo{font-size:13px;color:#6b7280;border:1px dashed #d1d5db;padding:16px;border-radius:10px}.footer{margin-top:20px;font-size:11px;color:#6b7280;text-align:right}@media print{body{background:#fff}.page{padding:0;max-width:none}.print-actions{display:none}figure img{height:185px}}'
+    + '</style></head><body><main class="page">'
+    + '<div class="top"><div><div class="title">열린 마을 만들기 모니터링 기록</div><div class="subtitle">종로장애인복지관 · 출력일 ' + escapeHtml(today) + '</div></div><div class="print-actions"><button class="primary" onclick="window.print()">인쇄 / PDF 저장</button><button class="secondary" onclick="window.close()">닫기</button></div></div>'
+    + '<div class="section-title">기본 정보</div><table><tbody>'
+    + detailLine('장소명', rec.name)
+    + detailLine('주소', rec.addr)
+    + detailLine('모니터링 날짜', rec.date || rec.monitored_at)
+    + detailLine('기록자', rec.recorder || rec.author)
+    + detailLine('상태', rec.action)
+    + '</tbody></table>'
+    + '<div class="section-title">점검 결과</div><table><tbody>'
+    + detailLine('항목별 평가', ratings)
+    + detailLine('조치 필요 여부', rec.action)
+    + detailLine('추가 확인 항목', rec.extras || rec.extra_notes)
+    + '</tbody></table>'
+    + '<div class="section-title">종합 의견</div><div class="opinion">' + escapeHtml(rec.comment || '') + '</div>'
+    + '<div class="section-title">현장 사진</div><div class="photos">' + photoHtml + '</div>'
+    + '<div class="footer">※ 이 자료는 내부 검토 및 결과보고용으로 출력되었습니다.</div>'
+    + '</main></body></html>';
+
+  printWindow.document.open();
+  printWindow.document.write(doc);
+  printWindow.document.close();
+}
+
+document.addEventListener('click', function(event) {
+  const btn = event.target.closest('.print-monitor-btn');
+  if (!btn) return;
+  event.preventDefault();
+  event.stopPropagation();
+  openPrintMonitorRecord(btn.dataset.recordId);
+});
+
 // ── 설정 ──────────────────────────────────────────
 // ── 비밀번호 설정 (변경 시 아래 숫자만 수정) ────────────
 const FALLBACK_MONITOR_PIN  = '';   // 서버 확인 실패 시 열지 않음
@@ -2091,7 +2214,7 @@ function recordCard(r, idx) {
         : ''
       }
       ${managerUnlocked && r.id
-        ? `<button type="button" class="sec-btn primary" style="margin-top:10px" onclick="event.stopPropagation(); openPrintMonitorRecord('${String(r.id).replace(/'/g, "\\'")}')">🖨️ A4 인쇄용 보기</button>`
+        ? `<button type="button" class="sec-btn primary print-monitor-btn" data-record-id="${r.id}" style="margin-top:10px">🖨️ A4 인쇄용 보기</button>`
         : ''
       }
     `;
@@ -2238,115 +2361,6 @@ async function loadPhotosByRecordId(recordId, container) {
     console.error('[사진보기] 오류:', e.message);
     container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">사진 로드 중 오류가 발생했어요.</div>';
   }
-}
-
-// ── A4 인쇄용 보기: 관리자 전용 ──────────────────────
-function safePrintText(value) {
-  return String(value == null ? '' : value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-    .replace(/\n/g, '<br>');
-}
-
-function printValueRow(label, value) {
-  if (!value) return '';
-  return '<div class="print-row"><div class="print-label">' + safePrintText(label) + '</div><div class="print-value">' + safePrintText(value) + '</div></div>';
-}
-
-async function getSignedPhotoUrlsForPrint(recordId) {
-  if (!recordId) return [];
-  try {
-    const { data: photos, error: dbError } = await _supabase
-      .from('record_photos')
-      .select('storage_path, file_name')
-      .eq('record_type', 'monitor')
-      .eq('record_id', recordId);
-
-    if (dbError || !photos || photos.length === 0) return [];
-
-    const urls = await Promise.all(photos.map(async function(p) {
-      if (!p.storage_path || !p.storage_path.startsWith('monitor/')) return null;
-      const { data, error } = await _supabase.storage
-        .from('monitoring-photos')
-        .createSignedUrl(p.storage_path, 600);
-      if (error || !data || !data.signedUrl) return null;
-      return data.signedUrl;
-    }));
-    return urls.filter(Boolean);
-  } catch (e) {
-    console.warn('[인쇄] 사진 URL 생성 실패:', e.message);
-    return [];
-  }
-}
-
-async function openPrintMonitorRecord(recordId) {
-  if (!managerUnlocked) {
-    alert('인쇄용 보기는 담당자 로그인 후 사용할 수 있어요.');
-    return;
-  }
-
-  const records = getRecords();
-  const rec = records.find(function(r) { return String(r.id || '') === String(recordId || ''); });
-  if (!rec) {
-    alert('인쇄할 기록을 찾을 수 없어요. 목록을 새로고침한 뒤 다시 시도해 주세요.');
-    return;
-  }
-  if (rec.type !== 'monitor') {
-    alert('A4 인쇄용 보기는 모니터링 기록에서만 사용할 수 있어요.');
-    return;
-  }
-
-  const photoUrls = await getSignedPhotoUrlsForPrint(recordId);
-  const ratings = [
-    rec.r1 ? '점자메뉴판: ' + rec.r1 : '',
-    rec.r2 ? '경사로 및 출입 접근성: ' + rec.r2 : '',
-    rec.r3 ? '화장실 접근성: ' + rec.r3 : '',
-    rec.r4 ? '안내판·표지판 가독성: ' + rec.r4 : ''
-  ].filter(Boolean).join('\n');
-
-  const today = new Date().toLocaleDateString('ko-KR');
-  const photoHtml = photoUrls.length
-    ? '<div class="photo-grid-print">' + photoUrls.map(function(url, idx) {
-        return '<div class="photo-box"><img src="' + url + '" alt="현장 사진 ' + (idx + 1) + '"></div>';
-      }).join('') + '</div>'
-    : '<div class="print-empty-photo">등록된 사진이 없어요.</div>';
-
-  const html = '<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">'
-    + '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
-    + '<title>모니터링 기록 인쇄 - ' + safePrintText(rec.name || '기록') + '</title>'
-    + '<style>'
-    + '@page{size:A4;margin:14mm;}*{box-sizing:border-box;}body{font-family:"Noto Sans KR",Arial,sans-serif;color:#1e1e1e;margin:0;background:#f7f8fa;} .print-page{width:210mm;min-height:297mm;margin:0 auto;background:#fff;padding:18mm 16mm;} .top-actions{position:sticky;top:0;background:#fff;border-bottom:1px solid #e5e7eb;padding:10px 0;margin:-18mm -16mm 14mm;display:flex;justify-content:center;gap:8px;}button{font-family:inherit;border:1px solid #1a8c6e;background:#1a8c6e;color:white;border-radius:8px;padding:8px 14px;cursor:pointer;}button.secondary{background:white;color:#1a8c6e;}h1{font-size:22px;color:#1a8c6e;margin:0 0 6px;} .subtitle{font-size:12px;color:#6b7280;margin-bottom:18px;} .section-title{font-size:14px;font-weight:700;color:#1a8c6e;border-bottom:2px solid #1a8c6e;padding-bottom:5px;margin:18px 0 10px;} .print-row{display:grid;grid-template-columns:34mm 1fr;border-bottom:1px solid #e5e7eb;min-height:10mm;} .print-label{background:#f3f4f6;color:#4b5563;font-size:12px;font-weight:700;padding:8px;} .print-value{font-size:13px;line-height:1.65;padding:8px;white-space:normal;} .opinion{min-height:34mm;} .photo-grid-print{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:8px;} .photo-box{border:1px solid #d1d5db;border-radius:6px;overflow:hidden;height:62mm;display:flex;align-items:center;justify-content:center;background:#f9fafb;} .photo-box img{width:100%;height:100%;object-fit:cover;} .print-empty-photo{font-size:13px;color:#6b7280;border:1px dashed #d1d5db;border-radius:8px;padding:16px;text-align:center;} .footer{margin-top:16mm;font-size:11px;color:#6b7280;text-align:right;} @media print{body{background:white}.print-page{width:auto;min-height:auto;margin:0;padding:0}.top-actions{display:none}.photo-box{break-inside:avoid;page-break-inside:avoid}}'
-    + '</style></head><body><div class="print-page">'
-    + '<div class="top-actions"><button onclick="window.print()">인쇄 / PDF 저장</button><button class="secondary" onclick="window.close()">닫기</button></div>'
-    + '<h1>열린 마을 만들기 모니터링 기록</h1>'
-    + '<div class="subtitle">종로장애인복지관 · 출력일 ' + safePrintText(today) + '</div>'
-    + '<div class="section-title">장소 정보</div>'
-    + printValueRow('장소명', rec.name)
-    + printValueRow('주소', rec.addr)
-    + printValueRow('모니터링 날짜', rec.date || rec.monitored_at)
-    + printValueRow('기록자', rec.recorder || rec.author)
-    + printValueRow('상태', rec.action)
-    + '<div class="section-title">점검 내용</div>'
-    + printValueRow('항목별 평가', ratings)
-    + printValueRow('추가 확인', rec.extras || rec.extra_notes)
-    + printValueRow('종합 의견', rec.comment)
-    + '<div class="section-title">현장 사진</div>'
-    + photoHtml
-    + '<div class="footer">※ 본 자료는 열린 마을 만들기 모니터링 기록 확인용으로 출력되었습니다.</div>'
-    + '</div></body></html>';
-
-  const win = window.open('', '_blank');
-  if (!win) {
-    alert('팝업이 차단되어 인쇄용 창을 열 수 없어요. 브라우저 팝업 허용 후 다시 시도해 주세요.');
-    return;
-  }
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
-  win.focus();
 }
 // ──────────────────────────────────────────────────────
 
@@ -2904,7 +2918,7 @@ function mapRecordExtraHtml(rec) {
       + (rec.extras ? '<div class="detail-row"><span class="detail-label">추가 확인</span><span class="detail-value">' + rec.extras + '</span></div>' : '')
       + ((rec.recorder || rec.author) ? '<div class="detail-row"><span class="detail-label">기록자</span><span class="detail-value">' + (rec.recorder || rec.author) + '</span></div>' : '')
       + (rec.id ? '<div class="photo-view-wrap" data-record-id="' + rec.id + '" data-loaded="false" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><div style="font-size:12px;color:var(--text-muted)">📷 사진 불러오는 중...</div></div>' : '')
-      + ((managerUnlocked && rec.id) ? '<button type="button" class="sec-btn primary" style="margin-top:10px" onclick="event.stopPropagation(); openPrintMonitorRecord(\'' + String(rec.id).replace(/'/g, "\\'") + '\')">🖨️ A4 인쇄용 보기</button>' : '')
+      + ((managerUnlocked && rec.id) ? '<button type="button" class="sec-btn primary print-monitor-btn" data-record-id="' + rec.id + '" style="margin-top:10px">🖨️ A4 인쇄용 보기</button>' : '')
       + '</div>';
   }
 
