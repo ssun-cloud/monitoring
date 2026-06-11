@@ -2428,6 +2428,7 @@ function renderSettingsRecords() {
     div.appendChild(delBtn);
 
     // 사진 보기 (monitor 타입 + 모니터링단/관리자 + r.id 있을 때만)
+    console.log('[사진디버그] type:', r.type, '/ id:', r.id, '/ monitor:', monitorUnlocked, '/ manager:', managerUnlocked);
     if (r.type === 'monitor' && r.id && (monitorUnlocked || managerUnlocked)) {
       var photoWrap = document.createElement('div');
       photoWrap.className = 'photo-view-wrap';
@@ -2436,8 +2437,10 @@ function renderSettingsRecords() {
       photoWrap.style.cssText = 'margin-top:10px;padding-top:10px;border-top:1px solid var(--border)';
       photoWrap.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">📷 사진 불러오는 중...</div>';
       div.appendChild(photoWrap);
-      // 설정 탭은 toggle 없이 항상 펼쳐져 있으므로 바로 로드
-      loadPhotosByRecordId(r.id, photoWrap);
+      // setTimeout으로 DOM 완성 후 로드 (함수 정의 순서 문제 방지)
+      (function(id, wrap) {
+        setTimeout(function() { loadPhotosByRecordId(id, wrap); }, 0);
+      })(r.id, photoWrap);
     }
 
     el.appendChild(div);
