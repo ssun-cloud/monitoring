@@ -334,10 +334,10 @@
     border-bottom: 1px solid var(--border);
   }
   #settings-records-list { max-height: 380px; }
-  #settings-day-report-list { max-height: 340px; }
+  #settings-journal-print-list { max-height: 340px; }
   @media (max-width: 768px) {
     #settings-records-list { max-height: 42vh; }
-    #settings-day-report-list { max-height: 38vh; }
+    #settings-journal-print-list { max-height: 38vh; }
   }
 </style>
 
@@ -860,17 +860,18 @@
           <option value="추천">추천</option>
         </select>
       </div>
+      <button type="button" class="sec-btn primary" onclick="openPrintFilteredChecklists()" style="margin:0 0 10px 0">🖨️ 현재 조건의 체크리스트만 출력</button>
       <div id="settings-records-list" class="settings-list-scroll" role="list" aria-label="기록 목록" aria-live="polite">
         <div class="empty-state"><div class="empty-icon" aria-hidden="true">📋</div>기록이 없어요. 시트에서 불러오기를 해주세요.</div>
       </div>
     </div>
-    <div class="card" id="settings-day-report-card">
+    <div class="card" id="settings-journal-print-card">
       <div class="card-title">활동일지 출력</div>
       <p style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:10px">
         활동일지는 1개씩 출력해요. 같은 날짜라도 팀이 다르면 각각 따로 출력되고, 방문상점명을 기준으로 관련 체크리스트가 함께 붙어요.
       </p>
       <button type="button" class="sec-btn primary" onclick="refreshJournalReports()" style="margin-bottom:10px">🔄 활동일지 새로고침</button>
-      <div id="settings-day-report-list" class="settings-list-scroll" role="list" aria-label="활동일지 출력 목록" aria-live="polite">
+      <div id="settings-journal-print-list" class="settings-list-scroll" role="list" aria-label="활동일지 출력 목록" aria-live="polite">
         <div class="empty-state"><div class="empty-icon" aria-hidden="true">📝</div>담당자 로그인 후 활동일지 출력이 가능해요.</div>
       </div>
     </div>
@@ -1094,7 +1095,7 @@ async function checkPin() {
         updateDashboard();
         renderMap();
         renderSettingsRecords();
-        renderSettingsDayReports();
+        renderSettingsJournalPrints();
         renderRecords();
       });
       if (pendingManagerCallback) { pendingManagerCallback(); pendingManagerCallback = null; }
@@ -2439,7 +2440,7 @@ async function refreshJournalReports() {
     return;
   }
   await fetchManagerJournalsFromSupabase();
-  renderSettingsDayReports();
+  renderSettingsJournalPrints();
   showToast('settings-toast', '✅ 활동일지를 새로고침했어요.', 'success');
 }
 
@@ -2477,8 +2478,8 @@ function getPrintableJournals() {
   });
 }
 
-function renderSettingsDayReports() {
-  var el = document.getElementById('settings-day-report-list');
+function renderSettingsJournalPrints() {
+  var el = document.getElementById('settings-journal-print-list');
   if (!el) return;
   if (!managerUnlocked) {
     el.innerHTML = '<div class="empty-state"><div class="empty-icon" aria-hidden="true">🔒</div>담당자 로그인 후 활동일지 출력을 사용할 수 있어요.</div>';
@@ -2699,7 +2700,7 @@ function toggleManagerAuth() {
       updateDashboard();
       renderMap();
       renderSettingsRecords();
-        renderSettingsDayReports();
+        renderSettingsJournalPrints();
       renderRecords();
     });
   } else {
@@ -2722,7 +2723,7 @@ function toggleMonitorAuth() {
       updateDashboard();
       renderMap();
       renderSettingsRecords();
-        renderSettingsDayReports();
+        renderSettingsJournalPrints();
       renderRecords();
     });
   }
@@ -2752,7 +2753,7 @@ function updateManagerAuthUI() {
 function loadSettingsUI() {
   updateManagerAuthUI();
   renderSettingsRecords();
-  renderSettingsDayReports();
+  renderSettingsJournalPrints();
 }
 
 function renderSettingsRecords() {
@@ -3038,7 +3039,7 @@ async function loadFromSheet() {
     updateDashboard();
     renderMap();
     renderSettingsRecords(); // 설정 탭 기록 목록 갱신 (사진 로드 포함)
-    renderSettingsDayReports();
+    renderSettingsJournalPrints();
     showToast('settings-toast', '✅ ' + all.length + '건' + journalMsg + '을 불러왔어요!', 'success');
   } catch(e) {
     console.error('[불러오기] 오류:', e.message);
