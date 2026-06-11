@@ -847,6 +847,13 @@
         <div class="empty-state"><div class="empty-icon" aria-hidden="true">📋</div>기록이 없어요. 시트에서 불러오기를 해주세요.</div>
       </div>
     </div>
+    <div class="card" id="settings-journal-print-card">
+      <div class="card-title">활동일지 출력</div>
+      <p style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:10px">담당자 모드에서 일자·팀 단위 활동일지를 출력할 수 있어요. 일지에 적힌 방문상점과 같은 날짜의 체크리스트 기록을 함께 묶어 보여줍니다.</p>
+      <div id="settings-journal-print-list" role="list" aria-label="활동일지 출력 목록" aria-live="polite">
+        <div class="empty-state"><div class="empty-icon" aria-hidden="true">📝</div>활동일지를 불러오면 출력할 수 있어요.</div>
+      </div>
+    </div>
     <div class="card">
       <div class="card-title">Google 시트 연결</div>
       <div id="sheet-status" class="settings-status connected">✅ 시트가 연결되어 있어요</div>
@@ -1070,6 +1077,14 @@ document.addEventListener('click', function(event) {
   event.preventDefault();
   event.stopPropagation();
   openPrintMonitorRecord(btn.dataset.recordId);
+});
+
+document.addEventListener('click', function(event) {
+  const btn = event.target.closest('.print-journal-btn');
+  if (!btn) return;
+  event.preventDefault();
+  event.stopPropagation();
+  openPrintJournalReport(btn.dataset.journalIndex);
 });
 
 // ── 설정 ──────────────────────────────────────────
@@ -2611,6 +2626,7 @@ function loadSettingsUI() {
 function renderSettingsRecords() {
   var el = document.getElementById('settings-records-list');
   if (!el) return;
+  renderSettingsJournalReports();
   var typeFilter = (document.getElementById('rec-filter-type')||{}).value || '';
   var actionFilter = (document.getElementById('rec-filter-action')||{}).value || '';
   var allRecords = getRecords();
@@ -2697,6 +2713,148 @@ function renderSettingsRecords() {
     el.appendChild(div);
   });
 }
+
+function renderSettingsJournalReports() {
+  var el = document.getElementById('settings-journal-print-list');
+  if (!el) return;
+  if (!managerUnlocked) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon" aria-hidden="true">🔒</div>담당자 로그인 후 활동일지 출력을 사용할 수 있어요.</div>';
+    return;
+  }
+  var journals = getJournals().map(function(j, idx) {
+    var copy = Object.assign({}, j);
+    copy.__journalIndex = idx;
+    return copy;
+  }).sort(function(a,b) {
+    return String(b.date || b.activity_date || b.timestamp || '').localeCompare(String(a.date || a.activity_date || a.timestamp || ''));
+  });
+  if (!journals.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon" aria-hidden="true">📝</div>아직 불러온 활동일지가 없어요. 관리자 상세 데이터 불러오기를 눌러주세요.</div>';
+    return;
+  }
+  el.innerHTML = journals.map(function(j) {
+    var date = j.date || j.activity_date || '';
+    var time = j.time || j.activity_time || '';
+    var team = j.team || j.team_name || '';
+    var author = j.author || j.members || '';
+    var stores = j.stores || '';
+    var memo = j.memo || '';
+    return '<div class="journal-item" role="listitem">'
+      + '<div class="journal-item-header">'
+      + '<span class="journal-item-date">📅 ' + escapeHtml(date) + (time ? ' ' + escapeHtml(time) : '') + '</span>'
+      + '<span class="journal-item-team">👥 ' + escapeHtml(team) + (author ? ' (' + escapeHtml(author) + ')' : '') + '</span>'
+      + '</div>'
+      + '<div class="journal-item-stores">🏪 ' + escapeHtml(stores || '방문 상점 정보 없음') + '</div>'
+      + (memo ? '<div class="journal-item-memo">💬 ' + escapeHtml(memo).slice(0, 180) + (String(memo).length > 180 ? '…' : '') + '</div>' : '')
+      + '<button type="button" class="sec-btn primary print-journal-btn" data-journal-index="' + j.__journalIndex + '" style="width:100%;margin-top:10px;font-size:12px;padding:8px 10px">📝 일지 출력 보기</button>'
+      + '</div>';
+  }).join('');
+}
+
+function splitJournalStoresForPrint(stores) {
+  return String(stores || '')
+    .split(/[,，、\n\/]+/)
+    .map(function(s) { return normalizePrintText(s); })
+    .filter(Boolean);
+}
+
+function recordMatchesJournalForPrint(record, journal) {
+  if (!record || record.type !== 'monitor') return false;
+  var journalDate = normalizePrintDate(journal.date || journal.activity_date);
+  var recordDate = normalizePrintDate(record.date || record.monitored_at);
+  if (!journalDate || !recordDate || journalDate !== recordDate) return false;
+
+  var storeTokens = splitJournalStoresForPrint(journal.stores);
+  if (!storeTokens.length) return true;
+
+  var recordName = normalizePrintText(record.name || record.place || '');
+  var recordAddr = normalizePrintText(record.addr || '');
+  return storeTokens.some(function(token) {
+    return token && ((recordName && (recordName.includes(token) || token.includes(recordName))) || (recordAddr && recordAddr.includes(token)));
+  });
+}
+
+async function openPrintJournalReport(journalIndex) {
+  if (!managerUnlocked) {
+    alert('활동일지 출력은 담당자만 사용할 수 있어요.');
+    return;
+  }
+  var journals = getJournals();
+  var journal = journals[Number(journalIndex)];
+  if (!journal) {
+    alert('출력할 활동일지를 찾지 못했어요. 관리자 상세 데이터를 다시 불러와 주세요.');
+    return;
+  }
+
+  var printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    alert('팝업이 차단되었어요. 브라우저에서 팝업 허용 후 다시 시도해 주세요.');
+    return;
+  }
+  printWindow.document.open();
+  printWindow.document.write('<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>인쇄 준비 중</title></head><body style="font-family:sans-serif;padding:24px">활동일지 출력 화면을 준비하고 있어요...</body></html>');
+  printWindow.document.close();
+
+  var records = getRecords().filter(function(r) { return recordMatchesJournalForPrint(r, journal); });
+  records.sort(function(a,b) { return String(a.name || '').localeCompare(String(b.name || ''), 'ko'); });
+
+  var recordBlocks = [];
+  for (var i = 0; i < records.length; i++) {
+    var rec = records[i];
+    var photos = rec.id ? await getSignedPhotoUrlsForPrint(rec.id) : [];
+    var ratings = [
+      rec.r1 ? '점자메뉴판: ' + rec.r1 : '',
+      rec.r2 ? '경사로 및 출입 접근성: ' + rec.r2 : '',
+      rec.r3 ? '화장실 접근성: ' + rec.r3 : '',
+      rec.r4 ? '안내판·표지판 가독성: ' + rec.r4 : ''
+    ].filter(Boolean).join('\n');
+    var photoHtml = photos.length
+      ? '<div class="photos small-photos">' + photos.map(function(photo) {
+          return '<figure><img src="' + escapeHtml(photo.url) + '" alt="' + escapeHtml(photo.name) + '"><figcaption>' + escapeHtml(photo.name) + '</figcaption></figure>';
+        }).join('') + '</div>'
+      : '<p class="empty-photo compact">등록된 사진이 없어요.</p>';
+    recordBlocks.push('<section class="record-box">'
+      + '<div class="record-title">' + escapeHtml(rec.name || '이름 없는 장소') + '</div>'
+      + '<table><tbody>'
+      + detailLine('주소', rec.addr)
+      + detailLine('기록자', rec.recorder || rec.author)
+      + detailLine('상태', rec.action)
+      + detailLine('평가', ratings)
+      + detailLine('추가 확인', rec.extras || rec.extra_notes)
+      + '</tbody></table>'
+      + '<div class="opinion mini">' + escapeHtml(rec.comment || '') + '</div>'
+      + photoHtml
+      + '</section>');
+  }
+
+  var today = new Date().toLocaleDateString('ko-KR');
+  var linkedHtml = recordBlocks.length
+    ? recordBlocks.join('')
+    : '<p class="empty-photo">이 일지의 날짜·방문상점과 연결되는 체크리스트 기록을 찾지 못했어요.</p>';
+
+  var doc = '<!doctype html>'
+    + '<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">'
+    + '<title>활동일지 인쇄</title><style>'
+    + '@page{size:A4;margin:12mm}body{font-family:"Noto Sans KR",Arial,sans-serif;color:#1e1e1e;margin:0;background:#f7f8fa}.page{max-width:794px;margin:0 auto;background:#fff;padding:26px;box-sizing:border-box}.top{display:flex;justify-content:space-between;gap:16px;border-bottom:3px solid #1a8c6e;padding-bottom:14px;margin-bottom:18px}.title{font-size:23px;font-weight:800;color:#1a8c6e}.subtitle{font-size:13px;color:#6b7280;margin-top:4px}.print-actions{display:flex;gap:8px;align-items:flex-start}.print-actions button{border:0;border-radius:8px;padding:9px 12px;font-weight:700;cursor:pointer}.primary{background:#1a8c6e;color:white}.secondary{background:#eef2f7;color:#1e1e1e}table{width:100%;border-collapse:collapse;margin-bottom:12px}th,td{border:1px solid #e0e0e0;padding:8px 10px;vertical-align:top;font-size:13px;line-height:1.6;white-space:pre-wrap}th{width:120px;background:#f7f8fa;text-align:left;color:#4b5563}.section-title{font-size:15px;font-weight:800;margin:16px 0 8px;color:#1a8c6e}.opinion{border:1px solid #e0e0e0;border-radius:10px;padding:12px;min-height:70px;line-height:1.7;font-size:13px;white-space:pre-wrap}.opinion.mini{min-height:40px;margin-bottom:8px}.record-box{border:1px solid #d1d5db;border-radius:12px;padding:12px;margin-bottom:12px;break-inside:avoid;page-break-inside:avoid}.record-title{font-size:15px;font-weight:800;margin-bottom:8px;color:#111827}.photos{display:grid;grid-template-columns:1fr;gap:10px;margin-top:8px}.small-photos{grid-template-columns:1fr 1fr}figure{margin:0;border:1px solid #e0e0e0;border-radius:10px;padding:8px;break-inside:avoid;page-break-inside:avoid;background:#fafafa}figure img{width:auto;max-width:100%;height:auto;max-height:none;object-fit:contain;border-radius:8px;display:block;background:#fff;margin:0 auto}figcaption{font-size:11px;color:#6b7280;margin-top:5px;word-break:break-all}.empty-photo{font-size:13px;color:#6b7280;border:1px dashed #d1d5db;padding:16px;border-radius:10px}.empty-photo.compact{padding:10px}.footer{margin-top:20px;font-size:11px;color:#6b7280;text-align:right}@media print{body{background:#fff}.page{padding:0;max-width:none}.print-actions{display:none}.record-box,figure{break-inside:avoid;page-break-inside:avoid}.small-photos{grid-template-columns:1fr 1fr}figure img{width:auto;max-width:100%;height:auto;max-height:none;object-fit:contain;margin:0 auto}.section-title{margin-top:13px}}'
+    + '</style></head><body><main class="page">'
+    + '<div class="top"><div><div class="title">열린 마을 만들기 활동일지</div><div class="subtitle">종로장애인복지관 · 출력일 ' + escapeHtml(today) + '</div></div><div class="print-actions"><button class="primary" onclick="window.print()">인쇄 / PDF 저장</button><button class="secondary" onclick="window.close()">닫기</button></div></div>'
+    + '<div class="section-title">활동 기본 정보</div><table><tbody>'
+    + detailLine('활동 날짜', journal.date || journal.activity_date)
+    + detailLine('활동 시간', journal.time || journal.activity_time)
+    + detailLine('활동 팀', journal.team || journal.team_name)
+    + detailLine('팀원/작성자', journal.author || journal.members)
+    + detailLine('방문 상점', journal.stores)
+    + '</tbody></table>'
+    + '<div class="section-title">활동 소감 / 메모</div><div class="opinion">' + escapeHtml(journal.memo || '') + '</div>'
+    + '<div class="section-title">연결된 체크리스트 기록</div>' + linkedHtml
+    + '<div class="footer">※ 이 자료는 내부 검토 및 결과보고용으로 출력되었습니다.</div>'
+    + '</main></body></html>';
+
+  printWindow.document.open();
+  printWindow.document.write(doc);
+  printWindow.document.close();
+}
+
 function saveSheetUrl() {}
 
 function deleteLocalRecord(index, timestamp) {
@@ -2891,6 +3049,7 @@ async function loadFromSheet() {
     updateDashboard();
     renderMap();
     renderSettingsRecords(); // 설정 탭 기록 목록 갱신 (사진 로드 포함)
+    renderSettingsJournalReports();
     showToast('settings-toast', '✅ ' + all.length + '건' + journalMsg + '을 불러왔어요!', 'success');
   } catch(e) {
     console.error('[불러오기] 오류:', e.message);
