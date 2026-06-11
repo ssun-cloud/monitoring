@@ -2609,12 +2609,18 @@ async function syncRecordsFromSupabase(force) {
       action:          r.action || '',
       action_required: r.action_required || '',
       monitored_at:    r.monitored_at || '',
+      date:            r.monitored_at || '',
       r_braille:       r.r_braille || '',
       r_ramp:          r.r_ramp || '',
       r_toilet:        r.r_toilet || '',
       r_signage:       r.r_signage || '',
+      r1:              r.r_braille || '',
+      r2:              r.r_ramp || '',
+      r3:              r.r_toilet || '',
+      r4:              r.r_signage || '',
       comment:         r.comment || '',
       extra_notes:     r.extra_notes || '',
+      extras:          r.extra_notes || '',
       recorder:        (monitorUnlocked || managerUnlocked) ? (r.recorder || '') : '',
       // 관리자 전용 필드: 혹시 RPC/view가 값을 내려줘도 관리자 모드가 아니면 화면 데이터에 남기지 않음
       applicant:       managerUnlocked ? (r.applicant || '') : '',   // 신청자명 / 추천인명
@@ -2838,6 +2844,35 @@ function renderMap() {
     item.setAttribute('tabindex', '0');
     item.setAttribute('aria-label', rec.name + ', ' + rec.addr + ', ' + typeLabel + (actionLabel ? ', ' + actionLabel : '') + (rec.items ? ', ' + rec.items : '') + '. 지도에서 위치 보기');
     const verifiedBadge = isVerified(rec) ? '' : '<span style="font-size:10px;color:#9ca3af;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px;padding:1px 6px;margin-left:4px">미검증</span>';
+    var authDetailHtml = '';
+    if (monitorUnlocked || managerUnlocked) {
+      if (rec.type === 'monitor') {
+        var ratings = [
+          rec.r1 ? '점자메뉴판 ' + rec.r1 : '',
+          rec.r2 ? '경사로 ' + rec.r2 : '',
+          rec.r3 ? '화장실 ' + rec.r3 : '',
+          rec.r4 ? '안내판 ' + rec.r4 : ''
+        ].filter(Boolean).join(' · ');
+        authDetailHtml += '<div style="font-size:12px;color:var(--text);line-height:1.6;margin-top:8px">'
+          + (rec.date ? '<div>점검일: ' + rec.date + '</div>' : '')
+          + (ratings ? '<div>평가: ' + ratings + '</div>' : '')
+          + (rec.comment ? '<div>의견: ' + rec.comment + '</div>' : '')
+          + (rec.extras ? '<div>추가확인: ' + rec.extras + '</div>' : '')
+          + (rec.recorder ? '<div>기록자: ' + rec.recorder + '</div>' : '')
+          + '</div>';
+        if (rec.id) {
+          authDetailHtml += '<div class="photo-view-wrap" data-record-id="' + rec.id + '" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)"><div style="font-size:12px;color:var(--text-muted)">📷 사진 불러오는 중...</div></div>';
+        }
+      } else if (managerUnlocked) {
+        authDetailHtml += '<div style="font-size:12px;color:var(--text);line-height:1.6;margin-top:8px">'
+          + (rec.applicant ? '<div>신청/추천인: ' + rec.applicant + '</div>' : '')
+          + (rec.phone ? '<div>연락처: ' + rec.phone + '</div>' : '')
+          + (rec.memo ? '<div>메모: ' + rec.memo + '</div>' : '')
+          + (rec.intro ? '<div>한줄소개: ' + rec.intro + '</div>' : '')
+          + '</div>';
+      }
+    }
+
     item.innerHTML = '<div class="rec-top" style="justify-content:flex-start;gap:6px">'
       + '<span style="width:10px;height:10px;border-radius:50%;background:'+markerColor+';display:inline-block;flex-shrink:0" aria-hidden="true"></span>'
       + '<span class="rec-name">'+rec.name+'</span>'
@@ -2847,7 +2882,15 @@ function renderMap() {
       + '<div class="rec-tags"><span class="'+typeTagStyle+'">'+typeLabel+'</span>'
       + (actionLabel ? '<span class="'+actionTagStyle+'">'+actionLabel+'</span>' : '')
       + (rec.items ? '<span class="tag" style="background:#f0fdf4;color:#166534">'+rec.items+'</span>' : '')
-      + '</div>';
+      + '</div>'
+      + authDetailHtml;
+
+    if ((monitorUnlocked || managerUnlocked) && rec.type === 'monitor' && rec.id) {
+      setTimeout(function() {
+        var wrap = item.querySelector('.photo-view-wrap');
+        if (wrap) loadPhotosByRecordId(rec.id, wrap);
+      }, 100);
+    }
     // 키보드 Enter로도 클릭 가능하게
     item.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.click(); }
