@@ -325,14 +325,19 @@
 
   /* 관리자 화면: 목록별 독립 스크롤 */
   .settings-list-scroll {
-    max-height: 420px;
+    max-height: 360px;
     overflow-y: auto;
-    padding-right: 4px;
+    padding: 4px 6px 4px 0;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
   }
+  #settings-records-list { max-height: 380px; }
+  #settings-day-report-list { max-height: 340px; }
   @media (max-width: 768px) {
-    .settings-list-scroll { max-height: 48vh; }
+    #settings-records-list { max-height: 42vh; }
+    #settings-day-report-list { max-height: 38vh; }
   }
 </style>
 
@@ -855,19 +860,18 @@
           <option value="추천">추천</option>
         </select>
       </div>
-      <button type="button" class="sec-btn primary" onclick="openPrintFilteredChecklists()" style="width:100%;margin:0 0 12px 0;font-size:12px;padding:8px 10px">🖨️ 현재 조건의 체크리스트만 출력</button>
       <div id="settings-records-list" class="settings-list-scroll" role="list" aria-label="기록 목록" aria-live="polite">
         <div class="empty-state"><div class="empty-icon" aria-hidden="true">📋</div>기록이 없어요. 시트에서 불러오기를 해주세요.</div>
       </div>
     </div>
     <div class="card" id="settings-day-report-card">
-      <div class="card-title">일자별 활동보고 출력</div>
+      <div class="card-title">활동일지 출력</div>
       <p style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:10px">
-        담당자 모드에서 활동 날짜별로 활동일지와 같은 날짜의 체크리스트 기록을 함께 묶어 출력할 수 있어요.
+        활동일지는 1개씩 출력해요. 같은 날짜라도 팀이 다르면 각각 따로 출력되고, 방문상점명을 기준으로 관련 체크리스트가 함께 붙어요.
       </p>
       <button type="button" class="sec-btn primary" onclick="refreshJournalReports()" style="margin-bottom:10px">🔄 활동일지 새로고침</button>
-      <div id="settings-day-report-list" class="settings-list-scroll" role="list" aria-label="일자별 활동보고 출력 목록" aria-live="polite">
-        <div class="empty-state"><div class="empty-icon" aria-hidden="true">📝</div>담당자 로그인 후 활동일지를 불러오면 일자별 출력이 가능해요.</div>
+      <div id="settings-day-report-list" class="settings-list-scroll" role="list" aria-label="활동일지 출력 목록" aria-live="polite">
+        <div class="empty-state"><div class="empty-icon" aria-hidden="true">📝</div>담당자 로그인 후 활동일지 출력이 가능해요.</div>
       </div>
     </div>
     <div class="card">
@@ -2431,7 +2435,7 @@ async function fetchManagerJournalsFromSupabase() {
 
 async function refreshJournalReports() {
   if (!managerUnlocked) {
-    alert('활동보고 출력은 담당자만 사용할 수 있어요.');
+    alert('활동일지 출력은 담당자만 사용할 수 있어요.');
     return;
   }
   await fetchManagerJournalsFromSupabase();
@@ -2439,50 +2443,63 @@ async function refreshJournalReports() {
   showToast('settings-toast', '✅ 활동일지를 새로고침했어요.', 'success');
 }
 
-function buildDayReportGroups() {
-  var journals = getJournals();
-  var records = getRecords().filter(function(r) { return r.type === 'monitor'; });
-  var map = {};
-  journals.forEach(function(j) {
-    var d = getJournalPrintDate(j);
-    if (!d) return;
-    if (!map[d]) map[d] = { date: d, journals: [], records: [] };
-    map[d].journals.push(j);
+function splitStoreNames(value) {
+  return String(value || '')
+    .split(/[,，、\n\/]+/)
+    .map(function(x) { return x.trim(); })
+    .filter(Boolean);
+}
+
+function getRelatedRecordsForJournal(journal) {
+  var date = getJournalPrintDate(journal);
+  var stores = splitStoreNames(journal.stores);
+  var storeKeys = stores.map(normalizePrintText).filter(Boolean);
+  return getRecords().filter(function(r) {
+    if (r.type !== 'monitor') return false;
+    if (date && getRecordPrintDate(r) !== date) return false;
+    if (!storeKeys.length) return false;
+    var recordName = normalizePrintText(r.name || r.place || r.place_name || '');
+    return storeKeys.some(function(key) {
+      return key && (recordName.indexOf(key) >= 0 || key.indexOf(recordName) >= 0);
+    });
   });
-  records.forEach(function(r) {
-    var d = getRecordPrintDate(r);
-    if (!d) return;
-    if (!map[d]) map[d] = { date: d, journals: [], records: [] };
-    map[d].records.push(r);
+}
+
+function getPrintableJournals() {
+  return getJournals().map(function(j, idx) {
+    var copy = Object.assign({}, j);
+    copy.__journalIndex = idx;
+    return copy;
+  }).sort(function(a, b) {
+    var ad = String(getJournalPrintDate(a) || '') + ' ' + String(a.time || '');
+    var bd = String(getJournalPrintDate(b) || '') + ' ' + String(b.time || '');
+    return bd.localeCompare(ad);
   });
-  return Object.keys(map).sort().reverse().map(function(k) { return map[k]; });
 }
 
 function renderSettingsDayReports() {
   var el = document.getElementById('settings-day-report-list');
   if (!el) return;
   if (!managerUnlocked) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-icon" aria-hidden="true">🔒</div>담당자 로그인 후 일자별 활동보고 출력을 사용할 수 있어요.</div>';
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon" aria-hidden="true">🔒</div>담당자 로그인 후 활동일지 출력을 사용할 수 있어요.</div>';
     return;
   }
-  var groups = buildDayReportGroups();
-  if (!groups.length) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-icon" aria-hidden="true">📝</div>아직 활동일지나 체크리스트 기록이 없어요. 새로고침 또는 관리자 상세 데이터 불러오기를 눌러주세요.</div>';
+  var journals = getPrintableJournals();
+  if (!journals.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon" aria-hidden="true">📝</div>아직 활동일지가 없어요. 새로고침 또는 관리자 상세 데이터 불러오기를 눌러주세요.</div>';
     return;
   }
-  el.innerHTML = groups.map(function(g) {
-    var teams = Array.from(new Set(g.journals.map(function(j) { return j.team || ''; }).filter(Boolean))).join(', ');
-    var stores = Array.from(new Set(g.journals.flatMap(function(j) {
-      return String(j.stores || '').split(/[,，、\n\/]+/).map(function(x) { return x.trim(); }).filter(Boolean);
-    }))).slice(0, 8).join(', ');
+  el.innerHTML = journals.map(function(j) {
+    var relatedCount = getRelatedRecordsForJournal(j).length;
     return '<div class="journal-item" role="listitem">'
       + '<div class="journal-item-header">'
-      + '<span class="journal-item-date">📅 ' + escapeHtml(formatPrintDate(g.date)) + '</span>'
-      + '<span class="journal-item-team">일지 ' + g.journals.length + '건 · 체크리스트 ' + g.records.length + '건</span>'
+      + '<span class="journal-item-date">📅 ' + escapeHtml(formatPrintDate(j.date || j.activity_date || '')) + (j.time ? ' ' + escapeHtml(j.time) : '') + '</span>'
+      + '<span class="journal-item-team">체크리스트 ' + relatedCount + '건</span>'
       + '</div>'
-      + (teams ? '<div class="journal-item-stores">👥 ' + escapeHtml(teams) + '</div>' : '')
-      + (stores ? '<div class="journal-item-memo">🏪 ' + escapeHtml(stores) + (stores.length > 80 ? '…' : '') + '</div>' : '')
-      + '<button type="button" class="sec-btn primary print-day-report-btn" data-report-date="' + escapeHtml(g.date) + '" style="width:100%;margin-top:10px;font-size:12px;padding:8px 10px">📝 일자별 활동보고 출력</button>'
+      + '<div class="journal-item-stores">👥 ' + escapeHtml(j.team || '팀 정보 없음') + (j.author ? ' · ' + escapeHtml(j.author) : '') + '</div>'
+      + (j.stores ? '<div class="journal-item-memo">🏪 ' + escapeHtml(j.stores) + '</div>' : '')
+      + (j.memo ? '<div class="journal-item-memo">💬 ' + escapeHtml(String(j.memo).slice(0, 120)) + (String(j.memo).length > 120 ? '…' : '') + '</div>' : '')
+      + '<button type="button" class="sec-btn primary print-journal-report-btn" data-journal-index="' + j.__journalIndex + '" style="width:100%;margin-top:10px;font-size:12px;padding:8px 10px">📝 활동일지 출력</button>'
       + '</div>';
   }).join('');
 }
@@ -2531,7 +2548,7 @@ function printStylesForReport() {
     + '.section-title{font-size:15px;font-weight:800;margin:16px 0 8px;color:#1a8c6e}.opinion{border:1px solid #e0e0e0;border-radius:10px;padding:12px;min-height:50px;line-height:1.7;font-size:13px;white-space:pre-wrap}'
     + '.journal-box,.record-box{border:1px solid #d1d5db;border-radius:12px;padding:12px;margin-bottom:12px;break-inside:avoid;page-break-inside:avoid}.box-title{font-size:15px;font-weight:800;margin-bottom:8px;color:#111827}.meta{font-size:12px;font-weight:700;color:#1a8c6e;margin-bottom:5px}.memo{font-size:13px;line-height:1.7;white-space:pre-wrap}'
     + '.photos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}figure{margin:0;border:1px solid #e0e0e0;border-radius:10px;padding:8px;break-inside:avoid;page-break-inside:avoid;background:#fafafa}figure img{width:100%;height:auto;max-height:70mm;object-fit:contain;border-radius:8px;display:block;background:#fff;margin:0 auto}figcaption{font-size:10px;color:#6b7280;margin-top:5px;word-break:break-all}.empty{font-size:13px;color:#6b7280;border:1px dashed #d1d5db;padding:12px;border-radius:10px}.footer{margin-top:20px;font-size:11px;color:#6b7280;text-align:right}'
-    + '@media print{body{background:#fff}.page{padding:0;max-width:none}.print-actions{display:none}.journal-box,.record-box,figure{break-inside:avoid;page-break-inside:avoid}.photos{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}figure img{width:100%;height:auto;max-height:60mm;object-fit:contain}.section-title{margin-top:13px}}';
+    + '@media print{body{background:#fff}.page{padding:0;max-width:none}.print-actions{display:none}.journal-box,.record-box,figure{break-inside:avoid;page-break-inside:avoid}.photos{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}figure img{width:100%;height:auto;max-height:45mm;object-fit:contain}.section-title{margin-top:13px}}';
 }
 
 async function openPrintMonitorRecordById(recordId) {
@@ -2616,27 +2633,30 @@ async function openPrintFilteredChecklists() {
   win.document.open(); win.document.write(doc); win.document.close();
 }
 
-async function openPrintDayReport(dateKey) {
-  if (!managerUnlocked) { alert('일자별 활동보고 출력은 담당자만 사용할 수 있어요.'); return; }
-  var date = normalizePrintDate(dateKey);
-  var journals = getJournals().filter(function(j) { return getJournalPrintDate(j) === date; });
-  var records = getRecords().filter(function(r) { return r.type === 'monitor' && getRecordPrintDate(r) === date; });
-  if (!journals.length && !records.length) { alert('해당 날짜의 활동일지나 체크리스트 기록을 찾지 못했어요.'); return; }
+async function openPrintJournalReport(journalIndex) {
+  if (!managerUnlocked) { alert('활동일지 출력은 담당자만 사용할 수 있어요.'); return; }
+  var journals = getJournals();
+  var journal = journals[Number(journalIndex)];
+  if (!journal) { alert('출력할 활동일지를 찾지 못했어요. 활동일지 새로고침 후 다시 시도해 주세요.'); return; }
+  var date = getJournalPrintDate(journal);
+  var records = getRelatedRecordsForJournal(journal);
   var win = window.open('', '_blank');
   if (!win) { alert('팝업이 차단되었어요. 팝업 허용 후 다시 시도해 주세요.'); return; }
   win.document.open();
-  win.document.write('<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>인쇄 준비 중</title></head><body style="font-family:sans-serif;padding:24px">일자별 활동보고 출력 화면을 준비하고 있어요...</body></html>');
+  win.document.write('<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>인쇄 준비 중</title></head><body style="font-family:sans-serif;padding:24px">활동일지 출력 화면을 준비하고 있어요...</body></html>');
   win.document.close();
+
   var recordBlocks = [];
   for (var i = 0; i < records.length; i++) {
     var r = records[i];
     var photos = await fetchPrintPhotos(r.id);
-    var photosHtml = photos.length ? '<div class="photos">' + photos.slice(0, 6).map(function(p, pi) {
+    var photosHtml = photos.length ? '<div class="photos">' + photos.slice(0, 9).map(function(p, pi) {
       return '<figure><img src="' + escapeHtml(p.url) + '" alt="' + escapeHtml(r.name || '현장') + ' 사진 ' + (pi+1) + '"><figcaption>' + escapeHtml(p.name) + '</figcaption></figure>';
     }).join('') + '</div>' : '<div class="empty">사진 없음</div>';
     recordBlocks.push('<div class="record-box"><div class="box-title">' + escapeHtml(r.name || '장소명 없음') + '</div>'
       + '<table><tbody>'
       + '<tr><th>주소</th><td>' + escapeHtml(r.addr || '') + '</td></tr>'
+      + '<tr><th>점검일</th><td>' + escapeHtml(formatPrintDate(r.date || r.monitored_at || '')) + '</td></tr>'
       + '<tr><th>기록자</th><td>' + escapeHtml(r.recorder || r.author || '') + '</td></tr>'
       + '<tr><th>상태</th><td>' + escapeHtml(r.action || '') + '</td></tr>'
       + '<tr><th>항목 평가</th><td>' + escapeHtml(ratingSummaryForPrint(r)) + '</td></tr>'
@@ -2645,24 +2665,25 @@ async function openPrintDayReport(dateKey) {
       + (r.comment ? '<div class="opinion">' + escapeHtml(r.comment) + '</div>' : '')
       + '<div class="section-title">현장 사진</div>' + photosHtml + '</div>');
   }
-  var journalsHtml = journals.length ? journals.map(function(j, idx) {
-    return '<div class="journal-box"><div class="meta">일지 ' + (idx+1) + ' · ' + escapeHtml(j.time || '') + ' · ' + escapeHtml(j.team || '') + '</div>'
-      + '<table><tbody>'
-      + '<tr><th>팀원</th><td>' + escapeHtml(j.author || '') + '</td></tr>'
-      + '<tr><th>방문상점</th><td>' + escapeHtml(j.stores || '') + '</td></tr>'
-      + '</tbody></table>'
-      + '<div class="memo">' + escapeHtml(j.memo || '') + '</div></div>';
-  }).join('') : '<div class="empty">이 날짜에 작성된 활동일지가 없어요.</div>';
-  var recordsHtml = recordBlocks.length ? recordBlocks.join('') : '<div class="empty">이 날짜에 작성된 체크리스트 기록이 없어요.</div>';
+
   var today = new Date().toLocaleDateString('ko-KR');
-  var doc = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>일자별 활동보고 인쇄</title><style>' + printStylesForReport() + '</style></head><body><div class="page">'
-    + '<div class="top"><div><div class="title">열린 마을 만들기 일자별 활동보고</div><div class="subtitle">활동일 ' + escapeHtml(formatPrintDate(date)) + ' · 출력일 ' + escapeHtml(today) + '</div></div><div class="print-actions"><button class="primary" onclick="window.print()">인쇄 / PDF 저장</button><button class="secondary" onclick="window.close()">닫기</button></div></div>'
-    + '<table><tbody><tr><th>활동일</th><td>' + escapeHtml(formatPrintDate(date)) + '</td></tr><tr><th>활동일지</th><td>' + journals.length + '건</td></tr><tr><th>체크리스트</th><td>' + records.length + '건</td></tr></tbody></table>'
-    + '<div class="section-title">활동일지</div>' + journalsHtml
-    + '<div class="section-title">같은 날짜 체크리스트 기록</div>' + recordsHtml
-    + '<div class="footer">열린 마을 만들기 일자별 활동보고</div></div></body></html>';
+  var recordsHtml = recordBlocks.length ? recordBlocks.join('') : '<div class="empty">이 활동일지의 방문상점명과 연결되는 체크리스트 기록이 없어요.</div>';
+  var doc = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>활동일지 인쇄</title><style>' + printStylesForReport() + '</style></head><body><div class="page">'
+    + '<div class="top"><div><div class="title">열린 마을 만들기 활동일지</div><div class="subtitle">활동일 ' + escapeHtml(formatPrintDate(date)) + ' · ' + escapeHtml(journal.team || '') + ' · 출력일 ' + escapeHtml(today) + '</div></div><div class="print-actions"><button class="primary" onclick="window.print()">인쇄 / PDF 저장</button><button class="secondary" onclick="window.close()">닫기</button></div></div>'
+    + '<table><tbody>'
+    + '<tr><th>활동일</th><td>' + escapeHtml(formatPrintDate(date)) + '</td></tr>'
+    + '<tr><th>활동시간</th><td>' + escapeHtml(journal.time || '') + '</td></tr>'
+    + '<tr><th>팀</th><td>' + escapeHtml(journal.team || '') + '</td></tr>'
+    + '<tr><th>팀원</th><td>' + escapeHtml(journal.author || '') + '</td></tr>'
+    + '<tr><th>방문상점</th><td>' + escapeHtml(journal.stores || '') + '</td></tr>'
+    + '<tr><th>연결 체크리스트</th><td>' + records.length + '건</td></tr>'
+    + '</tbody></table>'
+    + '<div class="section-title">활동 소감 / 메모</div><div class="journal-box"><div class="memo">' + escapeHtml(journal.memo || '작성된 소감이 없어요.') + '</div></div>'
+    + '<div class="section-title">연결된 체크리스트 기록</div>' + recordsHtml
+    + '<div class="footer">열린 마을 만들기 활동일지</div></div></body></html>';
   win.document.open(); win.document.write(doc); win.document.close();
 }
+
 
 // ── 설정 ─────────────────────────────────────────
 function toggleManagerAuth() {
@@ -3299,11 +3320,12 @@ if (!window.__printReportClickBound) {
       openPrintMonitorRecordById(monitorBtn.dataset.recordId);
       return;
     }
-    var dayBtn = event.target.closest && event.target.closest('.print-day-report-btn');
-    if (dayBtn) {
+    var journalBtn = event.target.closest && event.target.closest('.print-journal-report-btn');
+    if (journalBtn) {
       event.preventDefault();
       event.stopPropagation();
-      openPrintDayReport(dayBtn.dataset.reportDate);
+      openPrintJournalReport(journalBtn.dataset.journalIndex);
+      return;
     }
   });
 }
