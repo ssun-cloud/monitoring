@@ -322,6 +322,18 @@
       overscroll-behavior: contain !important;
     }
   }
+
+  /* 관리자 화면: 목록별 독립 스크롤 */
+  .settings-list-scroll {
+    max-height: 420px;
+    overflow-y: auto;
+    padding-right: 4px;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  @media (max-width: 768px) {
+    .settings-list-scroll { max-height: 48vh; }
+  }
 </style>
 
 </head>
@@ -843,7 +855,8 @@
           <option value="추천">추천</option>
         </select>
       </div>
-      <div id="settings-records-list" role="list" aria-label="기록 목록" aria-live="polite">
+      <button type="button" class="sec-btn primary" onclick="openPrintFilteredChecklists()" style="width:100%;margin:0 0 12px 0;font-size:12px;padding:8px 10px">🖨️ 현재 조건의 체크리스트만 출력</button>
+      <div id="settings-records-list" class="settings-list-scroll" role="list" aria-label="기록 목록" aria-live="polite">
         <div class="empty-state"><div class="empty-icon" aria-hidden="true">📋</div>기록이 없어요. 시트에서 불러오기를 해주세요.</div>
       </div>
     </div>
@@ -853,7 +866,7 @@
         담당자 모드에서 활동 날짜별로 활동일지와 같은 날짜의 체크리스트 기록을 함께 묶어 출력할 수 있어요.
       </p>
       <button type="button" class="sec-btn primary" onclick="refreshJournalReports()" style="margin-bottom:10px">🔄 활동일지 새로고침</button>
-      <div id="settings-day-report-list" role="list" aria-label="일자별 활동보고 출력 목록" aria-live="polite">
+      <div id="settings-day-report-list" class="settings-list-scroll" role="list" aria-label="일자별 활동보고 출력 목록" aria-live="polite">
         <div class="empty-state"><div class="empty-icon" aria-hidden="true">📝</div>담당자 로그인 후 활동일지를 불러오면 일자별 출력이 가능해요.</div>
       </div>
     </div>
@@ -2517,8 +2530,8 @@ function printStylesForReport() {
     + 'table{width:100%;border-collapse:collapse;margin-bottom:12px}th,td{border:1px solid #e0e0e0;padding:8px 10px;vertical-align:top;font-size:13px;line-height:1.6;white-space:pre-wrap}th{width:120px;background:#f7f8fa;text-align:left;color:#4b5563}'
     + '.section-title{font-size:15px;font-weight:800;margin:16px 0 8px;color:#1a8c6e}.opinion{border:1px solid #e0e0e0;border-radius:10px;padding:12px;min-height:50px;line-height:1.7;font-size:13px;white-space:pre-wrap}'
     + '.journal-box,.record-box{border:1px solid #d1d5db;border-radius:12px;padding:12px;margin-bottom:12px;break-inside:avoid;page-break-inside:avoid}.box-title{font-size:15px;font-weight:800;margin-bottom:8px;color:#111827}.meta{font-size:12px;font-weight:700;color:#1a8c6e;margin-bottom:5px}.memo{font-size:13px;line-height:1.7;white-space:pre-wrap}'
-    + '.photos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:8px}figure{margin:0;border:1px solid #e0e0e0;border-radius:10px;padding:8px;break-inside:avoid;page-break-inside:avoid;background:#fafafa}figure img{width:100%;height:auto;max-height:110mm;object-fit:contain;border-radius:8px;display:block;background:#fff;margin:0 auto}figcaption{font-size:10px;color:#6b7280;margin-top:5px;word-break:break-all}.empty{font-size:13px;color:#6b7280;border:1px dashed #d1d5db;padding:12px;border-radius:10px}.footer{margin-top:20px;font-size:11px;color:#6b7280;text-align:right}'
-    + '@media print{body{background:#fff}.page{padding:0;max-width:none}.print-actions{display:none}.journal-box,.record-box,figure{break-inside:avoid;page-break-inside:avoid}.photos{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}figure img{width:100%;height:auto;max-height:95mm;object-fit:contain}.section-title{margin-top:13px}}';
+    + '.photos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}figure{margin:0;border:1px solid #e0e0e0;border-radius:10px;padding:8px;break-inside:avoid;page-break-inside:avoid;background:#fafafa}figure img{width:100%;height:auto;max-height:70mm;object-fit:contain;border-radius:8px;display:block;background:#fff;margin:0 auto}figcaption{font-size:10px;color:#6b7280;margin-top:5px;word-break:break-all}.empty{font-size:13px;color:#6b7280;border:1px dashed #d1d5db;padding:12px;border-radius:10px}.footer{margin-top:20px;font-size:11px;color:#6b7280;text-align:right}'
+    + '@media print{body{background:#fff}.page{padding:0;max-width:none}.print-actions{display:none}.journal-box,.record-box,figure{break-inside:avoid;page-break-inside:avoid}.photos{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}figure img{width:100%;height:auto;max-height:60mm;object-fit:contain}.section-title{margin-top:13px}}';
 }
 
 async function openPrintMonitorRecordById(recordId) {
@@ -2549,6 +2562,57 @@ async function openPrintMonitorRecordById(recordId) {
     + '<div class="section-title">종합 의견</div><div class="opinion">' + escapeHtml(rec.comment || '') + '</div>'
     + '<div class="section-title">현장 사진</div>' + photoHtml
     + '<div class="footer">열린 마을 만들기 모니터링 기록</div></div></body></html>';
+  win.document.open(); win.document.write(doc); win.document.close();
+}
+
+
+function getFilteredSettingsMonitorRecords() {
+  var typeFilter = (document.getElementById('rec-filter-type')||{}).value || '';
+  var actionFilter = (document.getElementById('rec-filter-action')||{}).value || '';
+  return getRecords().filter(function(r) {
+    if (r.type !== 'monitor') return false;
+    if (typeFilter && typeFilter !== 'monitor') return false;
+    if (actionFilter && r.action !== actionFilter) return false;
+    return true;
+  });
+}
+
+async function openPrintFilteredChecklists() {
+  if (!managerUnlocked) { alert('체크리스트 목록 출력은 담당자만 사용할 수 있어요.'); return; }
+  var records = getFilteredSettingsMonitorRecords();
+  if (!records.length) { alert('현재 조건에 해당하는 체크리스트 기록이 없어요.'); return; }
+  var win = window.open('', '_blank');
+  if (!win) { alert('팝업이 차단되었어요. 팝업 허용 후 다시 시도해 주세요.'); return; }
+  win.document.open();
+  win.document.write('<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>인쇄 준비 중</title></head><body style="font-family:sans-serif;padding:24px">체크리스트 목록 출력 화면을 준비하고 있어요...</body></html>');
+  win.document.close();
+
+  var blocks = [];
+  for (var i = 0; i < records.length; i++) {
+    var r = records[i];
+    var photos = await fetchPrintPhotos(r.id);
+    var photosHtml = photos.length ? '<div class="photos">' + photos.slice(0, 6).map(function(p, pi) {
+      return '<figure><img src="' + escapeHtml(p.url) + '" alt="' + escapeHtml(r.name || '현장') + ' 사진 ' + (pi+1) + '"><figcaption>' + escapeHtml(p.name) + '</figcaption></figure>';
+    }).join('') + '</div>' : '<div class="empty">사진 없음</div>';
+    blocks.push('<div class="record-box"><div class="box-title">' + escapeHtml(r.name || '장소명 없음') + '</div>'
+      + '<table><tbody>'
+      + '<tr><th>주소</th><td>' + escapeHtml(r.addr || '') + '</td></tr>'
+      + '<tr><th>점검일</th><td>' + escapeHtml(formatPrintDate(r.date || r.monitored_at || '')) + '</td></tr>'
+      + '<tr><th>기록자</th><td>' + escapeHtml(r.recorder || r.author || '') + '</td></tr>'
+      + '<tr><th>상태</th><td>' + escapeHtml(r.action || '') + '</td></tr>'
+      + '<tr><th>항목 평가</th><td>' + escapeHtml(ratingSummaryForPrint(r)) + '</td></tr>'
+      + '<tr><th>추가 확인</th><td>' + escapeHtml(r.extras || r.extra_notes || '') + '</td></tr>'
+      + '</tbody></table>'
+      + (r.comment ? '<div class="opinion">' + escapeHtml(r.comment) + '</div>' : '')
+      + '<div class="section-title">현장 사진</div>' + photosHtml + '</div>');
+  }
+
+  var today = new Date().toLocaleDateString('ko-KR');
+  var actionFilter = (document.getElementById('rec-filter-action')||{}).value || '전체 상태';
+  var doc = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>체크리스트 목록 인쇄</title><style>' + printStylesForReport() + '</style></head><body><div class="page">'
+    + '<div class="top"><div><div class="title">열린 마을 만들기 체크리스트 목록</div><div class="subtitle">' + escapeHtml(actionFilter) + ' · ' + records.length + '건 · 출력일 ' + escapeHtml(today) + '</div></div><div class="print-actions"><button class="primary" onclick="window.print()">인쇄 / PDF 저장</button><button class="secondary" onclick="window.close()">닫기</button></div></div>'
+    + blocks.join('')
+    + '<div class="footer">열린 마을 만들기 체크리스트 목록</div></div></body></html>';
   win.document.open(); win.document.write(doc); win.document.close();
 }
 
