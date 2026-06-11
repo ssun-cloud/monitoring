@@ -2426,6 +2426,20 @@ function renderSettingsRecords() {
       deleteLocalRecord(r.__recordIndex, ts);
     });
     div.appendChild(delBtn);
+
+    // 사진 보기 (monitor 타입 + 모니터링단/관리자 + r.id 있을 때만)
+    if (r.type === 'monitor' && r.id && (monitorUnlocked || managerUnlocked)) {
+      var photoWrap = document.createElement('div');
+      photoWrap.className = 'photo-view-wrap';
+      photoWrap.dataset.recordId = r.id;
+      photoWrap.dataset.loaded = 'false';
+      photoWrap.style.cssText = 'margin-top:10px;padding-top:10px;border-top:1px solid var(--border)';
+      photoWrap.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">📷 사진 불러오는 중...</div>';
+      div.appendChild(photoWrap);
+      // 설정 탭은 toggle 없이 항상 펼쳐져 있으므로 바로 로드
+      loadPhotosByRecordId(r.id, photoWrap);
+    }
+
     el.appendChild(div);
   });
 }
