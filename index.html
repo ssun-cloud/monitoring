@@ -3350,7 +3350,7 @@ function getRecordTypeMeta(rec) {
 }
 
 function mapRecordExtraHtml(rec) {
-  // 공개 모드에서는 지도 목록에도 상세/사진/개인정보를 붙이지 않음
+  // 지도 목록은 기본적으로 짧게 보이게 하고, 필요한 경우에만 상세를 펼침
   if (!monitorUnlocked && !managerUnlocked) return '';
 
   if (rec.type === 'monitor') {
@@ -3360,28 +3360,21 @@ function mapRecordExtraHtml(rec) {
       rec.r3 ? '화장실 ' + rec.r3 : '',
       rec.r4 ? '안내판 ' + rec.r4 : ''
     ].filter(Boolean).join(' · ');
+    const detailId = 'map-detail-' + String(rec.id || rec.name || '').replace(/[^a-zA-Z0-9_-]/g, '');
 
-    return '<div class="record-detail open" style="display:block;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">'
+    return '<button type="button" class="sec-btn map-detail-toggle" aria-expanded="false" aria-controls="' + detailId + '" style="margin-top:10px;width:100%;font-size:12px;padding:8px 10px">점검내용 보기</button>'
+      + '<div id="' + detailId + '" class="record-detail map-record-detail" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">'
       + (rec.date ? '<div class="detail-row"><span class="detail-label">점검 날짜</span><span class="detail-value">' + rec.date + '</span></div>' : '')
       + (ratings ? '<div class="detail-row"><span class="detail-label">항목 평가</span><span class="detail-value">' + ratings + '</span></div>' : '')
       + (rec.comment ? '<div class="detail-row"><span class="detail-label">종합 의견</span><span class="detail-value">' + rec.comment + '</span></div>' : '')
       + (rec.extras ? '<div class="detail-row"><span class="detail-label">추가 확인</span><span class="detail-value">' + rec.extras + '</span></div>' : '')
       + ((rec.recorder || rec.author) ? '<div class="detail-row"><span class="detail-label">기록자</span><span class="detail-value">' + (rec.recorder || rec.author) + '</span></div>' : '')
-      + (rec.id ? '<div class="photo-view-wrap" data-record-id="' + rec.id + '" data-loaded="false" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><div style="font-size:12px;color:var(--text-muted)">📷 사진 불러오는 중...</div></div>' : '')
+      + (rec.id ? '<div class="photo-view-wrap" data-record-id="' + rec.id + '" data-loaded="false" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><div style="font-size:12px;color:var(--text-muted)">📷 상세보기를 열면 사진을 불러옵니다.</div></div>' : '')
       + (managerUnlocked && rec.id ? '<button type="button" class="sec-btn primary print-monitor-btn" data-record-id="' + String(rec.id).replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '" style="margin-top:10px;width:100%;font-size:12px;padding:8px 10px">🖨️ 체크리스트 출력</button>' : '')
       + '</div>';
   }
 
-  // 관리자 모드에서만 신청/추천 개인정보를 지도 목록에도 표시
-  if (managerUnlocked) {
-    return '<div class="record-detail open" style="display:block;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">'
-      + ((rec.applicant || rec.applyname) ? '<div class="detail-row"><span class="detail-label">신청/추천인</span><span class="detail-value">' + (rec.applicant || rec.applyname) + '</span></div>' : '')
-      + (rec.phone ? '<div class="detail-row"><span class="detail-label">연락처</span><span class="detail-value">' + rec.phone + '</span></div>' : '')
-      + (rec.memo ? '<div class="detail-row"><span class="detail-label">메모</span><span class="detail-value">' + rec.memo + '</span></div>' : '')
-      + (rec.intro ? '<div class="detail-row"><span class="detail-label">한줄소개</span><span class="detail-value">' + rec.intro + '</span></div>' : '')
-      + '</div>';
-  }
-
+  // 신청/추천 상세 개인정보는 설정 탭에서 확인하도록 하고, 지도에서는 짧게 유지
   return '';
 }
 
@@ -3466,11 +3459,23 @@ function renderMap() {
     });
     recordListEl.appendChild(item);
 
-    // 지도 목록은 펼침 없이 바로 보이는 영역이라, 사진 자리 생성 직후 즉시 로드
-    const mapPhotoWrap = item.querySelector('.photo-view-wrap');
-    if (mapPhotoWrap && mapPhotoWrap.dataset.recordId && mapPhotoWrap.dataset.loaded !== 'true' && (monitorUnlocked || managerUnlocked)) {
-      mapPhotoWrap.dataset.loaded = 'true';
-      loadPhotosByRecordId(mapPhotoWrap.dataset.recordId, mapPhotoWrap);
+    const detailToggle = item.querySelector('.map-detail-toggle');
+    if (detailToggle) {
+      detailToggle.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const detail = item.querySelector('.map-record-detail');
+        if (!detail) return;
+        const willOpen = detail.style.display === 'none' || detail.style.display === '';
+        detail.style.display = willOpen ? 'block' : 'none';
+        detailToggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        detailToggle.textContent = willOpen ? '점검내용 접기' : '점검내용 보기';
+        const mapPhotoWrap = detail.querySelector('.photo-view-wrap');
+        if (willOpen && mapPhotoWrap && mapPhotoWrap.dataset.recordId && mapPhotoWrap.dataset.loaded !== 'true' && (monitorUnlocked || managerUnlocked)) {
+          mapPhotoWrap.dataset.loaded = 'true';
+          loadPhotosByRecordId(mapPhotoWrap.dataset.recordId, mapPhotoWrap);
+        }
+      });
     }
 
     geocoder.addressSearch(rec.addr, function(result, status) {
