@@ -868,7 +868,7 @@
     <div class="card" id="settings-journal-print-card">
       <div class="card-title">활동일지 출력</div>
       <p style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:10px">
-        활동일지는 1개씩 출력해요. 같은 날짜라도 팀이 다르면 각각 따로 출력되고, 방문상점명을 기준으로 관련 체크리스트가 함께 붙어요.
+        활동일지는 팀별로 출력해요. 같은 날짜·같은 팀의 일지는 하나로 묶이고, 방문상점명을 기준으로 관련 체크리스트가 함께 붙어요.
       </p>
       <button type="button" class="sec-btn primary" onclick="refreshJournalReports()" style="margin-bottom:10px">🔄 활동일지 새로고침</button>
       <div id="settings-journal-print-list" class="settings-list-scroll" role="list" aria-label="활동일지 출력 목록" aria-live="polite">
@@ -2466,15 +2466,90 @@ function getRelatedRecordsForJournal(journal) {
   });
 }
 
+function uniqNonEmpty(values) {
+  var seen = {};
+  var out = [];
+  (values || []).forEach(function(v) {
+    String(v || '').split(/[ ,，、\n\/]+/).forEach(function(part) {
+      var text = part.trim();
+      if (!text) return;
+      var key = normalizePrintText(text);
+      if (!seen[key]) { seen[key] = true; out.push(text); }
+    });
+  });
+  return out;
+}
+
+function uniqMemoLines(values) {
+  var seen = {};
+  var out = [];
+  (values || []).forEach(function(v) {
+    var text = String(v || '').trim();
+    if (!text) return;
+    var key = normalizePrintText(text);
+    if (!seen[key]) { seen[key] = true; out.push(text); }
+  });
+  return out;
+}
+
+function getJournalGroupKey(journal) {
+  var date = getJournalPrintDate(journal);
+  var team = normalizePrintText(journal.team || journal.team_name || '팀정보없음');
+  return date + '||' + team;
+}
+
 function getPrintableJournals() {
-  return getJournals().map(function(j, idx) {
-    var copy = Object.assign({}, j);
-    copy.__journalIndex = idx;
-    return copy;
+  var groups = {};
+  getJournals().forEach(function(j, idx) {
+    var key = getJournalGroupKey(j);
+    if (!groups[key]) {
+      groups[key] = {
+        id: j.id || '',
+        date: j.date || j.activity_date || '',
+        time: j.time || j.activity_time || '',
+        team: j.team || j.team_name || '',
+        author: j.author || j.members || '',
+        stores: j.stores || '',
+        memo: j.memo || '',
+        photo_links: j.photo_links || '',
+        timestamp: j.timestamp || j.created_at || '',
+        __sourceIndexes: [idx],
+        __times: [j.time || j.activity_time || ''],
+        __authors: [j.author || j.members || ''],
+        __stores: [j.stores || ''],
+        __memos: [j.memo || '']
+      };
+    } else {
+      var g = groups[key];
+      g.__sourceIndexes.push(idx);
+      g.__times.push(j.time || j.activity_time || '');
+      g.__authors.push(j.author || j.members || '');
+      g.__stores.push(j.stores || '');
+      g.__memos.push(j.memo || '');
+      if (!g.timestamp || String(j.timestamp || j.created_at || '').localeCompare(String(g.timestamp || '')) > 0) g.timestamp = j.timestamp || j.created_at || g.timestamp;
+    }
+  });
+
+  return Object.keys(groups).map(function(key) {
+    var g = groups[key];
+    var times = uniqNonEmpty(g.__times);
+    var authors = uniqNonEmpty(g.__authors);
+    var stores = uniqNonEmpty(g.__stores);
+    var memos = uniqMemoLines(g.__memos);
+    g.time = times.join(', ');
+    g.author = authors.join(', ');
+    g.stores = stores.join(', ');
+    g.memo = memos.join('
+
+');
+    return g;
   }).sort(function(a, b) {
-    var ad = String(getJournalPrintDate(a) || '') + ' ' + String(a.time || '');
-    var bd = String(getJournalPrintDate(b) || '') + ' ' + String(b.time || '');
+    var ad = String(getJournalPrintDate(a) || '') + ' ' + String(a.time || '') + ' ' + String(a.team || '');
+    var bd = String(getJournalPrintDate(b) || '') + ' ' + String(b.time || '') + ' ' + String(b.team || '');
     return bd.localeCompare(ad);
+  }).map(function(j, idx) {
+    j.__journalIndex = idx;
+    return j;
   });
 }
 
@@ -2636,7 +2711,7 @@ async function openPrintFilteredChecklists() {
 
 async function openPrintJournalReport(journalIndex) {
   if (!managerUnlocked) { alert('활동일지 출력은 담당자만 사용할 수 있어요.'); return; }
-  var journals = getJournals();
+  var journals = getPrintableJournals();
   var journal = journals[Number(journalIndex)];
   if (!journal) { alert('출력할 활동일지를 찾지 못했어요. 활동일지 새로고침 후 다시 시도해 주세요.'); return; }
   var date = getJournalPrintDate(journal);
