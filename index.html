@@ -847,11 +847,14 @@
         <div class="empty-state"><div class="empty-icon" aria-hidden="true">📋</div>기록이 없어요. 시트에서 불러오기를 해주세요.</div>
       </div>
     </div>
-    <div class="card" id="settings-journal-print-card">
-      <div class="card-title">활동일지 출력</div>
-      <p style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:10px">담당자 모드에서 일자·팀 단위 활동일지를 출력할 수 있어요. 일지에 적힌 방문상점과 같은 날짜의 체크리스트 기록을 함께 묶어 보여줍니다.</p>
-      <div id="settings-journal-print-list" role="list" aria-label="활동일지 출력 목록" aria-live="polite">
-        <div class="empty-state"><div class="empty-icon" aria-hidden="true">📝</div>활동일지를 불러오면 출력할 수 있어요.</div>
+    <div class="card" id="settings-day-report-card">
+      <div class="card-title">일자별 활동보고 출력</div>
+      <p style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:10px">
+        담당자 모드에서 활동 날짜별로 활동일지와 같은 날짜의 체크리스트 기록을 함께 묶어 출력할 수 있어요.
+      </p>
+      <button type="button" class="sec-btn primary" onclick="refreshJournalReports()" style="margin-bottom:10px">🔄 활동일지 새로고침</button>
+      <div id="settings-day-report-list" role="list" aria-label="일자별 활동보고 출력 목록" aria-live="polite">
+        <div class="empty-state"><div class="empty-icon" aria-hidden="true">📝</div>담당자 로그인 후 활동일지를 불러오면 일자별 출력이 가능해요.</div>
       </div>
     </div>
     <div class="card">
@@ -871,222 +874,6 @@
 </div>
 
 <script>
-
-// ── A4 인쇄용 모니터링 기록 ─────────────────────────────
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function detailLine(label, value) {
-  if (value === undefined || value === null || String(value).trim() === '') return '';
-  return '<tr><th>' + escapeHtml(label) + '</th><td>' + escapeHtml(value) + '</td></tr>';
-}
-
-async function getSignedPhotoUrlsForPrint(recordId) {
-  try {
-    const { data: photos, error: dbError } = await _supabase
-      .from('record_photos')
-      .select('storage_path, file_name')
-      .eq('record_type', 'monitor')
-      .eq('record_id', recordId);
-
-    if (dbError || !photos || photos.length === 0) return [];
-
-    const urls = [];
-    for (const photo of photos) {
-      const { data: signed, error: signError } = await _supabase
-        .storage
-        .from('monitoring-photos')
-        .createSignedUrl(photo.storage_path, 600);
-      if (!signError && signed && signed.signedUrl) {
-        urls.push({ url: signed.signedUrl, name: photo.file_name || '현장 사진' });
-      }
-    }
-    return urls;
-  } catch (err) {
-    console.warn('[인쇄] 사진 불러오기 실패:', err.message);
-    return [];
-  }
-}
-
-
-function normalizePrintDate(value) {
-  if (!value) return '';
-  const s = String(value);
-  const m = s.match(/(\d{4})-(\d{2})-(\d{2})/);
-  return m ? m[0] : s.trim();
-}
-
-function normalizePrintText(value) {
-  return String(value || '').replace(/\s+/g, ' ').trim();
-}
-
-function journalMatchesRecordForPrint(journal, rec) {
-  const recDate = normalizePrintDate(rec.date || rec.monitored_at);
-  const journalDate = normalizePrintDate(journal.date || journal.activity_date);
-  if (!recDate || !journalDate || recDate !== journalDate) return false;
-
-  const recName = normalizePrintText(rec.name);
-  const recAuthor = normalizePrintText(rec.recorder || rec.author);
-  const stores = normalizePrintText(journal.stores);
-  const author = normalizePrintText(journal.author || journal.members);
-
-  if (recName && stores && (stores.includes(recName) || recName.includes(stores))) return true;
-  if (recAuthor && author && (author.includes(recAuthor) || recAuthor.includes(author))) return true;
-  return false;
-}
-
-async function getRelatedJournalsForPrint(rec) {
-  let journals = getJournals();
-
-  // 관리자 인쇄 시점에는 활동일지를 아직 불러오지 않았을 수 있어, RPC로 한 번 더 확인한다.
-  if (managerUnlocked && managerSessionPin) {
-    try {
-      const { data, error } = await _supabase.rpc('get_manager_journals', { pin_input: managerSessionPin });
-      if (!error && data) {
-        journals = data.map(function(j) {
-          return {
-            date:      j.activity_date,
-            time:      j.activity_time || '',
-            team:      j.team_name || '',
-            author:    j.members || '',
-            stores:    j.stores || '',
-            memo:      j.memo || '',
-            timestamp: j.created_at
-          };
-        });
-        localStorage.setItem('journals', JSON.stringify(journals));
-      }
-    } catch (err) {
-      console.warn('[인쇄] 활동일지 불러오기 실패:', err.message);
-    }
-  }
-
-  const matched = journals.filter(function(j) { return journalMatchesRecordForPrint(j, rec); });
-  if (matched.length) return { title: '연결된 활동일지', items: matched, note: '' };
-
-  // 상점명이 조금 다르게 저장된 경우를 대비해 같은 날짜의 일지를 보조로 보여준다.
-  const recDate = normalizePrintDate(rec.date || rec.monitored_at);
-  const sameDate = journals.filter(function(j) {
-    return recDate && normalizePrintDate(j.date || j.activity_date) === recDate;
-  });
-  if (sameDate.length) return { title: '같은 날짜 활동일지', items: sameDate, note: '상점명이 정확히 일치하지 않아 같은 날짜의 활동일지를 함께 표시합니다.' };
-
-  // 날짜가 맞지 않는 경우도 일지를 출력해야 할 수 있으므로 최근 일지를 보조로 보여준다.
-  if (journals.length) return { title: '최근 활동일지', items: journals.slice(0, 20), note: '해당 기록과 자동 연결된 활동일지가 없어 최근 활동일지를 표시합니다.' };
-
-  return { title: '활동일지', items: [], note: '' };
-}
-
-async function openPrintMonitorRecord(recordId) {
-  if (!managerUnlocked) {
-    alert('인쇄용 보기는 담당자만 사용할 수 있어요.');
-    return;
-  }
-
-  const records = getRecords();
-  const rec = records.find(function(item) { return String(item.id) === String(recordId); });
-  if (!rec) {
-    alert('인쇄할 기록을 찾지 못했어요. 새로고침 후 다시 시도해 주세요.');
-    return;
-  }
-  if (rec.type !== 'monitor') {
-    alert('모니터링 기록만 인쇄할 수 있어요.');
-    return;
-  }
-
-  const printWindow = window.open('', '_blank');
-  if (!printWindow) {
-    alert('팝업이 차단되었어요. 브라우저에서 팝업 허용 후 다시 시도해 주세요.');
-    return;
-  }
-
-  printWindow.document.open();
-  printWindow.document.write('<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>인쇄 준비 중</title></head><body style="font-family:sans-serif;padding:24px">인쇄용 화면을 준비하고 있어요...</body></html>');
-  printWindow.document.close();
-
-  const photos = await getSignedPhotoUrlsForPrint(recordId);
-  const journalResult = await getRelatedJournalsForPrint(rec);
-  const relatedJournals = Array.isArray(journalResult) ? journalResult : (journalResult.items || []);
-  const journalTitle = Array.isArray(journalResult) ? '활동일지' : (journalResult.title || '활동일지');
-  const journalNote = Array.isArray(journalResult) ? '' : (journalResult.note || '');
-  const ratings = [
-    rec.r1 ? '점자메뉴판: ' + rec.r1 : '',
-    rec.r2 ? '경사로 및 출입 접근성: ' + rec.r2 : '',
-    rec.r3 ? '화장실 접근성: ' + rec.r3 : '',
-    rec.r4 ? '안내판·표지판 가독성: ' + rec.r4 : ''
-  ].filter(Boolean).join('\n');
-
-  const photoHtml = photos.length
-    ? photos.map(function(photo) {
-        return '<figure><img src="' + escapeHtml(photo.url) + '" alt="' + escapeHtml(photo.name) + '"><figcaption>' + escapeHtml(photo.name) + '</figcaption></figure>';
-      }).join('')
-    : '<p class="empty-photo">등록된 사진이 없어요.</p>';
-
-  const journalNoteHtml = journalNote ? '<div class="journal-note">' + escapeHtml(journalNote) + '</div>' : '';
-  const journalHtml = relatedJournals.length
-    ? journalNoteHtml + relatedJournals.map(function(j) {
-        return '<div class="journal-box">'
-          + '<div class="journal-meta">📅 ' + escapeHtml(j.date || '') + (j.time ? ' ' + escapeHtml(j.time) : '') + ' · 👥 ' + escapeHtml(j.team || '') + (j.author ? ' (' + escapeHtml(j.author) + ')' : '') + '</div>'
-          + '<div class="journal-stores">방문 상점: ' + escapeHtml(j.stores || '상점 정보 없음') + '</div>'
-          + '<div class="journal-memo">' + escapeHtml(j.memo || '활동 소감/메모가 비어 있어요.') + '</div>'
-          + '</div>';
-      }).join('')
-    : '<p class="empty-photo">연결된 활동일지가 없어요. 활동일지가 아직 작성되지 않았거나 상점명/날짜가 다를 수 있어요.</p>';
-
-  const today = new Date().toLocaleDateString('ko-KR');
-  const doc = '<!doctype html>'
-    + '<html lang="ko"><head><meta charset="utf-8">'
-    + '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
-    + '<title>모니터링 기록 인쇄</title>'
-    + '<style>'
-    + '@page{size:A4;margin:12mm}body{font-family:"Noto Sans KR",Arial,sans-serif;color:#1e1e1e;margin:0;background:#f7f8fa}.page{max-width:794px;margin:0 auto;background:#fff;padding:26px;box-sizing:border-box}.top{display:flex;justify-content:space-between;gap:16px;border-bottom:3px solid #1a8c6e;padding-bottom:14px;margin-bottom:18px}.title{font-size:23px;font-weight:800;color:#1a8c6e}.subtitle{font-size:13px;color:#6b7280;margin-top:4px}.print-actions{display:flex;gap:8px;align-items:flex-start}.print-actions button{border:0;border-radius:8px;padding:9px 12px;font-weight:700;cursor:pointer}.primary{background:#1a8c6e;color:white}.secondary{background:#eef2f7;color:#1e1e1e}table{width:100%;border-collapse:collapse;margin-bottom:14px}th,td{border:1px solid #e0e0e0;padding:8px 10px;vertical-align:top;font-size:13px;line-height:1.6;white-space:pre-wrap}th{width:130px;background:#f7f8fa;text-align:left;color:#4b5563}.section-title{font-size:15px;font-weight:800;margin:16px 0 8px;color:#1a8c6e}.opinion{border:1px solid #e0e0e0;border-radius:10px;padding:12px;min-height:70px;line-height:1.7;font-size:13px;white-space:pre-wrap}.journal-box{border:1px solid #e0e0e0;border-radius:10px;padding:11px 12px;margin-bottom:8px;break-inside:avoid}.journal-meta{font-size:12px;font-weight:700;color:#1a8c6e;margin-bottom:5px}.journal-stores{font-size:12px;color:#4b5563;margin-bottom:6px}.journal-memo{font-size:13px;line-height:1.7;white-space:pre-wrap}.journal-note{font-size:12px;color:#6b7280;background:#f7f8fa;border-radius:8px;padding:8px 10px;margin-bottom:8px}.photos{display:grid;grid-template-columns:1fr;gap:12px;margin-top:8px}figure{margin:0;border:1px solid #e0e0e0;border-radius:10px;padding:8px;break-inside:avoid;page-break-inside:avoid;background:#fafafa}figure img{width:auto;max-width:100%;height:auto;max-height:240mm;object-fit:contain;border-radius:8px;display:block;background:#fff;margin:0 auto}figcaption{font-size:11px;color:#6b7280;margin-top:5px;word-break:break-all}.empty-photo{font-size:13px;color:#6b7280;border:1px dashed #d1d5db;padding:16px;border-radius:10px}.footer{margin-top:20px;font-size:11px;color:#6b7280;text-align:right}@media print{body{background:#fff}.page{padding:0;max-width:none}.print-actions{display:none}.photos{grid-template-columns:1fr;gap:10px}figure{break-inside:avoid;page-break-inside:avoid}figure img{width:auto;max-width:100%;height:auto;max-height:235mm;object-fit:contain;margin:0 auto}.section-title{margin-top:13px}}'
-    + '</style></head><body><main class="page">'
-    + '<div class="top"><div><div class="title">열린 마을 만들기 모니터링 기록</div><div class="subtitle">종로장애인복지관 · 출력일 ' + escapeHtml(today) + '</div></div><div class="print-actions"><button class="primary" onclick="window.print()">인쇄 / PDF 저장</button><button class="secondary" onclick="window.close()">닫기</button></div></div>'
-    + '<div class="section-title">기본 정보</div><table><tbody>'
-    + detailLine('장소명', rec.name)
-    + detailLine('주소', rec.addr)
-    + detailLine('모니터링 날짜', rec.date || rec.monitored_at)
-    + detailLine('기록자', rec.recorder || rec.author)
-    + detailLine('상태', rec.action)
-    + '</tbody></table>'
-    + '<div class="section-title">점검 결과</div><table><tbody>'
-    + detailLine('항목별 평가', ratings)
-    + detailLine('조치 필요 여부', rec.action)
-    + detailLine('추가 확인 항목', rec.extras || rec.extra_notes)
-    + '</tbody></table>'
-    + '<div class="section-title">종합 의견</div><div class="opinion">' + escapeHtml(rec.comment || '') + '</div>'
-    + '<div class="section-title">' + escapeHtml(journalTitle) + '</div><div class="journals">' + journalHtml + '</div>'
-    + '<div class="section-title">현장 사진</div><div class="photos">' + photoHtml + '</div>'
-    + '<div class="footer">※ 이 자료는 내부 검토 및 결과보고용으로 출력되었습니다.</div>'
-    + '</main></body></html>';
-
-  printWindow.document.open();
-  printWindow.document.write(doc);
-  printWindow.document.close();
-}
-
-document.addEventListener('click', function(event) {
-  const btn = event.target.closest('.print-monitor-btn');
-  if (!btn) return;
-  event.preventDefault();
-  event.stopPropagation();
-  openPrintMonitorRecord(btn.dataset.recordId);
-});
-
-document.addEventListener('click', function(event) {
-  const btn = event.target.closest('.print-journal-btn');
-  if (!btn) return;
-  event.preventDefault();
-  event.stopPropagation();
-  openPrintJournalReport(btn.dataset.journalIndex);
-});
-
 // ── 설정 ──────────────────────────────────────────
 // ── 비밀번호 설정 (변경 시 아래 숫자만 수정) ────────────
 const FALLBACK_MONITOR_PIN  = '';   // 서버 확인 실패 시 열지 않음
@@ -1285,10 +1072,12 @@ async function checkPin() {
       console.log('[권한] mode=manager');
       document.getElementById('lock-screen').classList.remove('show');
       // 관리자 데이터 즉시 재조회
-      syncRecordsFromSupabase(true).then(function() {
+      syncRecordsFromSupabase(true).then(async function() {
+        await fetchManagerJournalsFromSupabase();
         updateDashboard();
         renderMap();
         renderSettingsRecords();
+        renderSettingsDayReports();
         renderRecords();
       });
       if (pendingManagerCallback) { pendingManagerCallback(); pendingManagerCallback = null; }
@@ -2313,10 +2102,6 @@ function recordCard(r, idx) {
            </div>`
         : ''
       }
-      ${managerUnlocked && r.id
-        ? `<button type="button" class="sec-btn primary print-monitor-btn" data-record-id="${r.id}" style="margin-top:10px">🖨️ A4 인쇄용 보기</button>`
-        : ''
-      }
     `;
   }
 
@@ -2332,6 +2117,7 @@ function recordCard(r, idx) {
     <div class="rec-tags">${typeTag}${actionTag}${itemsTag}</div>
     <div class="record-detail" id="detail-${idx}">
       ${detail}
+      ${managerUnlocked && r.type === 'monitor' && r.id ? `<button type="button" class="sec-btn primary print-monitor-btn" data-record-id="${String(r.id).replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" onclick="event.stopPropagation()" style="margin-top:10px;width:100%;font-size:12px;padding:8px 10px">🖨️ 체크리스트 출력</button>` : ''}
       ${managerUnlocked ? statusDropdown(r) : '<div style="font-size:12px;color:var(--text-muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">🔒 상태 변경은 담당자만 가능해요</div>'}
     </div>
   </div>`;
@@ -2556,6 +2342,264 @@ function closeEditModal(e) {
   }
 }
 
+
+// ── 출력/인쇄 도우미 ─────────────────────────────
+function escapeHtml(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function normalizePrintDate(value) {
+  if (!value) return '';
+  var s = String(value).trim();
+  var m = s.match(/^(\d{4})[.\-\/년\s]*(\d{1,2})[.\-\/월\s]*(\d{1,2})/);
+  if (!m) return s.slice(0, 10);
+  return m[1] + '-' + String(m[2]).padStart(2, '0') + '-' + String(m[3]).padStart(2, '0');
+}
+
+function formatPrintDate(value) {
+  var d = normalizePrintDate(value);
+  if (!d) return '';
+  var p = d.split('-');
+  if (p.length === 3) return p[0] + '.' + p[1] + '.' + p[2];
+  return d;
+}
+
+function normalizePrintText(value) {
+  return String(value || '').replace(/\s+/g, '').toLowerCase();
+}
+
+function getRecordPrintDate(record) {
+  return normalizePrintDate(record.date || record.monitored_at || record.timestamp || record.created_at);
+}
+
+function getJournalPrintDate(journal) {
+  return normalizePrintDate(journal.date || journal.activity_date || journal.timestamp || journal.created_at);
+}
+
+async function fetchManagerJournalsFromSupabase() {
+  if (!managerUnlocked || !managerSessionPin) {
+    return getJournals();
+  }
+  try {
+    console.log('[조회] 관리자 활동일지 RPC 조회');
+    var result = await _supabase.rpc('get_manager_journals', { pin_input: managerSessionPin });
+    if (result.error) {
+      console.error('[조회] 활동일지 RPC error:', result.error.message);
+      return getJournals();
+    }
+    var journals = (result.data || []).map(function(j) {
+      return {
+        id: j.id || '',
+        date: j.activity_date || '',
+        time: j.activity_time || '',
+        team: j.team_name || '',
+        author: j.members || '',
+        stores: j.stores || '',
+        memo: j.memo || '',
+        photo_links: j.photo_links || '',
+        timestamp: j.created_at || j.activity_date || ''
+      };
+    }).sort(function(a, b) {
+      return String(b.date || b.timestamp || '').localeCompare(String(a.date || a.timestamp || ''));
+    });
+    localStorage.setItem('journals', JSON.stringify(journals));
+    console.log('[조회] ✅ 활동일지 ' + journals.length + '건 저장 완료');
+    return journals;
+  } catch (e) {
+    console.error('[조회] 활동일지 불러오기 오류:', e.message);
+    return getJournals();
+  }
+}
+
+async function refreshJournalReports() {
+  if (!managerUnlocked) {
+    alert('활동보고 출력은 담당자만 사용할 수 있어요.');
+    return;
+  }
+  await fetchManagerJournalsFromSupabase();
+  renderSettingsDayReports();
+  showToast('settings-toast', '✅ 활동일지를 새로고침했어요.', 'success');
+}
+
+function buildDayReportGroups() {
+  var journals = getJournals();
+  var records = getRecords().filter(function(r) { return r.type === 'monitor'; });
+  var map = {};
+  journals.forEach(function(j) {
+    var d = getJournalPrintDate(j);
+    if (!d) return;
+    if (!map[d]) map[d] = { date: d, journals: [], records: [] };
+    map[d].journals.push(j);
+  });
+  records.forEach(function(r) {
+    var d = getRecordPrintDate(r);
+    if (!d) return;
+    if (!map[d]) map[d] = { date: d, journals: [], records: [] };
+    map[d].records.push(r);
+  });
+  return Object.keys(map).sort().reverse().map(function(k) { return map[k]; });
+}
+
+function renderSettingsDayReports() {
+  var el = document.getElementById('settings-day-report-list');
+  if (!el) return;
+  if (!managerUnlocked) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon" aria-hidden="true">🔒</div>담당자 로그인 후 일자별 활동보고 출력을 사용할 수 있어요.</div>';
+    return;
+  }
+  var groups = buildDayReportGroups();
+  if (!groups.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon" aria-hidden="true">📝</div>아직 활동일지나 체크리스트 기록이 없어요. 새로고침 또는 관리자 상세 데이터 불러오기를 눌러주세요.</div>';
+    return;
+  }
+  el.innerHTML = groups.map(function(g) {
+    var teams = Array.from(new Set(g.journals.map(function(j) { return j.team || ''; }).filter(Boolean))).join(', ');
+    var stores = Array.from(new Set(g.journals.flatMap(function(j) {
+      return String(j.stores || '').split(/[,，、\n\/]+/).map(function(x) { return x.trim(); }).filter(Boolean);
+    }))).slice(0, 8).join(', ');
+    return '<div class="journal-item" role="listitem">'
+      + '<div class="journal-item-header">'
+      + '<span class="journal-item-date">📅 ' + escapeHtml(formatPrintDate(g.date)) + '</span>'
+      + '<span class="journal-item-team">일지 ' + g.journals.length + '건 · 체크리스트 ' + g.records.length + '건</span>'
+      + '</div>'
+      + (teams ? '<div class="journal-item-stores">👥 ' + escapeHtml(teams) + '</div>' : '')
+      + (stores ? '<div class="journal-item-memo">🏪 ' + escapeHtml(stores) + (stores.length > 80 ? '…' : '') + '</div>' : '')
+      + '<button type="button" class="sec-btn primary print-day-report-btn" data-report-date="' + escapeHtml(g.date) + '" style="width:100%;margin-top:10px;font-size:12px;padding:8px 10px">📝 일자별 활동보고 출력</button>'
+      + '</div>';
+  }).join('');
+}
+
+async function fetchPrintPhotos(recordId) {
+  if (!recordId || (!managerUnlocked && !monitorUnlocked)) return [];
+  try {
+    var result = await _supabase
+      .from('record_photos')
+      .select('storage_path, file_name')
+      .eq('record_type', 'monitor')
+      .eq('record_id', recordId);
+    if (result.error || !result.data || !result.data.length) return [];
+    var photos = [];
+    for (var i = 0; i < result.data.length; i++) {
+      var p = result.data[i];
+      var signed = await _supabase.storage.from('monitoring-photos').createSignedUrl(p.storage_path, 600);
+      if (!signed.error && signed.data && signed.data.signedUrl) {
+        photos.push({ url: signed.data.signedUrl, name: p.file_name || p.storage_path });
+      }
+    }
+    return photos;
+  } catch (e) {
+    console.warn('[인쇄] 사진 불러오기 실패:', e.message);
+    return [];
+  }
+}
+
+function ratingSummaryForPrint(r) {
+  return [
+    r.r1 ? '점자메뉴판: ' + r.r1 : '',
+    r.r2 ? '경사로: ' + r.r2 : '',
+    r.r3 ? '화장실: ' + r.r3 : '',
+    r.r4 ? '안내판: ' + r.r4 : ''
+  ].filter(Boolean).join('\n');
+}
+
+function printStylesForReport() {
+  return '@page{size:A4;margin:12mm}'
+    + 'body{font-family:"Noto Sans KR",Arial,sans-serif;color:#1e1e1e;margin:0;background:#f7f8fa}'
+    + '.page{max-width:794px;margin:0 auto;background:#fff;padding:24px;box-sizing:border-box}'
+    + '.top{display:flex;justify-content:space-between;gap:16px;border-bottom:3px solid #1a8c6e;padding-bottom:14px;margin-bottom:18px}'
+    + '.title{font-size:23px;font-weight:800;color:#1a8c6e}.subtitle{font-size:13px;color:#6b7280;margin-top:4px}'
+    + '.print-actions{display:flex;gap:8px;align-items:flex-start}.print-actions button{border:0;border-radius:8px;padding:9px 12px;font-weight:700;cursor:pointer}.primary{background:#1a8c6e;color:white}.secondary{background:#eef2f7;color:#1e1e1e}'
+    + 'table{width:100%;border-collapse:collapse;margin-bottom:12px}th,td{border:1px solid #e0e0e0;padding:8px 10px;vertical-align:top;font-size:13px;line-height:1.6;white-space:pre-wrap}th{width:120px;background:#f7f8fa;text-align:left;color:#4b5563}'
+    + '.section-title{font-size:15px;font-weight:800;margin:16px 0 8px;color:#1a8c6e}.opinion{border:1px solid #e0e0e0;border-radius:10px;padding:12px;min-height:50px;line-height:1.7;font-size:13px;white-space:pre-wrap}'
+    + '.journal-box,.record-box{border:1px solid #d1d5db;border-radius:12px;padding:12px;margin-bottom:12px;break-inside:avoid;page-break-inside:avoid}.box-title{font-size:15px;font-weight:800;margin-bottom:8px;color:#111827}.meta{font-size:12px;font-weight:700;color:#1a8c6e;margin-bottom:5px}.memo{font-size:13px;line-height:1.7;white-space:pre-wrap}'
+    + '.photos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:8px}figure{margin:0;border:1px solid #e0e0e0;border-radius:10px;padding:8px;break-inside:avoid;page-break-inside:avoid;background:#fafafa}figure img{width:100%;height:auto;max-height:110mm;object-fit:contain;border-radius:8px;display:block;background:#fff;margin:0 auto}figcaption{font-size:10px;color:#6b7280;margin-top:5px;word-break:break-all}.empty{font-size:13px;color:#6b7280;border:1px dashed #d1d5db;padding:12px;border-radius:10px}.footer{margin-top:20px;font-size:11px;color:#6b7280;text-align:right}'
+    + '@media print{body{background:#fff}.page{padding:0;max-width:none}.print-actions{display:none}.journal-box,.record-box,figure{break-inside:avoid;page-break-inside:avoid}.photos{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}figure img{width:100%;height:auto;max-height:95mm;object-fit:contain}.section-title{margin-top:13px}}';
+}
+
+async function openPrintMonitorRecordById(recordId) {
+  if (!managerUnlocked) { alert('체크리스트 출력은 담당자만 사용할 수 있어요.'); return; }
+  var rec = getRecords().find(function(r) { return String(r.id) === String(recordId); });
+  if (!rec) { alert('출력할 체크리스트 기록을 찾지 못했어요.'); return; }
+  var win = window.open('', '_blank');
+  if (!win) { alert('팝업이 차단되었어요. 팝업 허용 후 다시 시도해 주세요.'); return; }
+  win.document.open();
+  win.document.write('<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>인쇄 준비 중</title></head><body style="font-family:sans-serif;padding:24px">인쇄용 화면을 준비하고 있어요...</body></html>');
+  win.document.close();
+  var photos = await fetchPrintPhotos(rec.id);
+  var photoHtml = photos.length ? '<div class="photos">' + photos.map(function(p, i) {
+    return '<figure><img src="' + escapeHtml(p.url) + '" alt="현장 사진 ' + (i+1) + '"><figcaption>' + escapeHtml(p.name) + '</figcaption></figure>';
+  }).join('') + '</div>' : '<div class="empty">등록된 사진이 없어요.</div>';
+  var today = new Date().toLocaleDateString('ko-KR');
+  var doc = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>모니터링 기록 인쇄</title><style>' + printStylesForReport() + '</style></head><body><div class="page">'
+    + '<div class="top"><div><div class="title">열린 마을 만들기 체크리스트 기록</div><div class="subtitle">종로장애인복지관 · 출력일 ' + escapeHtml(today) + '</div></div><div class="print-actions"><button class="primary" onclick="window.print()">인쇄 / PDF 저장</button><button class="secondary" onclick="window.close()">닫기</button></div></div>'
+    + '<table><tbody>'
+    + '<tr><th>장소명</th><td>' + escapeHtml(rec.name || '') + '</td></tr>'
+    + '<tr><th>주소</th><td>' + escapeHtml(rec.addr || '') + '</td></tr>'
+    + '<tr><th>점검일</th><td>' + escapeHtml(formatPrintDate(rec.date || rec.monitored_at || '')) + '</td></tr>'
+    + '<tr><th>기록자</th><td>' + escapeHtml(rec.recorder || rec.author || '') + '</td></tr>'
+    + '<tr><th>상태</th><td>' + escapeHtml(rec.action || '') + '</td></tr>'
+    + '<tr><th>항목 평가</th><td>' + escapeHtml(ratingSummaryForPrint(rec)) + '</td></tr>'
+    + '<tr><th>추가 확인</th><td>' + escapeHtml(rec.extras || rec.extra_notes || '') + '</td></tr>'
+    + '</tbody></table>'
+    + '<div class="section-title">종합 의견</div><div class="opinion">' + escapeHtml(rec.comment || '') + '</div>'
+    + '<div class="section-title">현장 사진</div>' + photoHtml
+    + '<div class="footer">열린 마을 만들기 모니터링 기록</div></div></body></html>';
+  win.document.open(); win.document.write(doc); win.document.close();
+}
+
+async function openPrintDayReport(dateKey) {
+  if (!managerUnlocked) { alert('일자별 활동보고 출력은 담당자만 사용할 수 있어요.'); return; }
+  var date = normalizePrintDate(dateKey);
+  var journals = getJournals().filter(function(j) { return getJournalPrintDate(j) === date; });
+  var records = getRecords().filter(function(r) { return r.type === 'monitor' && getRecordPrintDate(r) === date; });
+  if (!journals.length && !records.length) { alert('해당 날짜의 활동일지나 체크리스트 기록을 찾지 못했어요.'); return; }
+  var win = window.open('', '_blank');
+  if (!win) { alert('팝업이 차단되었어요. 팝업 허용 후 다시 시도해 주세요.'); return; }
+  win.document.open();
+  win.document.write('<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>인쇄 준비 중</title></head><body style="font-family:sans-serif;padding:24px">일자별 활동보고 출력 화면을 준비하고 있어요...</body></html>');
+  win.document.close();
+  var recordBlocks = [];
+  for (var i = 0; i < records.length; i++) {
+    var r = records[i];
+    var photos = await fetchPrintPhotos(r.id);
+    var photosHtml = photos.length ? '<div class="photos">' + photos.slice(0, 6).map(function(p, pi) {
+      return '<figure><img src="' + escapeHtml(p.url) + '" alt="' + escapeHtml(r.name || '현장') + ' 사진 ' + (pi+1) + '"><figcaption>' + escapeHtml(p.name) + '</figcaption></figure>';
+    }).join('') + '</div>' : '<div class="empty">사진 없음</div>';
+    recordBlocks.push('<div class="record-box"><div class="box-title">' + escapeHtml(r.name || '장소명 없음') + '</div>'
+      + '<table><tbody>'
+      + '<tr><th>주소</th><td>' + escapeHtml(r.addr || '') + '</td></tr>'
+      + '<tr><th>기록자</th><td>' + escapeHtml(r.recorder || r.author || '') + '</td></tr>'
+      + '<tr><th>상태</th><td>' + escapeHtml(r.action || '') + '</td></tr>'
+      + '<tr><th>항목 평가</th><td>' + escapeHtml(ratingSummaryForPrint(r)) + '</td></tr>'
+      + '<tr><th>추가 확인</th><td>' + escapeHtml(r.extras || r.extra_notes || '') + '</td></tr>'
+      + '</tbody></table>'
+      + (r.comment ? '<div class="opinion">' + escapeHtml(r.comment) + '</div>' : '')
+      + '<div class="section-title">현장 사진</div>' + photosHtml + '</div>');
+  }
+  var journalsHtml = journals.length ? journals.map(function(j, idx) {
+    return '<div class="journal-box"><div class="meta">일지 ' + (idx+1) + ' · ' + escapeHtml(j.time || '') + ' · ' + escapeHtml(j.team || '') + '</div>'
+      + '<table><tbody>'
+      + '<tr><th>팀원</th><td>' + escapeHtml(j.author || '') + '</td></tr>'
+      + '<tr><th>방문상점</th><td>' + escapeHtml(j.stores || '') + '</td></tr>'
+      + '</tbody></table>'
+      + '<div class="memo">' + escapeHtml(j.memo || '') + '</div></div>';
+  }).join('') : '<div class="empty">이 날짜에 작성된 활동일지가 없어요.</div>';
+  var recordsHtml = recordBlocks.length ? recordBlocks.join('') : '<div class="empty">이 날짜에 작성된 체크리스트 기록이 없어요.</div>';
+  var today = new Date().toLocaleDateString('ko-KR');
+  var doc = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>일자별 활동보고 인쇄</title><style>' + printStylesForReport() + '</style></head><body><div class="page">'
+    + '<div class="top"><div><div class="title">열린 마을 만들기 일자별 활동보고</div><div class="subtitle">활동일 ' + escapeHtml(formatPrintDate(date)) + ' · 출력일 ' + escapeHtml(today) + '</div></div><div class="print-actions"><button class="primary" onclick="window.print()">인쇄 / PDF 저장</button><button class="secondary" onclick="window.close()">닫기</button></div></div>'
+    + '<table><tbody><tr><th>활동일</th><td>' + escapeHtml(formatPrintDate(date)) + '</td></tr><tr><th>활동일지</th><td>' + journals.length + '건</td></tr><tr><th>체크리스트</th><td>' + records.length + '건</td></tr></tbody></table>'
+    + '<div class="section-title">활동일지</div>' + journalsHtml
+    + '<div class="section-title">같은 날짜 체크리스트 기록</div>' + recordsHtml
+    + '<div class="footer">열린 마을 만들기 일자별 활동보고</div></div></body></html>';
+  win.document.open(); win.document.write(doc); win.document.close();
+}
+
 // ── 설정 ─────────────────────────────────────────
 function toggleManagerAuth() {
   if (managerUnlocked) {
@@ -2570,6 +2614,7 @@ function toggleManagerAuth() {
       updateDashboard();
       renderMap();
       renderSettingsRecords();
+        renderSettingsDayReports();
       renderRecords();
     });
   } else {
@@ -2592,6 +2637,7 @@ function toggleMonitorAuth() {
       updateDashboard();
       renderMap();
       renderSettingsRecords();
+        renderSettingsDayReports();
       renderRecords();
     });
   }
@@ -2621,12 +2667,12 @@ function updateManagerAuthUI() {
 function loadSettingsUI() {
   updateManagerAuthUI();
   renderSettingsRecords();
+  renderSettingsDayReports();
 }
 
 function renderSettingsRecords() {
   var el = document.getElementById('settings-records-list');
   if (!el) return;
-  renderSettingsJournalReports();
   var typeFilter = (document.getElementById('rec-filter-type')||{}).value || '';
   var actionFilter = (document.getElementById('rec-filter-action')||{}).value || '';
   var allRecords = getRecords();
@@ -2713,148 +2759,6 @@ function renderSettingsRecords() {
     el.appendChild(div);
   });
 }
-
-function renderSettingsJournalReports() {
-  var el = document.getElementById('settings-journal-print-list');
-  if (!el) return;
-  if (!managerUnlocked) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-icon" aria-hidden="true">🔒</div>담당자 로그인 후 활동일지 출력을 사용할 수 있어요.</div>';
-    return;
-  }
-  var journals = getJournals().map(function(j, idx) {
-    var copy = Object.assign({}, j);
-    copy.__journalIndex = idx;
-    return copy;
-  }).sort(function(a,b) {
-    return String(b.date || b.activity_date || b.timestamp || '').localeCompare(String(a.date || a.activity_date || a.timestamp || ''));
-  });
-  if (!journals.length) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-icon" aria-hidden="true">📝</div>아직 불러온 활동일지가 없어요. 관리자 상세 데이터 불러오기를 눌러주세요.</div>';
-    return;
-  }
-  el.innerHTML = journals.map(function(j) {
-    var date = j.date || j.activity_date || '';
-    var time = j.time || j.activity_time || '';
-    var team = j.team || j.team_name || '';
-    var author = j.author || j.members || '';
-    var stores = j.stores || '';
-    var memo = j.memo || '';
-    return '<div class="journal-item" role="listitem">'
-      + '<div class="journal-item-header">'
-      + '<span class="journal-item-date">📅 ' + escapeHtml(date) + (time ? ' ' + escapeHtml(time) : '') + '</span>'
-      + '<span class="journal-item-team">👥 ' + escapeHtml(team) + (author ? ' (' + escapeHtml(author) + ')' : '') + '</span>'
-      + '</div>'
-      + '<div class="journal-item-stores">🏪 ' + escapeHtml(stores || '방문 상점 정보 없음') + '</div>'
-      + (memo ? '<div class="journal-item-memo">💬 ' + escapeHtml(memo).slice(0, 180) + (String(memo).length > 180 ? '…' : '') + '</div>' : '')
-      + '<button type="button" class="sec-btn primary print-journal-btn" data-journal-index="' + j.__journalIndex + '" style="width:100%;margin-top:10px;font-size:12px;padding:8px 10px">📝 일지 출력 보기</button>'
-      + '</div>';
-  }).join('');
-}
-
-function splitJournalStoresForPrint(stores) {
-  return String(stores || '')
-    .split(/[,，、\n\/]+/)
-    .map(function(s) { return normalizePrintText(s); })
-    .filter(Boolean);
-}
-
-function recordMatchesJournalForPrint(record, journal) {
-  if (!record || record.type !== 'monitor') return false;
-  var journalDate = normalizePrintDate(journal.date || journal.activity_date);
-  var recordDate = normalizePrintDate(record.date || record.monitored_at);
-  if (!journalDate || !recordDate || journalDate !== recordDate) return false;
-
-  var storeTokens = splitJournalStoresForPrint(journal.stores);
-  if (!storeTokens.length) return true;
-
-  var recordName = normalizePrintText(record.name || record.place || '');
-  var recordAddr = normalizePrintText(record.addr || '');
-  return storeTokens.some(function(token) {
-    return token && ((recordName && (recordName.includes(token) || token.includes(recordName))) || (recordAddr && recordAddr.includes(token)));
-  });
-}
-
-async function openPrintJournalReport(journalIndex) {
-  if (!managerUnlocked) {
-    alert('활동일지 출력은 담당자만 사용할 수 있어요.');
-    return;
-  }
-  var journals = getJournals();
-  var journal = journals[Number(journalIndex)];
-  if (!journal) {
-    alert('출력할 활동일지를 찾지 못했어요. 관리자 상세 데이터를 다시 불러와 주세요.');
-    return;
-  }
-
-  var printWindow = window.open('', '_blank');
-  if (!printWindow) {
-    alert('팝업이 차단되었어요. 브라우저에서 팝업 허용 후 다시 시도해 주세요.');
-    return;
-  }
-  printWindow.document.open();
-  printWindow.document.write('<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>인쇄 준비 중</title></head><body style="font-family:sans-serif;padding:24px">활동일지 출력 화면을 준비하고 있어요...</body></html>');
-  printWindow.document.close();
-
-  var records = getRecords().filter(function(r) { return recordMatchesJournalForPrint(r, journal); });
-  records.sort(function(a,b) { return String(a.name || '').localeCompare(String(b.name || ''), 'ko'); });
-
-  var recordBlocks = [];
-  for (var i = 0; i < records.length; i++) {
-    var rec = records[i];
-    var photos = rec.id ? await getSignedPhotoUrlsForPrint(rec.id) : [];
-    var ratings = [
-      rec.r1 ? '점자메뉴판: ' + rec.r1 : '',
-      rec.r2 ? '경사로 및 출입 접근성: ' + rec.r2 : '',
-      rec.r3 ? '화장실 접근성: ' + rec.r3 : '',
-      rec.r4 ? '안내판·표지판 가독성: ' + rec.r4 : ''
-    ].filter(Boolean).join('\n');
-    var photoHtml = photos.length
-      ? '<div class="photos small-photos">' + photos.map(function(photo) {
-          return '<figure><img src="' + escapeHtml(photo.url) + '" alt="' + escapeHtml(photo.name) + '"><figcaption>' + escapeHtml(photo.name) + '</figcaption></figure>';
-        }).join('') + '</div>'
-      : '<p class="empty-photo compact">등록된 사진이 없어요.</p>';
-    recordBlocks.push('<section class="record-box">'
-      + '<div class="record-title">' + escapeHtml(rec.name || '이름 없는 장소') + '</div>'
-      + '<table><tbody>'
-      + detailLine('주소', rec.addr)
-      + detailLine('기록자', rec.recorder || rec.author)
-      + detailLine('상태', rec.action)
-      + detailLine('평가', ratings)
-      + detailLine('추가 확인', rec.extras || rec.extra_notes)
-      + '</tbody></table>'
-      + '<div class="opinion mini">' + escapeHtml(rec.comment || '') + '</div>'
-      + photoHtml
-      + '</section>');
-  }
-
-  var today = new Date().toLocaleDateString('ko-KR');
-  var linkedHtml = recordBlocks.length
-    ? recordBlocks.join('')
-    : '<p class="empty-photo">이 일지의 날짜·방문상점과 연결되는 체크리스트 기록을 찾지 못했어요.</p>';
-
-  var doc = '<!doctype html>'
-    + '<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">'
-    + '<title>활동일지 인쇄</title><style>'
-    + '@page{size:A4;margin:12mm}body{font-family:"Noto Sans KR",Arial,sans-serif;color:#1e1e1e;margin:0;background:#f7f8fa}.page{max-width:794px;margin:0 auto;background:#fff;padding:26px;box-sizing:border-box}.top{display:flex;justify-content:space-between;gap:16px;border-bottom:3px solid #1a8c6e;padding-bottom:14px;margin-bottom:18px}.title{font-size:23px;font-weight:800;color:#1a8c6e}.subtitle{font-size:13px;color:#6b7280;margin-top:4px}.print-actions{display:flex;gap:8px;align-items:flex-start}.print-actions button{border:0;border-radius:8px;padding:9px 12px;font-weight:700;cursor:pointer}.primary{background:#1a8c6e;color:white}.secondary{background:#eef2f7;color:#1e1e1e}table{width:100%;border-collapse:collapse;margin-bottom:12px}th,td{border:1px solid #e0e0e0;padding:8px 10px;vertical-align:top;font-size:13px;line-height:1.6;white-space:pre-wrap}th{width:120px;background:#f7f8fa;text-align:left;color:#4b5563}.section-title{font-size:15px;font-weight:800;margin:16px 0 8px;color:#1a8c6e}.opinion{border:1px solid #e0e0e0;border-radius:10px;padding:12px;min-height:70px;line-height:1.7;font-size:13px;white-space:pre-wrap}.opinion.mini{min-height:40px;margin-bottom:8px}.record-box{border:1px solid #d1d5db;border-radius:12px;padding:12px;margin-bottom:12px;break-inside:avoid;page-break-inside:avoid}.record-title{font-size:15px;font-weight:800;margin-bottom:8px;color:#111827}.photos{display:grid;grid-template-columns:1fr;gap:10px;margin-top:8px}.small-photos{grid-template-columns:1fr 1fr}figure{margin:0;border:1px solid #e0e0e0;border-radius:10px;padding:8px;break-inside:avoid;page-break-inside:avoid;background:#fafafa}figure img{width:auto;max-width:100%;height:auto;max-height:none;object-fit:contain;border-radius:8px;display:block;background:#fff;margin:0 auto}figcaption{font-size:11px;color:#6b7280;margin-top:5px;word-break:break-all}.empty-photo{font-size:13px;color:#6b7280;border:1px dashed #d1d5db;padding:16px;border-radius:10px}.empty-photo.compact{padding:10px}.footer{margin-top:20px;font-size:11px;color:#6b7280;text-align:right}@media print{body{background:#fff}.page{padding:0;max-width:none}.print-actions{display:none}.record-box,figure{break-inside:avoid;page-break-inside:avoid}.small-photos{grid-template-columns:1fr 1fr}figure img{width:auto;max-width:100%;height:auto;max-height:none;object-fit:contain;margin:0 auto}.section-title{margin-top:13px}}'
-    + '</style></head><body><main class="page">'
-    + '<div class="top"><div><div class="title">열린 마을 만들기 활동일지</div><div class="subtitle">종로장애인복지관 · 출력일 ' + escapeHtml(today) + '</div></div><div class="print-actions"><button class="primary" onclick="window.print()">인쇄 / PDF 저장</button><button class="secondary" onclick="window.close()">닫기</button></div></div>'
-    + '<div class="section-title">활동 기본 정보</div><table><tbody>'
-    + detailLine('활동 날짜', journal.date || journal.activity_date)
-    + detailLine('활동 시간', journal.time || journal.activity_time)
-    + detailLine('활동 팀', journal.team || journal.team_name)
-    + detailLine('팀원/작성자', journal.author || journal.members)
-    + detailLine('방문 상점', journal.stores)
-    + '</tbody></table>'
-    + '<div class="section-title">활동 소감 / 메모</div><div class="opinion">' + escapeHtml(journal.memo || '') + '</div>'
-    + '<div class="section-title">연결된 체크리스트 기록</div>' + linkedHtml
-    + '<div class="footer">※ 이 자료는 내부 검토 및 결과보고용으로 출력되었습니다.</div>'
-    + '</main></body></html>';
-
-  printWindow.document.open();
-  printWindow.document.write(doc);
-  printWindow.document.close();
-}
-
 function saveSheetUrl() {}
 
 function deleteLocalRecord(index, timestamp) {
@@ -3049,7 +2953,7 @@ async function loadFromSheet() {
     updateDashboard();
     renderMap();
     renderSettingsRecords(); // 설정 탭 기록 목록 갱신 (사진 로드 포함)
-    renderSettingsJournalReports();
+    renderSettingsDayReports();
     showToast('settings-toast', '✅ ' + all.length + '건' + journalMsg + '을 불러왔어요!', 'success');
   } catch(e) {
     console.error('[불러오기] 오류:', e.message);
@@ -3162,7 +3066,7 @@ function mapRecordExtraHtml(rec) {
       + (rec.extras ? '<div class="detail-row"><span class="detail-label">추가 확인</span><span class="detail-value">' + rec.extras + '</span></div>' : '')
       + ((rec.recorder || rec.author) ? '<div class="detail-row"><span class="detail-label">기록자</span><span class="detail-value">' + (rec.recorder || rec.author) + '</span></div>' : '')
       + (rec.id ? '<div class="photo-view-wrap" data-record-id="' + rec.id + '" data-loaded="false" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><div style="font-size:12px;color:var(--text-muted)">📷 사진 불러오는 중...</div></div>' : '')
-      + ((managerUnlocked && rec.id) ? '<button type="button" class="sec-btn primary print-monitor-btn" data-record-id="' + rec.id + '" style="margin-top:10px">🖨️ A4 인쇄용 보기</button>' : '')
+      + (managerUnlocked && rec.id ? '<button type="button" class="sec-btn primary print-monitor-btn" data-record-id="' + String(rec.id).replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '" style="margin-top:10px;width:100%;font-size:12px;padding:8px 10px">🖨️ 체크리스트 출력</button>' : '')
       + '</div>';
   }
 
@@ -3319,6 +3223,27 @@ updateDashboard();
 loadSettingsUI();
 </script>
 <script>
+
+// 출력 버튼 이벤트 위임
+if (!window.__printReportClickBound) {
+  window.__printReportClickBound = true;
+  document.addEventListener('click', function(event) {
+    var monitorBtn = event.target.closest && event.target.closest('.print-monitor-btn');
+    if (monitorBtn) {
+      event.preventDefault();
+      event.stopPropagation();
+      openPrintMonitorRecordById(monitorBtn.dataset.recordId);
+      return;
+    }
+    var dayBtn = event.target.closest && event.target.closest('.print-day-report-btn');
+    if (dayBtn) {
+      event.preventDefault();
+      event.stopPropagation();
+      openPrintDayReport(dayBtn.dataset.reportDate);
+    }
+  });
+}
+
 // 카카오맵 SDK 동적 로드
 window.kakaoMapReady = false;
 (function() {
