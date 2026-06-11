@@ -920,24 +920,13 @@ async function loadAppSettings(force) {
 }
 
 async function verifyPin(pinType, pin) {
-  // Supabase RPC에서 쓰는 app_settings의 PIN과 로그인 검증 PIN을 하나로 맞춥니다.
-  // 예전 GAS checkPin을 사용하면 GAS PIN은 맞지만 Supabase RPC는 unauthorized가 나는 문제가 생길 수 있습니다.
   try {
-    const fn = pinType === 'manager' ? 'get_manager_detail_records' : 'get_monitor_detail_records';
-    const { error } = await _supabase.rpc(fn, { pin_input: pin });
-    if (!error) return true;
-
-    if (error.message && error.message.indexOf('unauthorized') >= 0) {
-      console.warn('[PIN] Supabase PIN 불일치:', pinType);
-      return false;
-    }
-
-    console.error('[PIN] Supabase PIN 확인 중 오류:', error.code, error.message);
-    return false;
+    const data = await postSheetData({ type: 'checkPin', pinType: pinType, pin: pin });
+    if (data && data.result === 'ok' && typeof data.valid === 'boolean') return data.valid;
   } catch(e) {
-    console.error('[PIN] Supabase PIN 확인 실패:', e);
-    return false;
+    console.warn('서버 비밀번호 확인 실패:', e);
   }
+  return pinType === 'manager' ? pin === FALLBACK_MANAGER_PIN : pin === FALLBACK_MONITOR_PIN;
 }
 
 // ── 탭 전환 ──────────────────────────────────────
@@ -2123,7 +2112,7 @@ function recordCard(r, idx) {
 
 function statusDropdown(r) {
   const ts = (r.timestamp || '').replace(/'/g, "\\'");
-  return `<select class="status-select" aria-label="${r.name || r.name} 상태 변경" onchange="changeStatus('${ts}', this.value)" onclick="event.stopPropagation()" style="font-family:'Noto Sans KR',sans-serif;font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--white);color:var(--text);cursor:pointer;margin-top:8px">
+  return `<select class="status-select" aria-label="${name} 상태 변경" onchange="changeStatus('${ts}', this.value)" onclick="event.stopPropagation()" style="font-family:'Noto Sans KR',sans-serif;font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--white);color:var(--text);cursor:pointer;margin-top:8px">
     <option value="">── 상태 변경 (담당자)</option>
     <option value="신청 접수">신청 접수</option>
     <option value="검토 중">검토 중</option>
@@ -2609,24 +2598,26 @@ async function syncRecordsFromSupabase(force) {
       action:          r.action || '',
       action_required: r.action_required || '',
       monitored_at:    r.monitored_at || '',
-      date:            r.monitored_at || '',
       r_braille:       r.r_braille || '',
       r_ramp:          r.r_ramp || '',
       r_toilet:        r.r_toilet || '',
       r_signage:       r.r_signage || '',
+      comment:         r.comment || '',
+      extra_notes:     r.extra_notes || '',
+      recorder:        r.recorder || '',
+      // 기존 렌더링 함수가 기대하는 별칭도 함께 보존
+      date:            r.monitored_at || '',
       r1:              r.r_braille || '',
       r2:              r.r_ramp || '',
       r3:              r.r_toilet || '',
       r4:              r.r_signage || '',
-      comment:         r.comment || '',
-      extra_notes:     r.extra_notes || '',
       extras:          r.extra_notes || '',
-      recorder:        (monitorUnlocked || managerUnlocked) ? (r.recorder || '') : '',
-      // 관리자 전용 필드: 혹시 RPC/view가 값을 내려줘도 관리자 모드가 아니면 화면 데이터에 남기지 않음
-      applicant:       managerUnlocked ? (r.applicant || '') : '',   // 신청자명 / 추천인명
-      phone:           managerUnlocked ? (r.phone || '') : '',       // 연락처
-      memo:            managerUnlocked ? (r.memo || '') : '',        // 내부 메모
-      intro:           managerUnlocked ? (r.intro || '') : ''        // 한줄소개
+      author:          r.recorder || '',
+      // 관리자 전용 필드 (공개/모니터링단 상태에서는 빈 값으로 들어옴)
+      applicant:       r.applicant || '',   // 신청자명 / 추천인명
+      phone:           r.phone || '',       // 연락처
+      memo:            r.memo || '',        // 내부 메모
+      intro:           r.intro || ''        // 한줄소개
     };
   });
 
@@ -2781,6 +2772,41 @@ function getRecordTypeMeta(rec) {
   return { label: rec.type || '기록', tagClass: 'tag' };
 }
 
+function mapRecordExtraHtml(rec) {
+  // 공개 모드에서는 지도 목록에도 상세/사진/개인정보를 붙이지 않음
+  if (!monitorUnlocked && !managerUnlocked) return '';
+
+  if (rec.type === 'monitor') {
+    const ratings = [
+      rec.r1 ? '점자메뉴판 ' + rec.r1 : '',
+      rec.r2 ? '경사로 ' + rec.r2 : '',
+      rec.r3 ? '화장실 ' + rec.r3 : '',
+      rec.r4 ? '안내판 ' + rec.r4 : ''
+    ].filter(Boolean).join(' · ');
+
+    return '<div class="record-detail open" style="display:block;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">'
+      + (rec.date ? '<div class="detail-row"><span class="detail-label">점검 날짜</span><span class="detail-value">' + rec.date + '</span></div>' : '')
+      + (ratings ? '<div class="detail-row"><span class="detail-label">항목 평가</span><span class="detail-value">' + ratings + '</span></div>' : '')
+      + (rec.comment ? '<div class="detail-row"><span class="detail-label">종합 의견</span><span class="detail-value">' + rec.comment + '</span></div>' : '')
+      + (rec.extras ? '<div class="detail-row"><span class="detail-label">추가 확인</span><span class="detail-value">' + rec.extras + '</span></div>' : '')
+      + ((rec.recorder || rec.author) ? '<div class="detail-row"><span class="detail-label">기록자</span><span class="detail-value">' + (rec.recorder || rec.author) + '</span></div>' : '')
+      + (rec.id ? '<div class="photo-view-wrap" data-record-id="' + rec.id + '" data-loaded="false" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><div style="font-size:12px;color:var(--text-muted)">📷 사진 불러오는 중...</div></div>' : '')
+      + '</div>';
+  }
+
+  // 관리자 모드에서만 신청/추천 개인정보를 지도 목록에도 표시
+  if (managerUnlocked) {
+    return '<div class="record-detail open" style="display:block;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">'
+      + ((rec.applicant || rec.applyname) ? '<div class="detail-row"><span class="detail-label">신청/추천인</span><span class="detail-value">' + (rec.applicant || rec.applyname) + '</span></div>' : '')
+      + (rec.phone ? '<div class="detail-row"><span class="detail-label">연락처</span><span class="detail-value">' + rec.phone + '</span></div>' : '')
+      + (rec.memo ? '<div class="detail-row"><span class="detail-label">메모</span><span class="detail-value">' + rec.memo + '</span></div>' : '')
+      + (rec.intro ? '<div class="detail-row"><span class="detail-label">한줄소개</span><span class="detail-value">' + rec.intro + '</span></div>' : '')
+      + '</div>';
+  }
+
+  return '';
+}
+
 function renderMap() {
   const allRecords = getRecords();
   // 모니터링단(PIN 인증)이면 전체, 아니면 검증된 것만 표시
@@ -2844,35 +2870,7 @@ function renderMap() {
     item.setAttribute('tabindex', '0');
     item.setAttribute('aria-label', rec.name + ', ' + rec.addr + ', ' + typeLabel + (actionLabel ? ', ' + actionLabel : '') + (rec.items ? ', ' + rec.items : '') + '. 지도에서 위치 보기');
     const verifiedBadge = isVerified(rec) ? '' : '<span style="font-size:10px;color:#9ca3af;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px;padding:1px 6px;margin-left:4px">미검증</span>';
-    var authDetailHtml = '';
-    if (monitorUnlocked || managerUnlocked) {
-      if (rec.type === 'monitor') {
-        var ratings = [
-          rec.r1 ? '점자메뉴판 ' + rec.r1 : '',
-          rec.r2 ? '경사로 ' + rec.r2 : '',
-          rec.r3 ? '화장실 ' + rec.r3 : '',
-          rec.r4 ? '안내판 ' + rec.r4 : ''
-        ].filter(Boolean).join(' · ');
-        authDetailHtml += '<div style="font-size:12px;color:var(--text);line-height:1.6;margin-top:8px">'
-          + (rec.date ? '<div>점검일: ' + rec.date + '</div>' : '')
-          + (ratings ? '<div>평가: ' + ratings + '</div>' : '')
-          + (rec.comment ? '<div>의견: ' + rec.comment + '</div>' : '')
-          + (rec.extras ? '<div>추가확인: ' + rec.extras + '</div>' : '')
-          + (rec.recorder ? '<div>기록자: ' + rec.recorder + '</div>' : '')
-          + '</div>';
-        if (rec.id) {
-          authDetailHtml += '<div class="photo-view-wrap" data-record-id="' + rec.id + '" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)"><div style="font-size:12px;color:var(--text-muted)">📷 사진 불러오는 중...</div></div>';
-        }
-      } else if (managerUnlocked) {
-        authDetailHtml += '<div style="font-size:12px;color:var(--text);line-height:1.6;margin-top:8px">'
-          + (rec.applicant ? '<div>신청/추천인: ' + rec.applicant + '</div>' : '')
-          + (rec.phone ? '<div>연락처: ' + rec.phone + '</div>' : '')
-          + (rec.memo ? '<div>메모: ' + rec.memo + '</div>' : '')
-          + (rec.intro ? '<div>한줄소개: ' + rec.intro + '</div>' : '')
-          + '</div>';
-      }
-    }
-
+    const extraHtml = mapRecordExtraHtml(rec);
     item.innerHTML = '<div class="rec-top" style="justify-content:flex-start;gap:6px">'
       + '<span style="width:10px;height:10px;border-radius:50%;background:'+markerColor+';display:inline-block;flex-shrink:0" aria-hidden="true"></span>'
       + '<span class="rec-name">'+rec.name+'</span>'
@@ -2883,19 +2881,19 @@ function renderMap() {
       + (actionLabel ? '<span class="'+actionTagStyle+'">'+actionLabel+'</span>' : '')
       + (rec.items ? '<span class="tag" style="background:#f0fdf4;color:#166534">'+rec.items+'</span>' : '')
       + '</div>'
-      + authDetailHtml;
-
-    if ((monitorUnlocked || managerUnlocked) && rec.type === 'monitor' && rec.id) {
-      setTimeout(function() {
-        var wrap = item.querySelector('.photo-view-wrap');
-        if (wrap) loadPhotosByRecordId(rec.id, wrap);
-      }, 100);
-    }
+      + extraHtml;
     // 키보드 Enter로도 클릭 가능하게
     item.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.click(); }
     });
     recordListEl.appendChild(item);
+
+    // 지도 목록은 펼침 없이 바로 보이는 영역이라, 사진 자리 생성 직후 즉시 로드
+    const mapPhotoWrap = item.querySelector('.photo-view-wrap');
+    if (mapPhotoWrap && mapPhotoWrap.dataset.recordId && mapPhotoWrap.dataset.loaded !== 'true' && (monitorUnlocked || managerUnlocked)) {
+      mapPhotoWrap.dataset.loaded = 'true';
+      loadPhotosByRecordId(mapPhotoWrap.dataset.recordId, mapPhotoWrap);
+    }
 
     geocoder.addressSearch(rec.addr, function(result, status) {
       if (status !== kakao.maps.services.Status.OK) return;
