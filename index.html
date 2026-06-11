@@ -1055,7 +1055,19 @@ async function checkPin() {
     if (await verifyPin('manager', pinValue)) {
       managerUnlocked = true;
       managerSessionPin = pinValue;
+      // 관리자 모드 우선 - 모니터링단 상태 초기화
+      monitorUnlocked = false;
+      monitorSessionPin = '';
+      lastSheetSyncAt = 0;
+      console.log('[권한] mode=manager');
       document.getElementById('lock-screen').classList.remove('show');
+      // 관리자 데이터 즉시 재조회
+      syncRecordsFromSupabase(true).then(function() {
+        updateDashboard();
+        renderMap();
+        renderSettingsRecords();
+        renderRecords();
+      });
       if (pendingManagerCallback) { pendingManagerCallback(); pendingManagerCallback = null; }
     } else {
       for (let i = 0; i < 4; i++) document.getElementById('dot' + i).classList.add('error');
@@ -1065,14 +1077,29 @@ async function checkPin() {
   } else {
     document.getElementById('lock-error').textContent = '확인 중...';
     if (await verifyPin('monitor', pinValue)) {
-      monitorUnlocked = true;
-      monitorSessionPin = pinValue;
-      document.getElementById('lock-screen').classList.remove('show');
-      switchTab('monitor', pendingTabEl);
-      if (window._pendingSubtab) {
-        var _sub = window._pendingSubtab;
-        window._pendingSubtab = null;
-        setTimeout(function() { showSubtab(_sub); }, 50);
+      // 관리자 로그인 상태면 모니터링단 모드로 전환하지 않음
+      if (managerUnlocked) {
+        console.log('[권한] 관리자 로그인 상태 유지 - 모니터링단 전환 무시');
+        document.getElementById('lock-screen').classList.remove('show');
+        switchTab('monitor', pendingTabEl);
+      } else {
+        monitorUnlocked = true;
+        monitorSessionPin = pinValue;
+        lastSheetSyncAt = 0;
+        console.log('[권한] mode=monitor');
+        document.getElementById('lock-screen').classList.remove('show');
+        // 모니터링단 데이터 즉시 재조회
+        syncRecordsFromSupabase(true).then(function() {
+          updateDashboard();
+          renderMap();
+          renderSettingsRecords();
+        });
+        switchTab('monitor', pendingTabEl);
+        if (window._pendingSubtab) {
+          var _sub = window._pendingSubtab;
+          window._pendingSubtab = null;
+          setTimeout(function() { showSubtab(_sub); }, 50);
+        }
       }
     } else {
       for (let i = 0; i < 4; i++) document.getElementById('dot' + i).classList.add('error');
@@ -2141,9 +2168,11 @@ function toggleDetail(detailId, card) {
 async function loadPhotosByRecordId(recordId, container) {
   // 공개 상태에서는 절대 실행 안 함
   if (!monitorUnlocked && !managerUnlocked) {
-    container.innerHTML = '';
+    container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">🔒 사진은 모니터링단·담당자만 볼 수 있어요</div>';
+    console.log('[권한] 공개 모드 - 사진 조회 차단');
     return;
   }
+  console.log('[권한] mode=' + (managerUnlocked ? 'manager' : 'monitor') + ' - 사진 조회 허용');
 
   try {
     // record_photos에서 해당 recordId의 monitor 사진 경로 조회
@@ -2308,9 +2337,15 @@ function toggleManagerAuth() {
     managerUnlocked = false;
     managerSessionPin = '';
     lastSheetSyncAt = 0;
-    console.log('[조회] 관리자 로그아웃 - 공개 모드로 전환');
+    console.log('[권한] mode=public (관리자 로그아웃)');
     updateManagerAuthUI();
-    renderRecords();
+    // 공개 데이터 재조회
+    syncRecordsFromSupabase(true).then(function() {
+      updateDashboard();
+      renderMap();
+      renderSettingsRecords();
+      renderRecords();
+    });
   } else {
     // 로그인
     requireManagerPin(function() {
@@ -2325,7 +2360,14 @@ function toggleMonitorAuth() {
     monitorUnlocked = false;
     monitorSessionPin = '';
     lastSheetSyncAt = 0;
-    console.log('[조회] 모니터링단 로그아웃 - 공개 모드로 전환');
+    console.log('[권한] mode=public (모니터링단 로그아웃)');
+    // 공개 데이터 재조회
+    syncRecordsFromSupabase(true).then(function() {
+      updateDashboard();
+      renderMap();
+      renderSettingsRecords();
+      renderRecords();
+    });
   }
 }
 // ──────────────────────────────────────────────────────
@@ -2629,6 +2671,7 @@ async function loadFromSheet() {
 
     updateDashboard();
     renderMap();
+    renderSettingsRecords(); // 설정 탭 기록 목록 갱신 (사진 로드 포함)
     showToast('settings-toast', '✅ ' + all.length + '건' + journalMsg + '을 불러왔어요!', 'success');
   } catch(e) {
     console.error('[불러오기] 오류:', e.message);
