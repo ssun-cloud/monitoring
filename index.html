@@ -1274,6 +1274,10 @@ async function submitMonitor() {
   if (!author) { showToast('monitor-toast','기록자 이름을 입력해 주세요.','error'); return; }
   const extras = [easysign && '쉬운 안내판 필요', goodstaff && '직원 응대 좋음', goodcase && '좋은 사례'].filter(Boolean).join(', ');
   const ts = new Date().toLocaleString('ko-KR');
+
+  // recordId 미리 생성 (사진 업로드 경로에 사용)
+  const recordId = crypto.randomUUID();
+
   setLoading('monitor-btn', true, '기록 제출하기');
 
   // ── [GAS 백업] 기존 시트 저장 코드 ──────────────────
@@ -1288,14 +1292,48 @@ async function submitMonitor() {
   // }
   // ──────────────────────────────────────────────────────
 
+  // ── Supabase insert (monitoring_records 테이블) ───────
+  const monitorPayload = {
+    id:              recordId,
+    place_name:      place,
+    address:         addr,
+    monitored_at:    date,
+    r_braille:       r1,
+    r_ramp:          r2,
+    r_toilet:        r3,
+    r_signage:       r4,
+    action_required: action,
+    comment:         comment,
+    extra_notes:     extras,
+    recorder:        author,
+    status:          '확인 중'
+  };
+  console.log('[모니터링] insert payload:', monitorPayload);
+  try {
+    const { error } = await _supabase.from('monitoring_records').insert([monitorPayload]);
+    if (error) {
+      console.error('[모니터링] Supabase insert 오류:', error.code, error.message);
+      showToast('monitor-toast', '⚠️ 기록 저장에 실패했어요. 다시 시도해 주세요.', 'error');
+      setLoading('monitor-btn', false, '기록 제출하기');
+      return;
+    }
+    console.log('[모니터링] ✅ insert 성공 - recordId:', recordId);
+  } catch(e) {
+    console.error('[모니터링] 연결 오류:', e.message);
+    showToast('monitor-toast', '⚠️ 연결 오류가 발생했어요.', 'error');
+    setLoading('monitor-btn', false, '기록 제출하기');
+    return;
+  }
+  // ──────────────────────────────────────────────────────
+
   saveRecord({ type:'monitor', name: place, addr, date, r1, r2, r3, r4, action, comment, author, extras, goodcase, timestamp: ts });
   // 메일 알림 (실패해도 저장 성공 유지)
   sendMailNotify('monitor', { place, addr, date, action, timestamp: ts });
 
-  // 사진이 있으면 CORS 방식으로 한 장씩 업로드
+  // 사진이 있으면 Supabase Storage에 업로드
   if (selectedPhotos.length > 0) {
     showToast('monitor-toast', '✅ 기록 저장됨! 사진 업로드 중...', 'success');
-    uploadPhotosSequentially(selectedPhotos, place, date, ts);
+    uploadPhotosToSupabase(recordId, selectedPhotos, ts);
   } else {
     showToast('monitor-toast', '✅ 기록이 저장되었습니다!', 'success');
   }
@@ -1323,7 +1361,79 @@ async function submitMonitor() {
   document.getElementById('m_date').valueAsDate = new Date();
 }
 
-// ── 사진 순차 업로드 (CORS 방식) ──────────────────────
+// ── [GAS 백업] 기존 GAS 사진 업로드 (주석 처리) ─────────
+// // ── [GAS 백업] 기존 GAS Drive 업로드 함수 ───────────────
+// async function uploadPhotosSequentially(files, place, date, timestamp) {
+//   for each file: resizePhoto → base64 → fetch(SCRIPT_URL, uploadPhoto)
+//   → GAS → Google Drive 저장 → URL 반환 → addPhotoLink
+// }
+// ──────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────
+
+// ── Supabase Storage 사진 업로드 ──────────────────────
+async function uploadPhotosToSupabase(recordId, files, timestamp) {
+  var total    = files.length;
+  var uploaded = 0;
+  var failed   = 0;
+
+  for (var i = 0; i < files.length; i++) {
+    showToast('monitor-toast', '📷 사진 업로드 중... (' + (i + 1) + '/' + total + ')', 'success');
+    try {
+      // 리사이즈 (Blob)
+      var blob = await resizePhoto(files[i], 500, 0.65);
+
+      // 파일명 충돌 방지: monitor/{recordId}/{timestamp}_{index}.jpg
+      var safeTs   = String(timestamp).replace(/[^0-9]/g, '');
+      var fileName = safeTs + '_' + (i + 1) + '.jpg';
+      var storagePath = 'monitor/' + recordId + '/' + fileName;
+
+      console.log('[사진] 업로드 시작:', storagePath);
+
+      // Supabase Storage 업로드
+      var { error: uploadError } = await _supabase.storage
+        .from('monitoring-photos')
+        .upload(storagePath, blob, { contentType: 'image/jpeg', upsert: false });
+
+      if (uploadError) {
+        console.error('[사진] Storage 업로드 오류:', uploadError.message);
+        failed++;
+        continue;
+      }
+
+      // record_photos 테이블에 경로 저장 (.select() 없이)
+      var { error: dbError } = await _supabase.from('record_photos').insert([{
+        record_type:  'monitor',
+        record_id:    recordId,
+        storage_path: storagePath,
+        file_name:    fileName
+      }]);
+
+      if (dbError) {
+        console.error('[사진] record_photos insert 오류:', dbError.message);
+        // DB 저장 실패해도 Storage는 올라간 상태 - 업로드 카운트는 증가
+      }
+
+      uploaded++;
+      console.log('[사진] ✅ 업로드 완료:', storagePath);
+
+    } catch(e) {
+      failed++;
+      console.error('[사진] ' + (i + 1) + '장 오류:', e.message);
+    }
+  }
+
+  if (failed === 0) {
+    showToast('monitor-toast', '✅ 기록과 사진 ' + total + '장이 모두 저장되었습니다!', 'success');
+  } else if (uploaded > 0) {
+    showToast('monitor-toast', '⚠️ ' + uploaded + '장 성공, ' + failed + '장 실패했어요.', 'error');
+  } else {
+    showToast('monitor-toast', '⚠️ 기록은 저장되었으나 사진 업로드에 실패했습니다.', 'error');
+  }
+  setLoading('monitor-btn', false, '기록 제출하기');
+}
+// ──────────────────────────────────────────────────────
+
+// ── 사진 리사이즈 ─────────────────────────────────────
 function resizePhoto(file, maxSize, quality) {
   return new Promise(function(resolve, reject) {
     var img = new Image();
@@ -1338,84 +1448,20 @@ function resizePhoto(file, maxSize, quality) {
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
       URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL('image/jpeg', quality).split(',')[1]);
+      // Blob으로 반환 (Supabase Storage 업로드용)
+      canvas.toBlob(function(blob) {
+        if (blob) resolve(blob);
+        else reject(new Error('Blob 변환 실패'));
+      }, 'image/jpeg', quality);
     };
     img.onerror = function() { URL.revokeObjectURL(url); reject(new Error('이미지 로드 실패')); };
     img.src = url;
   });
 }
 
-async function uploadPhotosSequentially(files, place, date, timestamp) {
-  var total = files.length;
-  var uploaded = 0;
-  var failed = 0;
-  var photoUrls = [];
-
-  for (var i = 0; i < files.length; i++) {
-    showToast('monitor-toast', '📷 사진 업로드 중... (' + (i+1) + '/' + total + ')', 'success');
-    try {
-      // 500px, 품질 65%로 리사이즈 → 약 20-40KB
-      var photoBase64 = await resizePhoto(files[i], 500, 0.65);
-
-      // text/plain으로 전송 (CORS preflight 방지)
-      var payload = JSON.stringify({
-        type: 'uploadPhoto',
-        monitorPin: monitorSessionPin,
-        managerPin: managerSessionPin,
-        place: place,
-        date: date,
-        photo: photoBase64,
-        photoIndex: i,
-        timestamp: timestamp
-      });
-      var res = await fetch(SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: payload
-      });
-
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      var result = await res.json();
-
-      if (result.result === 'ok' && result.url) {
-        uploaded++;
-        photoUrls.push(result.url);
-        // 로컬 기록에 사진 URL 추가
-        var records = getRecords();
-        for (var j = 0; j < records.length; j++) {
-          if (String(records[j].timestamp) === String(timestamp)) {
-            if (!records[j].photoLinks) records[j].photoLinks = '';
-            records[j].photoLinks += (records[j].photoLinks ? '\n' : '') + result.url;
-            break;
-          }
-        }
-        localStorage.setItem('records', JSON.stringify(records));
-
-        // 시트 사진링크 업데이트 (백그라운드)
-        fetch(SCRIPT_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({ type: 'addPhotoLink', monitorPin: monitorSessionPin, managerPin: managerSessionPin, timestamp: timestamp, place: place, date: date, url: result.url })
-        }).catch(function(){});
-      } else {
-        failed++;
-        console.warn('사진 업로드 실패:', result);
-      }
-    } catch(e) {
-      failed++;
-      console.warn('사진 ' + (i+1) + '장 오류:', e.message);
-    }
-  }
-
-  if (failed === 0) {
-    showToast('monitor-toast', '✅ 기록과 사진 ' + total + '장이 모두 저장되었습니다!', 'success');
-  } else if (uploaded > 0) {
-    showToast('monitor-toast', '⚠️ ' + uploaded + '장 성공, ' + failed + '장 실패했어요.', 'error');
-  } else {
-    showToast('monitor-toast', '⚠️ 사진 저장 실패. 기록은 저장됐어요.', 'error');
-  }
-  setLoading('monitor-btn', false, '기록 제출하기');
-}
+// ── [GAS 백업] uploadPhotosSequentially (두 번째 사본) ──
+// async function uploadPhotosSequentially(files, place, date, timestamp) { ... }
+// ──────────────────────────────────────────────────────
 
 // ── 활동 일지 ──────────────────────────────────────
 function getJournals() { return JSON.parse(localStorage.getItem('journals') || '[]'); }
