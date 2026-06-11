@@ -920,13 +920,24 @@ async function loadAppSettings(force) {
 }
 
 async function verifyPin(pinType, pin) {
+  // Supabase RPC에서 쓰는 app_settings의 PIN과 로그인 검증 PIN을 하나로 맞춥니다.
+  // 예전 GAS checkPin을 사용하면 GAS PIN은 맞지만 Supabase RPC는 unauthorized가 나는 문제가 생길 수 있습니다.
   try {
-    const data = await postSheetData({ type: 'checkPin', pinType: pinType, pin: pin });
-    if (data && data.result === 'ok' && typeof data.valid === 'boolean') return data.valid;
+    const fn = pinType === 'manager' ? 'get_manager_detail_records' : 'get_monitor_detail_records';
+    const { error } = await _supabase.rpc(fn, { pin_input: pin });
+    if (!error) return true;
+
+    if (error.message && error.message.indexOf('unauthorized') >= 0) {
+      console.warn('[PIN] Supabase PIN 불일치:', pinType);
+      return false;
+    }
+
+    console.error('[PIN] Supabase PIN 확인 중 오류:', error.code, error.message);
+    return false;
   } catch(e) {
-    console.warn('서버 비밀번호 확인 실패:', e);
+    console.error('[PIN] Supabase PIN 확인 실패:', e);
+    return false;
   }
-  return pinType === 'manager' ? pin === FALLBACK_MANAGER_PIN : pin === FALLBACK_MONITOR_PIN;
 }
 
 // ── 탭 전환 ──────────────────────────────────────
@@ -2049,7 +2060,6 @@ function recordCard(r, idx) {
     detail = `
       ${r.items ? `<div class="detail-row"><span class="detail-label">신청 항목</span><span class="detail-value">${r.items}</span></div>` : ''}
       ${r.action ? `<div class="detail-row"><span class="detail-label">진행 상태</span><span class="detail-value">${r.action}</span></div>` : ''}
-      ${r.memo ? `<div class="detail-row"><span class="detail-label">요청 메모</span><span class="detail-value">${r.memo}</span></div>` : ''}
       ${managerUnlocked
         ? (r.applicant || r.applyname
             ? `<div class="detail-row"><span class="detail-label">신청자</span><span class="detail-value">${r.applicant || r.applyname}</span></div>`
@@ -2113,7 +2123,7 @@ function recordCard(r, idx) {
 
 function statusDropdown(r) {
   const ts = (r.timestamp || '').replace(/'/g, "\\'");
-  return `<select class="status-select" aria-label="${name} 상태 변경" onchange="changeStatus('${ts}', this.value)" onclick="event.stopPropagation()" style="font-family:'Noto Sans KR',sans-serif;font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--white);color:var(--text);cursor:pointer;margin-top:8px">
+  return `<select class="status-select" aria-label="${r.name || r.name} 상태 변경" onchange="changeStatus('${ts}', this.value)" onclick="event.stopPropagation()" style="font-family:'Noto Sans KR',sans-serif;font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--white);color:var(--text);cursor:pointer;margin-top:8px">
     <option value="">── 상태 변경 (담당자)</option>
     <option value="신청 접수">신청 접수</option>
     <option value="검토 중">검토 중</option>
@@ -2605,12 +2615,12 @@ async function syncRecordsFromSupabase(force) {
       r_signage:       r.r_signage || '',
       comment:         r.comment || '',
       extra_notes:     r.extra_notes || '',
-      recorder:        r.recorder || '',
-      // 관리자 전용 필드 (공개/모니터링단 상태에서는 빈 값으로 들어옴)
-      applicant:       r.applicant || '',   // 신청자명 / 추천인명
-      phone:           r.phone || '',       // 연락처
-      memo:            r.memo || '',        // 내부 메모
-      intro:           r.intro || ''        // 한줄소개
+      recorder:        (monitorUnlocked || managerUnlocked) ? (r.recorder || '') : '',
+      // 관리자 전용 필드: 혹시 RPC/view가 값을 내려줘도 관리자 모드가 아니면 화면 데이터에 남기지 않음
+      applicant:       managerUnlocked ? (r.applicant || '') : '',   // 신청자명 / 추천인명
+      phone:           managerUnlocked ? (r.phone || '') : '',       // 연락처
+      memo:            managerUnlocked ? (r.memo || '') : '',        // 내부 메모
+      intro:           managerUnlocked ? (r.intro || '') : ''        // 한줄소개
     };
   });
 
