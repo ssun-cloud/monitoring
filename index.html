@@ -2057,6 +2057,13 @@ function recordCard(r, idx) {
             : '')
         : '<div class="detail-row"><span style="font-size:12px;color:var(--text-muted)">🔒 기록자는 모니터링단·담당자만 볼 수 있어요</span></div>'
       }
+      ${(monitorUnlocked || managerUnlocked) && r.id
+        ? `<div class="photo-view-wrap" data-record-id="${r.id}" data-loaded="false"
+             style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+             <div style="font-size:12px;color:var(--text-muted)">📷 사진 불러오는 중...</div>
+           </div>`
+        : ''
+      }
     `;
   }
 
@@ -2119,7 +2126,88 @@ function toggleDetail(detailId, card) {
   const toggle = document.getElementById('toggle-' + idx);
   const isOpen = detail.classList.toggle('open');
   toggle.textContent = isOpen ? '▲ 닫기' : '▼ 상세';
+
+  // 상세보기 열릴 때만 사진 로드 (모니터링단/관리자 + monitor 타입만)
+  if (isOpen && (monitorUnlocked || managerUnlocked)) {
+    const photoWrap = detail.querySelector('.photo-view-wrap');
+    if (photoWrap && photoWrap.dataset.recordId && photoWrap.dataset.loaded !== 'true') {
+      photoWrap.dataset.loaded = 'true';
+      loadPhotosByRecordId(photoWrap.dataset.recordId, photoWrap);
+    }
+  }
 }
+
+// ── 사진 보기: signed URL 생성 ──────────────────────
+async function loadPhotosByRecordId(recordId, container) {
+  // 공개 상태에서는 절대 실행 안 함
+  if (!monitorUnlocked && !managerUnlocked) {
+    container.innerHTML = '';
+    return;
+  }
+
+  try {
+    // record_photos에서 해당 recordId의 monitor 사진 경로 조회
+    const { data: photos, error: dbError } = await _supabase
+      .from('record_photos')
+      .select('storage_path, file_name')
+      .eq('record_type', 'monitor')
+      .eq('record_id', recordId);
+
+    if (dbError) {
+      console.error('[사진보기] record_photos 조회 오류:', dbError.message);
+      container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">사진을 불러올 수 없어요.</div>';
+      return;
+    }
+
+    if (!photos || photos.length === 0) {
+      container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">등록된 사진이 없어요.</div>';
+      return;
+    }
+
+    // 각 경로에 대해 signed URL 생성 (만료: 600초 = 10분)
+    const urlResults = await Promise.all(
+      photos.map(async function(p) {
+        // monitor/ 경로만 허용
+        if (!p.storage_path.startsWith('monitor/')) return null;
+        const { data, error } = await _supabase.storage
+          .from('monitoring-photos')
+          .createSignedUrl(p.storage_path, 600);
+        if (error) {
+          console.warn('[사진보기] signed URL 오류:', p.storage_path, error.message);
+          return null;
+        }
+        return data.signedUrl;
+      })
+    );
+
+    const validUrls = urlResults.filter(Boolean);
+
+    if (validUrls.length === 0) {
+      container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">사진을 불러올 수 없어요.</div>';
+      return;
+    }
+
+    // 썸네일 렌더링
+    container.innerHTML =
+      '<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">📷 사진 ' + validUrls.length + '장</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:8px">' +
+      validUrls.map(function(url) {
+        return '<a href="' + url + '" target="_blank" rel="noopener">' +
+          '<img src="' + url + '" alt="모니터링 사진"' +
+          ' style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--border)"' +
+          ' onerror="this.parentElement.style.display='none'">' +
+          '</a>';
+      }).join('') +
+      '</div>';
+
+    console.log('[사진보기] ✅ ' + validUrls.length + '장 로드 완료 - recordId:', recordId);
+
+  } catch(e) {
+    console.error('[사진보기] 오류:', e.message);
+    container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">사진 로드 중 오류가 발생했어요.</div>';
+  }
+}
+// ──────────────────────────────────────────────────────
 
 let editingRecordIdx = null;
 
