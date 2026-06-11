@@ -961,13 +961,19 @@ async function getRelatedJournalsForPrint(rec) {
   }
 
   const matched = journals.filter(function(j) { return journalMatchesRecordForPrint(j, rec); });
-  if (matched.length) return matched;
+  if (matched.length) return { title: '연결된 활동일지', items: matched, note: '' };
 
   // 상점명이 조금 다르게 저장된 경우를 대비해 같은 날짜의 일지를 보조로 보여준다.
   const recDate = normalizePrintDate(rec.date || rec.monitored_at);
-  return journals.filter(function(j) {
+  const sameDate = journals.filter(function(j) {
     return recDate && normalizePrintDate(j.date || j.activity_date) === recDate;
   });
+  if (sameDate.length) return { title: '같은 날짜 활동일지', items: sameDate, note: '상점명이 정확히 일치하지 않아 같은 날짜의 활동일지를 함께 표시합니다.' };
+
+  // 날짜가 맞지 않는 경우도 일지를 출력해야 할 수 있으므로 최근 일지를 보조로 보여준다.
+  if (journals.length) return { title: '최근 활동일지', items: journals.slice(0, 20), note: '해당 기록과 자동 연결된 활동일지가 없어 최근 활동일지를 표시합니다.' };
+
+  return { title: '활동일지', items: [], note: '' };
 }
 
 async function openPrintMonitorRecord(recordId) {
@@ -998,7 +1004,10 @@ async function openPrintMonitorRecord(recordId) {
   printWindow.document.close();
 
   const photos = await getSignedPhotoUrlsForPrint(recordId);
-  const relatedJournals = await getRelatedJournalsForPrint(rec);
+  const journalResult = await getRelatedJournalsForPrint(rec);
+  const relatedJournals = Array.isArray(journalResult) ? journalResult : (journalResult.items || []);
+  const journalTitle = Array.isArray(journalResult) ? '활동일지' : (journalResult.title || '활동일지');
+  const journalNote = Array.isArray(journalResult) ? '' : (journalResult.note || '');
   const ratings = [
     rec.r1 ? '점자메뉴판: ' + rec.r1 : '',
     rec.r2 ? '경사로 및 출입 접근성: ' + rec.r2 : '',
@@ -1012,8 +1021,9 @@ async function openPrintMonitorRecord(recordId) {
       }).join('')
     : '<p class="empty-photo">등록된 사진이 없어요.</p>';
 
+  const journalNoteHtml = journalNote ? '<div class="journal-note">' + escapeHtml(journalNote) + '</div>' : '';
   const journalHtml = relatedJournals.length
-    ? relatedJournals.map(function(j) {
+    ? journalNoteHtml + relatedJournals.map(function(j) {
         return '<div class="journal-box">'
           + '<div class="journal-meta">📅 ' + escapeHtml(j.date || '') + (j.time ? ' ' + escapeHtml(j.time) : '') + ' · 👥 ' + escapeHtml(j.team || '') + (j.author ? ' (' + escapeHtml(j.author) + ')' : '') + '</div>'
           + '<div class="journal-stores">방문 상점: ' + escapeHtml(j.stores || '상점 정보 없음') + '</div>'
@@ -1028,7 +1038,7 @@ async function openPrintMonitorRecord(recordId) {
     + '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
     + '<title>모니터링 기록 인쇄</title>'
     + '<style>'
-    + '@page{size:A4;margin:12mm}body{font-family:"Noto Sans KR",Arial,sans-serif;color:#1e1e1e;margin:0;background:#f7f8fa}.page{max-width:794px;margin:0 auto;background:#fff;padding:26px;box-sizing:border-box}.top{display:flex;justify-content:space-between;gap:16px;border-bottom:3px solid #1a8c6e;padding-bottom:14px;margin-bottom:18px}.title{font-size:23px;font-weight:800;color:#1a8c6e}.subtitle{font-size:13px;color:#6b7280;margin-top:4px}.print-actions{display:flex;gap:8px;align-items:flex-start}.print-actions button{border:0;border-radius:8px;padding:9px 12px;font-weight:700;cursor:pointer}.primary{background:#1a8c6e;color:white}.secondary{background:#eef2f7;color:#1e1e1e}table{width:100%;border-collapse:collapse;margin-bottom:14px}th,td{border:1px solid #e0e0e0;padding:8px 10px;vertical-align:top;font-size:13px;line-height:1.6;white-space:pre-wrap}th{width:130px;background:#f7f8fa;text-align:left;color:#4b5563}.section-title{font-size:15px;font-weight:800;margin:16px 0 8px;color:#1a8c6e}.opinion{border:1px solid #e0e0e0;border-radius:10px;padding:12px;min-height:70px;line-height:1.7;font-size:13px;white-space:pre-wrap}.journal-box{border:1px solid #e0e0e0;border-radius:10px;padding:11px 12px;margin-bottom:8px;break-inside:avoid}.journal-meta{font-size:12px;font-weight:700;color:#1a8c6e;margin-bottom:5px}.journal-stores{font-size:12px;color:#4b5563;margin-bottom:6px}.journal-memo{font-size:13px;line-height:1.7;white-space:pre-wrap}.photos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}figure{margin:0;border:1px solid #e0e0e0;border-radius:10px;padding:8px;break-inside:avoid;background:#fafafa}figure img{width:100%;max-height:260px;height:auto;object-fit:contain;border-radius:8px;display:block;background:#fff}figcaption{font-size:11px;color:#6b7280;margin-top:5px;word-break:break-all}.empty-photo{font-size:13px;color:#6b7280;border:1px dashed #d1d5db;padding:16px;border-radius:10px}.footer{margin-top:20px;font-size:11px;color:#6b7280;text-align:right}@media print{body{background:#fff}.page{padding:0;max-width:none}.print-actions{display:none}figure img{max-height:210px;height:auto;object-fit:contain}.photos{gap:8px}.section-title{margin-top:13px}}'
+    + '@page{size:A4;margin:12mm}body{font-family:"Noto Sans KR",Arial,sans-serif;color:#1e1e1e;margin:0;background:#f7f8fa}.page{max-width:794px;margin:0 auto;background:#fff;padding:26px;box-sizing:border-box}.top{display:flex;justify-content:space-between;gap:16px;border-bottom:3px solid #1a8c6e;padding-bottom:14px;margin-bottom:18px}.title{font-size:23px;font-weight:800;color:#1a8c6e}.subtitle{font-size:13px;color:#6b7280;margin-top:4px}.print-actions{display:flex;gap:8px;align-items:flex-start}.print-actions button{border:0;border-radius:8px;padding:9px 12px;font-weight:700;cursor:pointer}.primary{background:#1a8c6e;color:white}.secondary{background:#eef2f7;color:#1e1e1e}table{width:100%;border-collapse:collapse;margin-bottom:14px}th,td{border:1px solid #e0e0e0;padding:8px 10px;vertical-align:top;font-size:13px;line-height:1.6;white-space:pre-wrap}th{width:130px;background:#f7f8fa;text-align:left;color:#4b5563}.section-title{font-size:15px;font-weight:800;margin:16px 0 8px;color:#1a8c6e}.opinion{border:1px solid #e0e0e0;border-radius:10px;padding:12px;min-height:70px;line-height:1.7;font-size:13px;white-space:pre-wrap}.journal-box{border:1px solid #e0e0e0;border-radius:10px;padding:11px 12px;margin-bottom:8px;break-inside:avoid}.journal-meta{font-size:12px;font-weight:700;color:#1a8c6e;margin-bottom:5px}.journal-stores{font-size:12px;color:#4b5563;margin-bottom:6px}.journal-memo{font-size:13px;line-height:1.7;white-space:pre-wrap}.journal-note{font-size:12px;color:#6b7280;background:#f7f8fa;border-radius:8px;padding:8px 10px;margin-bottom:8px}.photos{display:grid;grid-template-columns:1fr;gap:12px;margin-top:8px}figure{margin:0;border:1px solid #e0e0e0;border-radius:10px;padding:8px;break-inside:avoid;page-break-inside:avoid;background:#fafafa}figure img{width:auto;max-width:100%;height:auto;max-height:240mm;object-fit:contain;border-radius:8px;display:block;background:#fff;margin:0 auto}figcaption{font-size:11px;color:#6b7280;margin-top:5px;word-break:break-all}.empty-photo{font-size:13px;color:#6b7280;border:1px dashed #d1d5db;padding:16px;border-radius:10px}.footer{margin-top:20px;font-size:11px;color:#6b7280;text-align:right}@media print{body{background:#fff}.page{padding:0;max-width:none}.print-actions{display:none}.photos{grid-template-columns:1fr;gap:10px}figure{break-inside:avoid;page-break-inside:avoid}figure img{width:auto;max-width:100%;height:auto;max-height:235mm;object-fit:contain;margin:0 auto}.section-title{margin-top:13px}}'
     + '</style></head><body><main class="page">'
     + '<div class="top"><div><div class="title">열린 마을 만들기 모니터링 기록</div><div class="subtitle">종로장애인복지관 · 출력일 ' + escapeHtml(today) + '</div></div><div class="print-actions"><button class="primary" onclick="window.print()">인쇄 / PDF 저장</button><button class="secondary" onclick="window.close()">닫기</button></div></div>'
     + '<div class="section-title">기본 정보</div><table><tbody>'
@@ -1044,7 +1054,7 @@ async function openPrintMonitorRecord(recordId) {
     + detailLine('추가 확인 항목', rec.extras || rec.extra_notes)
     + '</tbody></table>'
     + '<div class="section-title">종합 의견</div><div class="opinion">' + escapeHtml(rec.comment || '') + '</div>'
-    + '<div class="section-title">활동일지</div><div class="journals">' + journalHtml + '</div>'
+    + '<div class="section-title">' + escapeHtml(journalTitle) + '</div><div class="journals">' + journalHtml + '</div>'
     + '<div class="section-title">현장 사진</div><div class="photos">' + photoHtml + '</div>'
     + '<div class="footer">※ 이 자료는 내부 검토 및 결과보고용으로 출력되었습니다.</div>'
     + '</main></body></html>';
