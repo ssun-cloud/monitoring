@@ -1309,6 +1309,109 @@ async function submitApply() {
   setLoading('apply-btn', false, '신청 제출하기');
 }
 
+
+function clearRecentEditArea(id) {
+  var old = document.getElementById(id);
+  if (old) old.remove();
+}
+
+function showRecentEditButton(afterToastId, kind, recordId) {
+  var toast = document.getElementById(afterToastId);
+  if (!toast || !recordId) return;
+  var areaId = afterToastId + '-recent-edit';
+  clearRecentEditArea(areaId);
+  var wrap = document.createElement('div');
+  wrap.id = areaId;
+  wrap.style.marginTop = '10px';
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'sec-btn primary recent-edit-btn';
+  btn.style.width = '100%';
+  btn.dataset.kind = kind;
+  btn.dataset.recordId = recordId;
+  btn.textContent = kind === 'journal' ? '✏️ 방금 제출한 활동일지 수정' : '✏️ 방금 제출한 체크리스트 수정';
+  btn.setAttribute('aria-label', btn.textContent);
+  wrap.appendChild(btn);
+  toast.insertAdjacentElement('afterend', wrap);
+}
+
+function canUseRecentEdit() {
+  return !!monitorUnlocked && !!monitorSessionPin;
+}
+
+function openRecentMonitorEdit(recordId) {
+  if (!canUseRecentEdit()) { alert('모니터링단 로그인 후 사용할 수 있어요.'); return; }
+  var records = getRecords();
+  var idx = records.findIndex(function(r) { return String(r.id || '') === String(recordId || ''); });
+  if (idx < 0) { alert('방금 제출한 체크리스트를 찾지 못했어요. 새로고침 후에는 방금 수정 기능을 사용할 수 없어요.'); return; }
+  editingMode = 'record';
+  editingRecordIdx = idx;
+  editingJournalSourceIndexes = [];
+  editingJournalGroup = null;
+  editingRecentKind = 'monitor';
+  editingRecentId = recordId;
+  renderEditForm(records[idx]);
+  var title = document.querySelector('#edit-modal .modal-header h3');
+  if (title) title.textContent = '방금 제출한 체크리스트 수정';
+  document.getElementById('edit-modal').classList.add('show');
+}
+
+function openRecentJournalEdit(journalId) {
+  if (!canUseRecentEdit()) { alert('모니터링단 로그인 후 사용할 수 있어요.'); return; }
+  var journals = getJournals();
+  var idx = journals.findIndex(function(j) { return String(j.id || '') === String(journalId || ''); });
+  if (idx < 0) { alert('방금 제출한 활동일지를 찾지 못했어요. 새로고침 후에는 방금 수정 기능을 사용할 수 없어요.'); return; }
+  editingMode = 'journal';
+  editingJournalSourceIndexes = [idx];
+  editingJournalGroup = journals[idx];
+  editingRecordIdx = null;
+  editingRecentKind = 'journal';
+  editingRecentId = journalId;
+  renderJournalEditForm(journals[idx]);
+  var title = document.querySelector('#edit-modal .modal-header h3');
+  if (title) title.textContent = '방금 제출한 활동일지 수정';
+  document.getElementById('edit-modal').classList.add('show');
+}
+
+async function updateRecentMonitorRecordInSupabase(record) {
+  if (!monitorUnlocked || !monitorSessionPin) throw new Error('모니터링단 인증이 필요해요.');
+  if (!record.id) throw new Error('수정할 체크리스트 ID가 없어요.');
+  var payload = {
+    pin_input: monitorSessionPin,
+    record_id: record.id,
+    p_place_name: record.name || '',
+    p_address: record.addr || '',
+    p_monitored_at: record.date || null,
+    p_r_braille: record.r1 || '',
+    p_r_ramp: record.r2 || '',
+    p_r_toilet: record.r3 || '',
+    p_r_signage: record.r4 || '',
+    p_action_required: record.action || '',
+    p_comment: record.comment || '',
+    p_extra_notes: record.extras || '',
+    p_recorder: record.author || record.recorder || ''
+  };
+  var result = await _supabase.rpc('update_recent_monitor_record', payload);
+  if (result.error) throw result.error;
+}
+
+async function updateRecentActivityJournalInSupabase(journal) {
+  if (!monitorUnlocked || !monitorSessionPin) throw new Error('모니터링단 인증이 필요해요.');
+  if (!journal.id) throw new Error('수정할 활동일지 ID가 없어요.');
+  var payload = {
+    pin_input: monitorSessionPin,
+    journal_id: journal.id,
+    p_activity_date: journal.date || null,
+    p_activity_time: journal.time || '',
+    p_team_name: journal.team || '',
+    p_members: journal.author || '',
+    p_stores: journal.stores || '',
+    p_memo: journal.memo || ''
+  };
+  var result = await _supabase.rpc('update_recent_activity_journal', payload);
+  if (result.error) throw result.error;
+}
+
 // ── 모니터링 제출 ──────────────────────────────────
 async function submitMonitor() {
   const place = document.getElementById('m_place').value.trim();
@@ -1383,16 +1486,18 @@ async function submitMonitor() {
   }
   // ──────────────────────────────────────────────────────
 
-  saveRecord({ type:'monitor', name: place, addr, date, r1, r2, r3, r4, action, comment, author, extras, goodcase, timestamp: ts });
+  saveRecord({ id: recordId, type:'monitor', name: place, addr, date, r1, r2, r3, r4, action, comment, author, recorder: author, extras, goodcase, timestamp: ts });
   // 메일 알림 (실패해도 저장 성공 유지)
   sendMailNotify('monitor', { place, addr, date, action, timestamp: ts });
 
   // 사진이 있으면 Supabase Storage에 업로드
   if (selectedPhotos.length > 0) {
     showToast('monitor-toast', '✅ 기록 저장됨! 사진 업로드 중...', 'success');
+    showRecentEditButton('monitor-toast', 'monitor', recordId);
     uploadPhotosToSupabase(recordId, selectedPhotos, ts);
   } else {
     showToast('monitor-toast', '✅ 기록이 저장되었습니다!', 'success');
+    showRecentEditButton('monitor-toast', 'monitor', recordId);
   }
 
   // 폼 완전 초기화 (사진 없을 때만 버튼 즉시 복원)
@@ -1641,6 +1746,7 @@ async function submitJournal() {
   if (!stores.length && !memo) { showToast('journal-toast','방문 상점이 없어요. 날짜·팀을 확인하거나 직접 추가해 주세요.','error'); return; }
   var storeList = stores.join(', ');
   var ts = new Date().toLocaleString('ko-KR');
+  var journalId = crypto.randomUUID();
   setLoading('journal-btn', true, '일지 제출하기');
 
   // ── [GAS 백업] 기존 Google Apps Script 전송 코드 ──────
@@ -1652,6 +1758,7 @@ async function submitJournal() {
 
   // ── Supabase insert (activity_journals 테이블) ─────────
   const payload = {
+    id:            journalId,
     activity_date: date,
     activity_time: time,
     team_name:     teamName,
@@ -1676,11 +1783,12 @@ async function submitJournal() {
 
   // 로컬 저장
   var journals = getJournals();
-  journals.unshift({date, time, team:teamName, author, stores:storeList, memo, timestamp:ts});
+  journals.unshift({id: journalId, date, time, team:teamName, author, stores:storeList, memo, timestamp:ts});
   localStorage.setItem('journals', JSON.stringify(journals));
   // 메일 알림 (실패해도 저장 성공 유지)
   sendMailNotify('journal', { date, time, team: teamName, stores: storeList, timestamp: ts });
   showToast('journal-toast','✅ 활동일지가 저장되었습니다.','success');
+  showRecentEditButton('journal-toast', 'journal', journalId);
   if (memoEl) memoEl.value = '';
   if (extraEl) extraEl.value = '';
   setLoading('journal-btn', false, '일지 제출하기');
@@ -2272,6 +2380,8 @@ let editingRecordIdx = null;
 let editingMode = 'record';
 let editingJournalSourceIndexes = [];
 let editingJournalGroup = null;
+let editingRecentKind = '';
+let editingRecentId = '';
 
 function openEditModal(e, idx) {
   e.stopPropagation();
@@ -2332,6 +2442,7 @@ function renderEditForm(r) {
 }
 
 async function updateMonitorRecordInSupabase(record) {
+  if (editingRecentKind === 'monitor') return updateRecentMonitorRecordInSupabase(record);
   if (!managerUnlocked || !managerSessionPin) throw new Error('담당자 인증이 필요해요.');
   if (!record.id) throw new Error('수정할 체크리스트 ID가 없어요.');
   const payload = {
@@ -2354,6 +2465,7 @@ async function updateMonitorRecordInSupabase(record) {
 }
 
 async function updateActivityJournalInSupabase(journal) {
+  if (editingRecentKind === 'journal') return updateRecentActivityJournalInSupabase(journal);
   if (!managerUnlocked || !managerSessionPin) throw new Error('담당자 인증이 필요해요.');
   if (!journal.id) throw new Error('수정할 활동일지 ID가 없어요.');
   const payload = {
@@ -2405,7 +2517,7 @@ async function saveEdit() {
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '저장 중...'; }
 
   try {
-    if (!managerUnlocked) throw new Error('수정은 담당자만 사용할 수 있어요.');
+    if (!managerUnlocked && !editingRecentKind) throw new Error('수정은 담당자만 사용할 수 있어요.');
 
     if (editingMode === 'journal') {
       const journals = getJournals();
@@ -2428,8 +2540,8 @@ async function saveEdit() {
       showToast('edit-toast', '✅ 활동일지를 수정했어요!', 'success');
       setTimeout(() => {
         document.getElementById('edit-modal').classList.remove('show');
-    var mh = document.querySelector('#edit-modal .modal-header h3'); if (mh) mh.textContent = '기록 수정';
-        document.querySelector('#edit-modal .modal-header h3').textContent = '기록 수정';
+        var mh = document.querySelector('#edit-modal .modal-header h3'); if (mh) mh.textContent = '기록 수정';
+        editingRecentKind = ''; editingRecentId = '';
         renderSettingsJournalPrints();
       }, 800);
       return;
@@ -2461,6 +2573,8 @@ async function saveEdit() {
     showToast('edit-toast', '✅ 체크리스트를 수정했어요!', 'success');
     setTimeout(() => {
       document.getElementById('edit-modal').classList.remove('show');
+      var mh = document.querySelector('#edit-modal .modal-header h3'); if (mh) mh.textContent = '기록 수정';
+      editingRecentKind = ''; editingRecentId = '';
       updateDashboard();
       renderRecords();
       renderMapList();
@@ -3549,6 +3663,14 @@ if (!window.__journalEditHandlerAttached) {
 if (!window.__printReportClickBound) {
   window.__printReportClickBound = true;
   document.addEventListener('click', function(event) {
+    var recentEditBtn = event.target.closest && event.target.closest('.recent-edit-btn');
+    if (recentEditBtn) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (recentEditBtn.dataset.kind === 'journal') openRecentJournalEdit(recentEditBtn.dataset.recordId);
+      else openRecentMonitorEdit(recentEditBtn.dataset.recordId);
+      return;
+    }
     var monitorBtn = event.target.closest && event.target.closest('.print-monitor-btn');
     if (monitorBtn) {
       event.preventDefault();
