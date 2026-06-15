@@ -631,6 +631,19 @@
     </div>
   </div>
   <div class="card">
+    <div class="card-title">방문 목적</div>
+    <div class="field">
+      <label class="field-label">방문 목적을 선택해 주세요<span class="req">*</span></label>
+      <div class="rating-group" id="rg_visit_type">
+        <button type="button" class="rating-btn" aria-pressed="false" onclick="setMonitorVisitType(this,'기존 보급처 확인')">기존 보급처 확인</button>
+        <button type="button" class="rating-btn" aria-pressed="false" onclick="setMonitorVisitType(this,'이용하기 편한 상점 확인')">이용하기 편한 상점 확인</button>
+        <button type="button" class="rating-btn" aria-pressed="false" onclick="setMonitorVisitType(this,'지원이 필요한 상점 확인')">지원이 필요한 상점 확인</button>
+      </div>
+      <input type="hidden" id="m_visit_type" />
+      <div id="m_visit_notice" class="notice" style="display:none;margin:10px 0 0"></div>
+    </div>
+  </div>
+  <div class="card">
     <div class="card-title">항목별 평가</div>
     <div class="field">
       <label class="field-label">점자메뉴판·QR 메뉴 이용</label>
@@ -1158,6 +1171,23 @@ function setRating(fieldId, groupId, btn, level) {
   btn.setAttribute('aria-checked', 'true');
   document.getElementById(fieldId).value = level === 'good' ? '좋음' : level === 'fair' ? '보통' : '미흡';
 }
+function setMonitorVisitType(btn, value) {
+  document.querySelectorAll('#rg_visit_type .rating-btn').forEach(function(b) {
+    b.classList.remove('sel-good');
+    b.setAttribute('aria-pressed', 'false');
+  });
+  btn.classList.add('sel-good');
+  btn.setAttribute('aria-pressed', 'true');
+  document.getElementById('m_visit_type').value = value;
+  var messages = {
+    '기존 보급처 확인': '기존에 설치된 경사로, 점자메뉴판, QR 메뉴가 잘 관리되고 있는지 확인해주세요.',
+    '이용하기 편한 상점 확인': '이 상점이 왜 이용하기 편한지 좋은 점을 중심으로 기록해주세요.',
+    '지원이 필요한 상점 확인': '경사로, 점자메뉴판, QR 메뉴 등 어떤 지원이 필요한지 확인해주세요.'
+  };
+  var notice = document.getElementById('m_visit_notice');
+  notice.textContent = messages[value] || '';
+  notice.style.display = notice.textContent ? 'block' : 'none';
+}
 function selectPill(val) {
   ['yes','no','follow'].forEach(v => {
     const el = document.getElementById('pill_' + v);
@@ -1432,15 +1462,17 @@ async function submitMonitor() {
   const r4 = document.getElementById('m_r4').value;
   const action = document.getElementById('m_action').value;
   const author = document.getElementById('m_author').value.trim();
+  const visitType = document.getElementById('m_visit_type').value;
   const easysign = document.getElementById('m_easysign').checked;
   const goodstaff = document.getElementById('m_goodstaff').checked;
   const goodcase = document.getElementById('m_goodcase').checked;
   if (!place) { showToast('monitor-toast','장소명을 입력해 주세요.','error'); return; }
   if (!addr)  { showToast('monitor-toast','주소를 입력해 주세요.','error'); return; }
   if (!date)  { showToast('monitor-toast','날짜를 선택해 주세요.','error'); return; }
+  if (!visitType) { showToast('monitor-toast','방문 목적을 선택해 주세요.','error'); return; }
   if (!comment) { showToast('monitor-toast','종합 의견을 입력해 주세요.','error'); return; }
   if (!author) { showToast('monitor-toast','기록자 이름을 입력해 주세요.','error'); return; }
-  const extras = [easysign && '안내 스티커·도움벨 필요', goodstaff && '직원 설명이 도움이 됨', goodcase && '좋은 사례로 소개 가능'].filter(Boolean).join(', ');
+  const extras = ['방문 목적: ' + visitType, easysign && '안내 스티커·도움벨 필요', goodstaff && '직원 설명이 도움이 됨', goodcase && '좋은 사례로 소개 가능'].filter(Boolean).join(', ');
   const ts = new Date().toLocaleString('ko-KR');
 
   // recordId 미리 생성 (사진 업로드 경로에 사용)
@@ -1517,6 +1549,10 @@ async function submitMonitor() {
   // 평가 버튼 초기화
   ['m_r1','m_r2','m_r3','m_r4'].forEach(function(id) { document.getElementById(id).value = ''; });
   document.querySelectorAll('.rating-btn').forEach(function(b) { b.classList.remove('sel-good','sel-fair','sel-poor'); b.setAttribute('aria-pressed','false'); b.setAttribute('aria-checked','false'); });
+  var visitNotice = document.getElementById('m_visit_notice');
+  document.getElementById('m_visit_type').value = '';
+  document.querySelectorAll('#rg_visit_type .rating-btn').forEach(function(b) { b.classList.remove('sel-good'); b.setAttribute('aria-pressed','false'); });
+  if (visitNotice) { visitNotice.textContent = ''; visitNotice.style.display = 'none'; }
   // 조치 필요 pill 초기화
   document.getElementById('m_action').value = '';
   ['pill_yes','pill_no','pill_follow'].forEach(function(id) { var el=document.getElementById(id); if(el){el.className='pill';el.setAttribute('aria-pressed','false');} });
