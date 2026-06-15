@@ -2220,7 +2220,11 @@ function recordCard(r, idx) {
     : r.action === '보급 완료' ? '<span class="tag tag-good">보급 완료 ✓</span>'
     : r.action === '조치 완료' ? '<span class="tag tag-good">조치 완료 ✓</span>'
     : '';
-  const itemsTag = r.items ? `<span class="tag" style="background:#f0fdf4;color:#166534">${r.items}</span>` : '';
+  const visitSummary = visitPurposeFromExtras(r.extras || r.extra_notes || r.items || '');
+  const summaryText = r.type === 'monitor'
+    ? (visitSummary ? '방문 목적: ' + visitSummary : '')
+    : r.items;
+  const itemsTag = summaryText ? `<span class="tag" style="background:#f0fdf4;color:#166534">${summaryText}</span>` : '';
 
   // 상세 내용 (신청 / 모니터링 구분)
   let detail = '';
@@ -3596,7 +3600,11 @@ function renderMap() {
     item.style.cursor = 'pointer';
     item.setAttribute('role', 'listitem');
     item.setAttribute('tabindex', '0');
-    item.setAttribute('aria-label', rec.name + ', ' + rec.addr + ', ' + typeLabel + (actionLabel ? ', ' + actionLabel : '') + (rec.items ? ', ' + rec.items : '') + '. 지도에서 위치 보기');
+    const mapVisitSummary = visitPurposeFromExtras(rec.extras || rec.extra_notes || rec.items || '');
+    const mapSummaryText = rec.type === 'monitor'
+      ? (mapVisitSummary ? '방문 목적: ' + mapVisitSummary : '')
+      : rec.items;
+    item.setAttribute('aria-label', rec.name + ', ' + rec.addr + ', ' + typeLabel + (actionLabel ? ', ' + actionLabel : '') + (mapSummaryText ? ', ' + mapSummaryText : '') + '. 지도에서 위치 보기');
     const verifiedBadge = isVerified(rec) ? '' : '<span style="font-size:10px;color:#9ca3af;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px;padding:1px 6px;margin-left:4px">미검증</span>';
     const extraHtml = mapRecordExtraHtml(rec);
     item.innerHTML = '<div class="rec-top" style="justify-content:flex-start;gap:6px">'
@@ -3607,7 +3615,7 @@ function renderMap() {
       + '<div class="rec-addr">'+rec.addr+'</div>'
       + '<div class="rec-tags"><span class="'+typeTagStyle+'">'+typeLabel+'</span>'
       + (actionLabel ? '<span class="'+actionTagStyle+'">'+actionLabel+'</span>' : '')
-      + (rec.items ? '<span class="tag" style="background:#f0fdf4;color:#166534">'+rec.items+'</span>' : '')
+      + (mapSummaryText ? '<span class="tag" style="background:#f0fdf4;color:#166534">'+mapSummaryText+'</span>' : '')
       + '</div>'
       + extraHtml;
     // 키보드 Enter로도 클릭 가능하게
