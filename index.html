@@ -675,23 +675,23 @@
       <label class="field-label">해당하는 항목을 모두 선택해 주세요<span class="opt">(선택)</span></label>
       <div class="check-list">
         <label class="check-item">
-          <input type="checkbox" id="m_easysign"  aria-label="쉬운 안내판 필요"/>
+          <input type="checkbox" id="m_easysign"  aria-label="안내 스티커·도움벨 필요"/>
           <div class="item-info">
-            <div class="item-name">🔤 쉬운 안내판 필요</div>
+            <div class="item-name">🔤 안내 스티커·도움벨 필요</div>
             <div class="item-desc">픽토그램·그림 안내판 또는 쉬운 메뉴판이 필요한 곳</div>
           </div>
         </label>
         <label class="check-item">
-          <input type="checkbox" id="m_goodstaff"  aria-label="직원 응대 좋음"/>
+          <input type="checkbox" id="m_goodstaff"  aria-label="직원 설명이 도움이 됨"/>
           <div class="item-info">
-            <div class="item-name">😊 직원 응대 좋음</div>
+            <div class="item-name">😊 직원 설명이 도움이 됨</div>
             <div class="item-desc">장애인·노인 등에게 친절하고 배려 있는 응대를 하는 곳</div>
           </div>
         </label>
         <label class="check-item">
-          <input type="checkbox" id="m_goodcase"  aria-label="좋은 사례"/>
+          <input type="checkbox" id="m_goodcase"  aria-label="좋은 사례로 소개 가능"/>
           <div class="item-info">
-            <div class="item-name">⭐ 좋은 사례</div>
+            <div class="item-name">⭐ 좋은 사례로 소개 가능</div>
             <div class="item-desc">다른 곳에 소개하고 싶은 배리어프리 우수 사례</div>
           </div>
         </label>
@@ -1440,7 +1440,7 @@ async function submitMonitor() {
   if (!date)  { showToast('monitor-toast','날짜를 선택해 주세요.','error'); return; }
   if (!comment) { showToast('monitor-toast','종합 의견을 입력해 주세요.','error'); return; }
   if (!author) { showToast('monitor-toast','기록자 이름을 입력해 주세요.','error'); return; }
-  const extras = [easysign && '쉬운 안내판 필요', goodstaff && '직원 응대 좋음', goodcase && '좋은 사례'].filter(Boolean).join(', ');
+  const extras = [easysign && '안내 스티커·도움벨 필요', goodstaff && '직원 설명이 도움이 됨', goodcase && '좋은 사례로 소개 가능'].filter(Boolean).join(', ');
   const ts = new Date().toLocaleString('ko-KR');
 
   // recordId 미리 생성 (사진 업로드 경로에 사용)
