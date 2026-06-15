@@ -2187,7 +2187,7 @@ document.getElementById('place-search-modal').addEventListener('click', function
 
 // ── 전체 기록 ─────────────────────────────────────
 function visitPurposeFromExtras(extras) {
-  var match = String(extras || '').match(/(?:^|,\s*)방문 목적:\s*([^,]+)/);
+  var match = String(extras || '').match(/방문 목적:\s*([^,/]+)/);
   return match ? match[1].trim() : '';
 }
 
@@ -3143,6 +3143,10 @@ function renderSettingsRecords() {
     div.className = 'record-item';
     div.setAttribute('role','listitem');
     div.style.marginBottom = '10px';
+    var settingsVisitSummary = visitPurposeFromExtras(r.extras || r.extra_notes || r.items || '');
+    var settingsSummaryText = r.type === 'monitor'
+      ? (settingsVisitSummary ? '방문 목적: ' + settingsVisitSummary : '')
+      : (r.items || r.comment || '');
     var header = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
       + '<div style="display:flex;gap:6px;align-items:center">'
       + '<span class="tag ' + (tagMap[r.type]||'tag-good') + '">' + (typeLabelMap[r.type]||r.type) + '</span>'
@@ -3160,7 +3164,7 @@ function renderSettingsRecords() {
       + ((monitorUnlocked || managerUnlocked) && (r.recorder || r.author)
           ? '<div style="font-size:12px;margin-bottom:4px">기록자: ' + (r.recorder||r.author) + '</div>'
           : '')
-      + (r.items||r.comment ? '<div style="font-size:12px;margin-bottom:8px;color:var(--text)">' + (r.items||r.comment||'') + '</div>' : '');
+      + (settingsSummaryText ? '<div style="font-size:12px;margin-bottom:8px;color:var(--text)">' + settingsSummaryText + '</div>' : '');
     div.innerHTML = header;
     var sel = document.createElement('select');
     sel.setAttribute('aria-label', name + ' 상태 변경');
@@ -3656,7 +3660,7 @@ function renderMap() {
       const infoHtml = '<div style="padding:8px 12px;font-size:13px;font-family:Noto Sans KR,sans-serif;min-width:130px">'
         + '<strong>'+rec.name+'</strong><br>'
         + '<span style="color:'+markerColor+';font-size:12px;font-weight:600">'+typeLabel+'</span>'
-        + (rec.items ? '<br><span style="color:#6b7280;font-size:12px">'+rec.items+'</span>' : '')
+        + (mapSummaryText ? '<br><span style="color:#6b7280;font-size:12px">'+mapSummaryText+'</span>' : '')
         + '</div>';
       const info = new kakao.maps.InfoWindow({ content: infoHtml });
 
