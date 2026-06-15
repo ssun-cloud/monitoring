@@ -129,6 +129,8 @@
   .rating-btn.sel-good { background: var(--good-bg); border-color: var(--good); color: var(--good); font-weight: 700; }
   .rating-btn.sel-fair { background: var(--fair-bg); border-color: var(--fair); color: var(--fair); font-weight: 700; }
   .rating-btn.sel-poor { background: var(--poor-bg); border-color: var(--poor); color: var(--poor); font-weight: 700; }
+  .monitor-visit-group { flex-direction: column; }
+  .monitor-visit-group .rating-btn { width: 100%; min-height: 42px; }
   .pill-group { display: flex; gap: 8px; flex-wrap: wrap; }
   .pill { display: flex; align-items: center; gap: 5px; padding: 7px 14px; border: 1px solid var(--border); border-radius: 20px; font-family: 'Noto Sans KR', sans-serif; font-size: 13px; color: var(--text-muted); background: var(--white); cursor: pointer; transition: all 0.15s; user-select: none; }
   .pill.active-yes { border-color: var(--poor); color: var(--poor); background: var(--poor-bg); }
@@ -634,7 +636,7 @@
     <div class="card-title">방문 목적</div>
     <div class="field">
       <label class="field-label">방문 목적을 선택해 주세요<span class="req">*</span></label>
-      <div class="rating-group" id="rg_visit_type">
+      <div class="rating-group monitor-visit-group" id="rg_visit_type">
         <button type="button" class="rating-btn" aria-pressed="false" onclick="setMonitorVisitType(this,'기존 보급처 확인')">기존 보급처 확인</button>
         <button type="button" class="rating-btn" aria-pressed="false" onclick="setMonitorVisitType(this,'이용하기 편한 상점 확인')">이용하기 편한 상점 확인</button>
         <button type="button" class="rating-btn" aria-pressed="false" onclick="setMonitorVisitType(this,'지원이 필요한 상점 확인')">지원이 필요한 상점 확인</button>
@@ -691,21 +693,21 @@
           <input type="checkbox" id="m_easysign"  aria-label="안내 스티커·도움벨 필요"/>
           <div class="item-info">
             <div class="item-name">🔤 안내 스티커·도움벨 필요</div>
-            <div class="item-desc">픽토그램·그림 안내판 또는 쉬운 메뉴판이 필요한 곳</div>
+            <div class="item-desc">출입구 안내, 도움 요청, 이용 안내가 필요한 곳</div>
           </div>
         </label>
         <label class="check-item">
           <input type="checkbox" id="m_goodstaff"  aria-label="직원 설명이 도움이 됨"/>
           <div class="item-info">
             <div class="item-name">😊 직원 설명이 도움이 됨</div>
-            <div class="item-desc">장애인·노인 등에게 친절하고 배려 있는 응대를 하는 곳</div>
+            <div class="item-desc">메뉴, 자리, 이용 방법 등을 알기 쉽게 안내한 곳</div>
           </div>
         </label>
         <label class="check-item">
           <input type="checkbox" id="m_goodcase"  aria-label="좋은 사례로 소개 가능"/>
           <div class="item-info">
             <div class="item-name">⭐ 좋은 사례로 소개 가능</div>
-            <div class="item-desc">다른 곳에 소개하고 싶은 배리어프리 우수 사례</div>
+            <div class="item-desc">다른 상점에 소개하고 싶은 접근성 좋은 사례</div>
           </div>
         </label>
       </div>
