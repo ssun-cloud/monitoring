@@ -459,7 +459,7 @@
   <div id="apply-form-apply">
   <div class="notice">
     <strong>여기도 있으면 좋겠어요!</strong><br>
-    지역주민 누구나 점자메뉴판, 경사로, 쉬운 안내판 등 접근성 개선이 필요한 장소를 알려줄 수 있어요.<br>
+    지역주민 누구나 점자메뉴판, QR 텍스트 메뉴, 경사로 등 접근성 개선이 필요한 장소를 알려줄 수 있어요.<br>
     <span style="display:inline-block;margin-top:6px;font-size:12px;background:rgba(26,140,110,0.12);padding:4px 10px;border-radius:12px;color:#1a5c4a">경사로는 현장 확인 후 지원 가능 여부를 안내드립니다.</span>
   </div>
   <div class="card">
@@ -487,6 +487,13 @@
         </div>
       </label>
       <label class="check-item">
+        <input type="checkbox" id="a_qr"  aria-label="QR 텍스트 메뉴 신청"/>
+        <div class="item-info">
+          <div class="item-name">🔗 QR 텍스트 메뉴</div>
+          <div class="item-desc">휴대폰으로 메뉴를 텍스트로 확인할 수 있는 QR 메뉴</div>
+        </div>
+      </label>
+      <label class="check-item">
         <input type="checkbox" id="a_ramp"  aria-label="경사로 신청"/>
         <div class="item-info">
           <div class="item-name">♿ 경사로</div>
@@ -494,10 +501,10 @@
         </div>
       </label>
       <label class="check-item">
-        <input type="checkbox" id="a_sign"  aria-label="쉬운 안내판 신청"/>
+        <input type="checkbox" id="a_sign"  aria-label="안내 스티커·도움벨 신청"/>
         <div class="item-info">
-          <div class="item-name">🔤 쉬운 안내판</div>
-          <div class="item-desc">픽토그램·쉬운 그림으로 된 메뉴판 또는 안내판</div>
+          <div class="item-name">🏷️ 안내 스티커·도움벨</div>
+          <div class="item-desc">경사로·점자메뉴판·QR 안내를 쉽게 확인할 수 있는 표시</div>
         </div>
       </label>
       <label class="check-item">
@@ -565,11 +572,11 @@
     <div class="card">
       <div class="card-title">어떤 점이 좋았나요?</div>
       <div class="check-list">
-        <label class="check-item"><input type="checkbox" id="r_braille" aria-label="점자메뉴판 있어요"/><div class="item-info"><div class="item-name">📖 점자메뉴판 있어요</div><div class="item-desc">시각장애인도 메뉴를 확인할 수 있어요</div></div></label>
-        <label class="check-item"><input type="checkbox" id="r_ramp" aria-label="경사로·턱 없어요"/><div class="item-info"><div class="item-name">♿ 경사로·턱 없어요</div><div class="item-desc">휠체어·유모차도 편하게 들어올 수 있어요</div></div></label>
+        <label class="check-item"><input type="checkbox" id="r_braille" aria-label="점자메뉴판 또는 QR 메뉴가 있어요"/><div class="item-info"><div class="item-name">📖 점자메뉴판 또는 QR 메뉴가 있어요</div><div class="item-desc">메뉴를 텍스트나 점자로 확인할 수 있어요</div></div></label>
+        <label class="check-item"><input type="checkbox" id="r_ramp" aria-label="문턱 없이 출입하기 쉬워요"/><div class="item-info"><div class="item-name">♿ 문턱 없이 출입하기 쉬워요</div><div class="item-desc">휠체어·유모차도 편하게 들어올 수 있어요</div></div></label>
         <label class="check-item"><input type="checkbox" id="r_toilet" aria-label="화장실 이용 편해요"/><div class="item-info"><div class="item-name">🚻 화장실 이용 편해요</div></div></label>
-        <label class="check-item"><input type="checkbox" id="r_staff" aria-label="직원이 친절해요"/><div class="item-info"><div class="item-name">😊 직원이 친절해요</div><div class="item-desc">장애인·노인 등에게 배려 있게 응대해요</div></div></label>
-        <label class="check-item"><input type="checkbox" id="r_sign" aria-label="쉬운 안내판 있어요"/><div class="item-info"><div class="item-name">🔤 쉬운 안내판 있어요</div></div></label>
+        <label class="check-item"><input type="checkbox" id="r_staff" aria-label="직원 설명이 도움이 됐어요"/><div class="item-info"><div class="item-name">😊 직원 설명이 도움이 됐어요</div><div class="item-desc">메뉴·자리·이용 방법 안내가 도움이 됐어요</div></div></label>
+        <label class="check-item"><input type="checkbox" id="r_sign" aria-label="메뉴 확인이 쉬워요"/><div class="item-info"><div class="item-name">🔤 메뉴 확인이 쉬워요</div></div></label>
         <label class="check-item"><input type="checkbox" id="r_other_chk" onchange="document.getElementById('r_other_wrap').style.display=this.checked?'block':'none'" aria-label="기타"/><div class="item-info"><div class="item-name">💬 기타</div><div class="item-desc">직접 적어주세요</div></div></label>
       </div>
       <div id="r_other_wrap" style="display:none;margin-top:10px">
@@ -1256,6 +1263,7 @@ async function submitApply() {
   const applyname = document.getElementById('a_applyname').value.trim();
   const phone = document.getElementById('a_phone').value.trim();
   const braille = document.getElementById('a_braille').checked;
+  const qr = document.getElementById('a_qr').checked;
   const ramp = document.getElementById('a_ramp').checked;
   const sign = document.getElementById('a_sign').checked;
   const other = document.getElementById('a_other').checked;
@@ -1266,10 +1274,10 @@ async function submitApply() {
 
   if (!applyname) { showToast('apply-toast','이름 또는 닉네임을 입력해 주세요.','error'); return; }
   if (!phone) { showToast('apply-toast','연락처를 입력해 주세요.','error'); return; }
-  if (!braille && !ramp && !sign && !other) { showToast('apply-toast','신청 항목을 하나 이상 선택해 주세요.','error'); return; }
+  if (!braille && !qr && !ramp && !sign && !other) { showToast('apply-toast','신청 항목을 하나 이상 선택해 주세요.','error'); return; }
   const otherDetail = document.getElementById('a_other_detail').value.trim();
   const otherLabel = other ? (otherDetail ? '기타(' + otherDetail + ')' : '기타') : '';
-  const items = [braille && '점자메뉴판', ramp && '경사로', sign && '쉬운 안내판', otherLabel].filter(Boolean).join(', ');
+  const items = [braille && '점자메뉴판', qr && 'QR 텍스트 메뉴', ramp && '경사로', sign && '안내 스티커·도움벨', otherLabel].filter(Boolean).join(', ');
   const ts = new Date().toLocaleString('ko-KR');
   setLoading('apply-btn', true, '신청 제출하기');
   // ── [GAS 백업] 기존 Google Apps Script 전송 코드 ──────
@@ -1303,7 +1311,7 @@ async function submitApply() {
   sendMailNotify('apply', { name, addr, items, timestamp: ts });
   showToast('apply-toast','✅ 신청이 접수되었습니다. 담당자가 확인 후 연락드릴게요!','success');
   ['a_name','a_addr','a_applyname','a_phone','a_memo','a_other_detail'].forEach(id => document.getElementById(id).value = '');
-  ['a_braille','a_ramp','a_sign','a_other'].forEach(id => document.getElementById(id).checked = false);
+  ['a_braille','a_qr','a_ramp','a_sign','a_other'].forEach(id => document.getElementById(id).checked = false);
   document.getElementById('other-input-wrap').style.display = 'none';
   document.getElementById('a_privacy').checked = false;
   setLoading('apply-btn', false, '신청 제출하기');
@@ -1828,11 +1836,11 @@ async function submitRecommend() {
 
   if (!author) { showToast('recommend-toast','이름 또는 닉네임을 입력해 주세요.','error'); return; }
   var goods = [];
-  if (document.getElementById('r_braille').checked) goods.push('점자메뉴판');
-  if (document.getElementById('r_ramp').checked) goods.push('경사로·턱없음');
+  if (document.getElementById('r_braille').checked) goods.push('점자메뉴판 또는 QR 메뉴');
+  if (document.getElementById('r_ramp').checked) goods.push('문턱 없이 출입 쉬움');
   if (document.getElementById('r_toilet').checked) goods.push('화장실 편함');
-  if (document.getElementById('r_staff').checked) goods.push('직원 친절');
-  if (document.getElementById('r_sign').checked) goods.push('쉬운 안내판');
+  if (document.getElementById('r_staff').checked) goods.push('직원 설명 도움');
+  if (document.getElementById('r_sign').checked) goods.push('메뉴 확인 쉬움');
   var otherChk = document.getElementById('r_other_chk');
   var otherTxt = (document.getElementById('r_other_text')||{}).value || '';
   if (otherChk && otherChk.checked && otherTxt) goods.push('기타: '+otherTxt);
