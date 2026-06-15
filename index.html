@@ -629,20 +629,11 @@
       <label class="field-label">모니터링 날짜<span class="req">*</span></label>
       <input type="date" id="m_date" / aria-label="모니터링 날짜">
     </div>
-    <div class="field">
-      <label class="field-label" for="m_visit_type">방문 목적<span class="req">*</span></label>
-      <select id="m_visit_type" aria-label="방문 목적 선택">
-        <option value="">-- 선택해 주세요 --</option>
-        <option value="기존 보급처 확인">기존 보급처 확인</option>
-        <option value="이용하기 편한 상점 확인">이용하기 편한 상점 확인</option>
-        <option value="지원이 필요한 상점 확인">지원이 필요한 상점 확인</option>
-      </select>
-    </div>
   </div>
   <div class="card">
     <div class="card-title">항목별 평가</div>
     <div class="field">
-      <label class="field-label">점자메뉴판 구비 여부</label>
+      <label class="field-label">점자메뉴판·QR 메뉴 이용</label>
       <div class="rating-group" id="rg_r1">
         <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r1','rg_r1',this,'good')">👍 좋음</button>
         <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r1','rg_r1',this,'fair')">😐 보통</button>
@@ -651,7 +642,7 @@
       <input type="hidden" id="m_r1" />
     </div>
     <div class="field">
-      <label class="field-label">경사로 및 출입 접근성</label>
+      <label class="field-label">출입구 및 경사로 접근성</label>
       <div class="rating-group" id="rg_r2">
         <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r2','rg_r2',this,'good')">👍 좋음</button>
         <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r2','rg_r2',this,'fair')">😐 보통</button>
@@ -669,7 +660,7 @@
       <input type="hidden" id="m_r3" />
     </div>
     <div class="field">
-      <label class="field-label">안내판·표지판 가독성</label>
+      <label class="field-label">실내 이동 및 이용 편의</label>
       <div class="rating-group" id="rg_r4">
         <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r4','rg_r4',this,'good')">👍 좋음</button>
         <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r4','rg_r4',this,'fair')">😐 보통</button>
@@ -1434,7 +1425,6 @@ async function submitMonitor() {
   const place = document.getElementById('m_place').value.trim();
   const addr = document.getElementById('m_addr').value.trim();
   const date = document.getElementById('m_date').value;
-  const visitType = document.getElementById('m_visit_type') ? document.getElementById('m_visit_type').value : '';
   const comment = document.getElementById('m_comment').value.trim();
   const r1 = document.getElementById('m_r1').value;
   const r2 = document.getElementById('m_r2').value;
@@ -1448,10 +1438,9 @@ async function submitMonitor() {
   if (!place) { showToast('monitor-toast','장소명을 입력해 주세요.','error'); return; }
   if (!addr)  { showToast('monitor-toast','주소를 입력해 주세요.','error'); return; }
   if (!date)  { showToast('monitor-toast','날짜를 선택해 주세요.','error'); return; }
-  if (!visitType) { showToast('monitor-toast','방문 목적을 선택해 주세요.','error'); return; }
   if (!comment) { showToast('monitor-toast','종합 의견을 입력해 주세요.','error'); return; }
   if (!author) { showToast('monitor-toast','기록자 이름을 입력해 주세요.','error'); return; }
-  const extras = [visitType && ('방문 목적: ' + visitType), easysign && '쉬운 안내판 필요', goodstaff && '직원 설명이 도움이 됨', goodcase && '좋은 사례'].filter(Boolean).join(', ');
+  const extras = [easysign && '쉬운 안내판 필요', goodstaff && '직원 응대 좋음', goodcase && '좋은 사례'].filter(Boolean).join(', ');
   const ts = new Date().toLocaleString('ko-KR');
 
   // recordId 미리 생성 (사진 업로드 경로에 사용)
@@ -1540,8 +1529,6 @@ async function submitMonitor() {
   if (dropP) dropP.textContent = '탭해서 사진 추가하기';
   document.getElementById('m_photos').value = '';
   document.getElementById('m_date').valueAsDate = new Date();
-  var visitTypeEl = document.getElementById('m_visit_type');
-  if (visitTypeEl) visitTypeEl.value = '';
 }
 
 // ── [GAS 백업] 기존 GAS 사진 업로드 (주석 처리) ─────────
@@ -2226,10 +2213,10 @@ function recordCard(r, idx) {
     `;
   } else {
     const ratings = [
-      r.r1 ? `점자·QR ${r.r1}` : '',
+      r.r1 ? `점자메뉴판 ${r.r1}` : '',
       r.r2 ? `경사로 ${r.r2}` : '',
       r.r3 ? `화장실 ${r.r3}` : '',
-      r.r4 ? `실내이용 ${r.r4}` : ''
+      r.r4 ? `안내판 ${r.r4}` : ''
     ].filter(Boolean).join(' · ');
     detail = `
       ${r.date ? `<div class="detail-row"><span class="detail-label">점검 날짜</span><span class="detail-value">${r.date}</span></div>` : ''}
@@ -2444,10 +2431,10 @@ function renderEditForm(r) {
       <div class="field"><label class="field-label">장소명</label><input type="text" id="ef_name" value="${r.name || ''}" /></div>
       <div class="field"><label class="field-label">주소</label><input type="text" id="ef_addr" value="${r.addr || ''}" /></div>
       <div class="field"><label class="field-label">점검 날짜</label><input type="date" id="ef_date" value="${r.date || ''}" /></div>
-      <div class="field"><label class="field-label">점자메뉴판·QR 메뉴 이용</label><select id="ef_r1" aria-label="점자메뉴판·QR 메뉴 이용 평가">${ratingOptions('r1',r.r1)}</select></div>
+      <div class="field"><label class="field-label">점자메뉴판</label><select id="ef_r1" aria-label="점자메뉴판 평가">${ratingOptions('r1',r.r1)}</select></div>
       <div class="field"><label class="field-label">경사로</label><select id="ef_r2" aria-label="경사로 평가">${ratingOptions('r2',r.r2)}</select></div>
-      <div class="field"><label class="field-label">화장실 접근성</label><select id="ef_r3" aria-label="화장실 접근성 평가">${ratingOptions('r3',r.r3)}</select></div>
-      <div class="field"><label class="field-label">실내 이동 및 이용 편의</label><select id="ef_r4" aria-label="실내 이동 및 이용 편의 평가">${ratingOptions('r4',r.r4)}</select></div>
+      <div class="field"><label class="field-label">화장실</label><select id="ef_r3" aria-label="화장실 평가">${ratingOptions('r3',r.r3)}</select></div>
+      <div class="field"><label class="field-label">안내판</label><select id="ef_r4" aria-label="안내판 평가">${ratingOptions('r4',r.r4)}</select></div>
       <div class="field"><label class="field-label">조치 여부</label>
         <select id="ef_action" aria-label="조치 필요 여부">
           <option value="조치 필요" ${r.action==='조치 필요'?'selected':''}>조치 필요</option>
@@ -2862,10 +2849,10 @@ async function fetchPrintPhotos(recordId) {
 
 function ratingSummaryForPrint(r) {
   return [
-    r.r1 ? '점자·QR: ' + r.r1 : '',
+    r.r1 ? '점자메뉴판: ' + r.r1 : '',
     r.r2 ? '경사로: ' + r.r2 : '',
     r.r3 ? '화장실: ' + r.r3 : '',
-    r.r4 ? '실내이용: ' + r.r4 : ''
+    r.r4 ? '안내판: ' + r.r4 : ''
   ].filter(Boolean).join('\n');
 }
 
@@ -3490,10 +3477,10 @@ function mapRecordExtraHtml(rec) {
 
   if (rec.type === 'monitor') {
     const ratings = [
-      rec.r1 ? '점자·QR ' + rec.r1 : '',
+      rec.r1 ? '점자메뉴판 ' + rec.r1 : '',
       rec.r2 ? '경사로 ' + rec.r2 : '',
       rec.r3 ? '화장실 ' + rec.r3 : '',
-      rec.r4 ? '실내이용 ' + rec.r4 : ''
+      rec.r4 ? '안내판 ' + rec.r4 : ''
     ].filter(Boolean).join(' · ');
     const detailId = 'map-detail-' + String(rec.id || rec.name || '').replace(/[^a-zA-Z0-9_-]/g, '');
 
