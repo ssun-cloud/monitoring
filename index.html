@@ -643,6 +643,56 @@
       <div id="m_visit_notice" class="notice" style="display:none;margin:10px 0 0"></div>
     </div>
   </div>
+  <div class="card" id="m_existing_supply_card" style="display:none">
+    <div class="card-title">기존 보급처 확인</div>
+    <div class="field">
+      <label class="field-label">설치된 물품<span class="opt">(선택)</span></label>
+      <div class="check-list">
+        <label class="check-item"><input type="checkbox" name="m_supply_items" value="경사로" /><div class="item-info"><div class="item-name">경사로</div></div></label>
+        <label class="check-item"><input type="checkbox" name="m_supply_items" value="점자메뉴판" /><div class="item-info"><div class="item-name">점자메뉴판</div></div></label>
+        <label class="check-item"><input type="checkbox" name="m_supply_items" value="QR 텍스트 메뉴" /><div class="item-info"><div class="item-name">QR 텍스트 메뉴</div></div></label>
+        <label class="check-item"><input type="checkbox" name="m_supply_items" value="현판스티커·도움벨" /><div class="item-info"><div class="item-name">현판스티커·도움벨</div></div></label>
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label" for="m_supply_status">보급물 상태<span class="opt">(선택)</span></label>
+      <select id="m_supply_status">
+        <option value="">선택해 주세요</option>
+        <option value="양호">양호</option>
+        <option value="일부 보완 필요">일부 보완 필요</option>
+        <option value="교체 필요">교체 필요</option>
+        <option value="확인 필요">확인 필요</option>
+      </select>
+    </div>
+    <div class="field">
+      <label class="field-label" for="m_supply_use">바로 사용할 수 있나요?<span class="opt">(선택)</span></label>
+      <select id="m_supply_use">
+        <option value="">선택해 주세요</option>
+        <option value="바로 사용 가능">바로 사용 가능</option>
+        <option value="요청 시 사용 가능">요청 시 사용 가능</option>
+        <option value="위치 확인 어려움">위치 확인 어려움</option>
+        <option value="사용 어려움">사용 어려움</option>
+        <option value="해당 없음">해당 없음</option>
+      </select>
+    </div>
+    <div class="field">
+      <label class="field-label">보급물 관련 개선이 필요한 부분<span class="opt">(선택)</span></label>
+      <div class="check-list">
+        <label class="check-item"><input type="checkbox" name="m_supply_support" value="경사로 보완" /><div class="item-info"><div class="item-name">경사로 보완</div></div></label>
+        <label class="check-item"><input type="checkbox" name="m_supply_support" value="점자메뉴판 수정" /><div class="item-info"><div class="item-name">점자메뉴판 수정</div></div></label>
+        <label class="check-item"><input type="checkbox" name="m_supply_support" value="QR 메뉴 수정" /><div class="item-info"><div class="item-name">QR 메뉴 수정</div></div></label>
+        <label class="check-item"><input type="checkbox" name="m_supply_support" value="안내 스티커·도움벨 보완" /><div class="item-info"><div class="item-name">안내 스티커·도움벨 보완</div></div></label>
+        <label class="check-item"><input type="checkbox" name="m_supply_support" value="직원 안내 필요" /><div class="item-info"><div class="item-name">직원 안내 필요</div></div></label>
+        <label class="check-item"><input type="checkbox" name="m_supply_support" value="없음" /><div class="item-info"><div class="item-name">없음</div></div></label>
+        <label class="check-item"><input type="checkbox" id="m_supply_support_other" name="m_supply_support" value="기타" onchange="document.getElementById('m_supply_support_other_text').style.display=this.checked?'block':'none'" /><div class="item-info"><div class="item-name">기타</div></div></label>
+      </div>
+      <input type="text" id="m_supply_support_other_text" placeholder="기타 내용을 적어주세요" style="display:none;margin-top:8px" />
+    </div>
+    <div class="field">
+      <label class="field-label" for="m_supply_memo">기타 의견 또는 실제 이용 경험<span class="opt">(선택)</span></label>
+      <textarea id="m_supply_memo" placeholder="실제 이용 경험, 상점 의견, 변화된 점, 추가로 확인할 내용을 간단히 적어주세요." style="min-height:86px"></textarea>
+    </div>
+  </div>
   <div class="card">
     <div class="card-title">항목별 평가</div>
     <div class="field">
@@ -1186,6 +1236,41 @@ function setMonitorVisitType(value) {
   var notice = document.getElementById('m_visit_notice');
   notice.textContent = messages[value] || '';
   notice.style.display = notice.textContent ? 'block' : 'none';
+  var existingSupplyCard = document.getElementById('m_existing_supply_card');
+  if (existingSupplyCard) existingSupplyCard.style.display = value === '기존 보급처 확인' ? 'block' : 'none';
+  if (value !== '기존 보급처 확인') resetExistingSupplyFields();
+}
+function resetExistingSupplyFields() {
+  document.querySelectorAll('input[name="m_supply_items"], input[name="m_supply_support"]').forEach(function(el) { el.checked = false; });
+  ['m_supply_status','m_supply_use'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  var memo = document.getElementById('m_supply_memo');
+  if (memo) memo.value = '';
+  var otherText = document.getElementById('m_supply_support_other_text');
+  if (otherText) { otherText.value = ''; otherText.style.display = 'none'; }
+}
+function checkedValues(name) {
+  return Array.from(document.querySelectorAll('input[name="' + name + '"]:checked')).map(function(el) { return el.value; });
+}
+function existingSupplyNotes() {
+  var items = checkedValues('m_supply_items');
+  var status = document.getElementById('m_supply_status').value;
+  var use = document.getElementById('m_supply_use').value;
+  var memo = document.getElementById('m_supply_memo').value.trim();
+  var support = checkedValues('m_supply_support').map(function(value) {
+    if (value !== '기타') return value;
+    var detail = document.getElementById('m_supply_support_other_text').value.trim();
+    return detail ? '기타(' + detail + ')' : '기타';
+  });
+  return [
+    items.length && '설치된 물품: ' + items.join(' · '),
+    status && '보급물 상태: ' + status,
+    use && '사용 가능 여부: ' + use,
+    support.length && '보급물 관련 개선이 필요한 부분: ' + support.join(' · '),
+    memo && '기타 의견 또는 실제 이용 경험: ' + memo
+  ].filter(Boolean);
 }
 function selectPill(val) {
   ['yes','no','follow'].forEach(v => {
@@ -1471,7 +1556,8 @@ async function submitMonitor() {
   if (!visitType) { showToast('monitor-toast','방문 목적을 선택해 주세요.','error'); return; }
   if (!comment) { showToast('monitor-toast','종합 의견을 입력해 주세요.','error'); return; }
   if (!author) { showToast('monitor-toast','기록자 이름을 입력해 주세요.','error'); return; }
-  const extras = ['방문 목적: ' + visitType, easysign && '안내 스티커·도움벨 필요', goodstaff && '직원 설명이 도움이 됨', goodcase && '좋은 사례로 소개 가능'].filter(Boolean).join(', ');
+  const existingSupplyExtra = visitType === '기존 보급처 확인' ? existingSupplyNotes() : [];
+  const extras = ['방문 목적: ' + visitType, easysign && '안내 스티커·도움벨 필요', goodstaff && '직원 설명이 도움이 됨', goodcase && '좋은 사례로 소개 가능'].concat(existingSupplyExtra).filter(Boolean).join(', ');
   const ts = new Date().toLocaleString('ko-KR');
 
   // recordId 미리 생성 (사진 업로드 경로에 사용)
@@ -1551,6 +1637,9 @@ async function submitMonitor() {
   var visitNotice = document.getElementById('m_visit_notice');
   document.getElementById('m_visit_type').value = '';
   if (visitNotice) { visitNotice.textContent = ''; visitNotice.style.display = 'none'; }
+  var existingSupplyCard = document.getElementById('m_existing_supply_card');
+  if (existingSupplyCard) existingSupplyCard.style.display = 'none';
+  resetExistingSupplyFields();
   // 조치 필요 pill 초기화
   document.getElementById('m_action').value = '';
   ['pill_yes','pill_no','pill_follow'].forEach(function(id) { var el=document.getElementById(id); if(el){el.className='pill';el.setAttribute('aria-pressed','false');} });
@@ -2196,8 +2285,55 @@ function visitPurposeFromExtras(extras) {
   var match = String(extras || '').match(/방문 목적:\s*([^,/]+)/);
   return match ? match[1].trim() : '';
 }
+function escapeRegExp(text) {
+  return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+function labeledExtraSegments(extras, labels) {
+  var text = String(extras || '');
+  var markers = [];
+  labels.forEach(function(label) {
+    var re = new RegExp('(?:^|,\\s*)' + escapeRegExp(label) + '\\s*:', 'g');
+    var match;
+    while ((match = re.exec(text)) !== null) {
+      markers.push({ label: label, start: match.index, valueStart: re.lastIndex });
+    }
+  });
+  markers.sort(function(a, b) { return a.start - b.start; });
+  return markers.map(function(marker, index) {
+    var next = markers[index + 1];
+    return {
+      label: marker.label,
+      start: marker.start,
+      end: next ? next.start : text.length,
+      value: text.slice(marker.valueStart, next ? next.start : text.length).replace(/^,\s*|,\s*$/g, '').trim()
+    };
+  });
+}
+function existingSupplySegments(extras) {
+  return labeledExtraSegments(extras, [
+    '설치된 물품',
+    '보급물 상태',
+    '사용 가능 여부',
+    '보급물 관련 개선이 필요한 부분',
+    '개선 또는 지원 필요',
+    '기타 의견 또는 실제 이용 경험',
+    '실제 이용 경험이나 변화'
+  ]);
+}
+function existingSupplyDetailHtml(extras) {
+  var segments = existingSupplySegments(extras);
+  if (!segments.length) return '';
+  var rows = segments.map(function(seg) {
+    return '<div><strong>' + seg.label + '</strong>: ' + seg.value + '</div>';
+  }).join('');
+  return '<div class="detail-row"><span class="detail-label">기존 보급처</span><span class="detail-value">' + rows + '</span></div>';
+}
 function extrasWithoutVisitPurpose(extras) {
-  return String(extras || '')
+  var text = String(extras || '');
+  existingSupplySegments(text).slice().reverse().forEach(function(seg) {
+    text = text.slice(0, seg.start) + text.slice(seg.end);
+  });
+  return text
     .split(',')
     .map(function(item) { return item.trim(); })
     .filter(function(item) { return item && !/^방문 목적\s*:/.test(item); })
@@ -2288,9 +2424,11 @@ function recordCard(r, idx) {
     const monitorExtras = r.extras || r.extra_notes || '';
     const visitPurpose = visitPurposeFromExtras(monitorExtras);
     const extraDetails = extrasWithoutVisitPurpose(monitorExtras);
+    const existingSupplyDetail = existingSupplyDetailHtml(monitorExtras);
     detail = `
       ${r.date ? `<div class="detail-row"><span class="detail-label">점검 날짜</span><span class="detail-value">${r.date}</span></div>` : ''}
       ${visitPurpose ? `<div class="detail-row"><span class="detail-label">방문 목적</span><span class="detail-value">${visitPurpose}</span></div>` : ''}
+      ${existingSupplyDetail}
       ${ratings ? `<div class="detail-row"><span class="detail-label">항목 평가</span><span class="detail-value">${ratings}</span></div>` : ''}
       ${r.comment ? `<div class="detail-row"><span class="detail-label">종합 의견</span><span class="detail-value">${r.comment}</span></div>` : ''}
       ${extraDetails ? `<div class="detail-row"><span class="detail-label">추가 확인</span><span class="detail-value">${extraDetails}</span></div>` : ''}
@@ -3568,12 +3706,14 @@ function mapRecordExtraHtml(rec) {
     const monitorExtras = rec.extras || rec.extra_notes || '';
     const visitPurpose = visitPurposeFromExtras(monitorExtras);
     const extraDetails = extrasWithoutVisitPurpose(monitorExtras);
+    const existingSupplyDetail = existingSupplyDetailHtml(monitorExtras);
     const detailId = 'map-detail-' + String(rec.id || rec.name || '').replace(/[^a-zA-Z0-9_-]/g, '');
 
     return '<button type="button" class="sec-btn map-detail-toggle" aria-expanded="false" aria-controls="' + detailId + '" style="margin-top:10px;width:100%;font-size:12px;padding:8px 10px">점검내용 보기</button>'
       + '<div id="' + detailId + '" class="record-detail map-record-detail" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">'
       + (rec.date ? '<div class="detail-row"><span class="detail-label">점검 날짜</span><span class="detail-value">' + rec.date + '</span></div>' : '')
       + (visitPurpose ? '<div class="detail-row"><span class="detail-label">방문 목적</span><span class="detail-value">' + visitPurpose + '</span></div>' : '')
+      + existingSupplyDetail
       + (ratings ? '<div class="detail-row"><span class="detail-label">항목 평가</span><span class="detail-value">' + ratings + '</span></div>' : '')
       + (rec.comment ? '<div class="detail-row"><span class="detail-label">종합 의견</span><span class="detail-value">' + rec.comment + '</span></div>' : '')
       + (extraDetails ? '<div class="detail-row"><span class="detail-label">추가 확인</span><span class="detail-value">' + extraDetails + '</span></div>' : '')
