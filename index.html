@@ -629,6 +629,15 @@
       <label class="field-label">모니터링 날짜<span class="req">*</span></label>
       <input type="date" id="m_date" / aria-label="모니터링 날짜">
     </div>
+    <div class="field">
+      <label class="field-label" for="m_visit_type">방문 목적<span class="req">*</span></label>
+      <select id="m_visit_type" aria-label="방문 목적 선택">
+        <option value="">-- 선택해 주세요 --</option>
+        <option value="기존 보급처 확인">기존 보급처 확인</option>
+        <option value="이용하기 편한 상점 확인">이용하기 편한 상점 확인</option>
+        <option value="지원이 필요한 상점 확인">지원이 필요한 상점 확인</option>
+      </select>
+    </div>
   </div>
   <div class="card">
     <div class="card-title">항목별 평가</div>
@@ -1425,6 +1434,7 @@ async function submitMonitor() {
   const place = document.getElementById('m_place').value.trim();
   const addr = document.getElementById('m_addr').value.trim();
   const date = document.getElementById('m_date').value;
+  const visitType = document.getElementById('m_visit_type') ? document.getElementById('m_visit_type').value : '';
   const comment = document.getElementById('m_comment').value.trim();
   const r1 = document.getElementById('m_r1').value;
   const r2 = document.getElementById('m_r2').value;
@@ -1438,9 +1448,10 @@ async function submitMonitor() {
   if (!place) { showToast('monitor-toast','장소명을 입력해 주세요.','error'); return; }
   if (!addr)  { showToast('monitor-toast','주소를 입력해 주세요.','error'); return; }
   if (!date)  { showToast('monitor-toast','날짜를 선택해 주세요.','error'); return; }
+  if (!visitType) { showToast('monitor-toast','방문 목적을 선택해 주세요.','error'); return; }
   if (!comment) { showToast('monitor-toast','종합 의견을 입력해 주세요.','error'); return; }
   if (!author) { showToast('monitor-toast','기록자 이름을 입력해 주세요.','error'); return; }
-  const extras = [easysign && '쉬운 안내판 필요', goodstaff && '직원 응대 좋음', goodcase && '좋은 사례'].filter(Boolean).join(', ');
+  const extras = [visitType && ('방문 목적: ' + visitType), easysign && '쉬운 안내판 필요', goodstaff && '직원 설명이 도움이 됨', goodcase && '좋은 사례'].filter(Boolean).join(', ');
   const ts = new Date().toLocaleString('ko-KR');
 
   // recordId 미리 생성 (사진 업로드 경로에 사용)
@@ -1529,6 +1540,8 @@ async function submitMonitor() {
   if (dropP) dropP.textContent = '탭해서 사진 추가하기';
   document.getElementById('m_photos').value = '';
   document.getElementById('m_date').valueAsDate = new Date();
+  var visitTypeEl = document.getElementById('m_visit_type');
+  if (visitTypeEl) visitTypeEl.value = '';
 }
 
 // ── [GAS 백업] 기존 GAS 사진 업로드 (주석 처리) ─────────
