@@ -735,6 +735,43 @@
       <textarea id="m_supply_memo" placeholder="실제 이용 경험, 상점 의견, 변화된 점, 추가로 확인할 내용을 간단히 적어주세요." style="min-height:86px"></textarea>
     </div>
   </div>
+  <div class="card" id="m_comfort_store_card" style="display:none">
+    <div class="card-title">이용하기 편한 상점 확인</div>
+    <div class="field">
+      <label class="field-label">이 상점의 좋은 점은 무엇인가요?</label>
+      <div class="check-list supply-check-list">
+        <label class="check-item"><input type="checkbox" name="m_comfort_good" value="문턱 없이 출입 가능" /><div class="item-info"><div class="item-name">문턱 없이 출입 가능</div></div></label>
+        <label class="check-item"><input type="checkbox" name="m_comfort_good" value="내부 이동·좌석 이용이 편함" /><div class="item-info"><div class="item-name">내부 이동·좌석 이용이 편함</div></div></label>
+        <label class="check-item"><input type="checkbox" name="m_comfort_good" value="주문이 편함" /><div class="item-info"><div class="item-name">주문이 편함</div></div></label>
+        <label class="check-item"><input type="checkbox" name="m_comfort_good" value="메뉴 확인이 쉬움" /><div class="item-info"><div class="item-name">메뉴 확인이 쉬움</div></div></label>
+        <label class="check-item"><input type="checkbox" name="m_comfort_good" value="화장실 이용 가능" /><div class="item-info"><div class="item-name">화장실 이용 가능</div></div></label>
+        <label class="check-item"><input type="checkbox" name="m_comfort_good" value="직원 설명 또는 안내가 좋음" /><div class="item-info"><div class="item-name">직원 설명 또는 안내가 좋음</div></div></label>
+        <label class="check-item"><input type="checkbox" name="m_comfort_good" value="기타" /><div class="item-info"><div class="item-name">기타</div></div></label>
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label" for="m_comfort_recommend">무장애지도에 소개할 만한가요?</label>
+      <select id="m_comfort_recommend">
+        <option value="">선택해 주세요</option>
+        <option value="소개 추천">소개 추천</option>
+        <option value="일부 정보 확인 후 추천">일부 정보 확인 후 추천</option>
+        <option value="추천 어려움">추천 어려움</option>
+        <option value="판단 보류">판단 보류</option>
+      </select>
+      <input type="text" id="m_comfort_recommend_reason" placeholder="소개하고 싶은 이유나 추가 확인이 필요한 내용을 간단히 적어주세요." style="margin-top:8px" />
+    </div>
+    <div class="field">
+      <label class="field-label">추가 지원이 있으면 더 좋아질 부분이 있나요?</label>
+      <div class="check-list supply-check-list">
+        <label class="check-item"><input type="checkbox" name="m_comfort_support" value="경사로" /><div class="item-info"><div class="item-name">경사로</div></div></label>
+        <label class="check-item"><input type="checkbox" name="m_comfort_support" value="점자메뉴판" /><div class="item-info"><div class="item-name">점자메뉴판</div></div></label>
+        <label class="check-item"><input type="checkbox" name="m_comfort_support" value="QR 텍스트 메뉴" /><div class="item-info"><div class="item-name">QR 텍스트 메뉴</div></div></label>
+        <label class="check-item"><input type="checkbox" name="m_comfort_support" value="안내 스티커·도움벨" /><div class="item-info"><div class="item-name">안내 스티커·도움벨</div></div></label>
+        <label class="check-item"><input type="checkbox" name="m_comfort_support" value="추가 지원 필요 없음" /><div class="item-info"><div class="item-name">추가 지원 필요 없음</div></div></label>
+        <label class="check-item"><input type="checkbox" name="m_comfort_support" value="기타" /><div class="item-info"><div class="item-name">기타</div></div></label>
+      </div>
+    </div>
+  </div>
   <div class="card">
     <div class="card-title">추가 확인 항목</div>
     <div class="field">
@@ -1244,7 +1281,10 @@ function setMonitorVisitType(value) {
   notice.style.display = notice.textContent ? 'block' : 'none';
   var existingSupplyCard = document.getElementById('m_existing_supply_card');
   if (existingSupplyCard) existingSupplyCard.style.display = value === '기존 보급처 확인' ? 'block' : 'none';
+  var comfortStoreCard = document.getElementById('m_comfort_store_card');
+  if (comfortStoreCard) comfortStoreCard.style.display = value === '이용하기 편한 상점 확인' ? 'block' : 'none';
   if (value !== '기존 보급처 확인') resetExistingSupplyFields();
+  if (value !== '이용하기 편한 상점 확인') resetComfortStoreFields();
 }
 function resetExistingSupplyFields() {
   document.querySelectorAll('input[name="m_supply_items"], input[name="m_supply_support"]').forEach(function(el) { el.checked = false; });
@@ -1256,6 +1296,13 @@ function resetExistingSupplyFields() {
   if (memo) memo.value = '';
   var otherText = document.getElementById('m_supply_support_other_text');
   if (otherText) { otherText.value = ''; otherText.style.display = 'none'; }
+}
+function resetComfortStoreFields() {
+  document.querySelectorAll('input[name="m_comfort_good"], input[name="m_comfort_support"]').forEach(function(el) { el.checked = false; });
+  ['m_comfort_recommend','m_comfort_recommend_reason'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
 }
 function checkedValues(name) {
   return Array.from(document.querySelectorAll('input[name="' + name + '"]:checked')).map(function(el) { return el.value; });
@@ -1276,6 +1323,18 @@ function existingSupplyNotes() {
     use && '사용 가능 여부: ' + use,
     support.length && '보급물 관련 개선이 필요한 부분: ' + support.join(' · '),
     memo && '기타 의견 또는 실제 이용 경험: ' + memo
+  ].filter(Boolean);
+}
+function comfortStoreNotes() {
+  var good = checkedValues('m_comfort_good');
+  var recommend = document.getElementById('m_comfort_recommend').value;
+  var reason = document.getElementById('m_comfort_recommend_reason').value.trim();
+  var support = checkedValues('m_comfort_support');
+  return [
+    good.length && '좋은 점: ' + good.join(' · '),
+    recommend && '무장애지도 소개: ' + recommend,
+    reason && '소개 이유 또는 추가 확인: ' + reason,
+    support.length && '더 좋아질 지원: ' + support.join(' · ')
   ].filter(Boolean);
 }
 function selectPill(val) {
@@ -1563,7 +1622,8 @@ async function submitMonitor() {
   if (!comment) { showToast('monitor-toast','종합 의견을 입력해 주세요.','error'); return; }
   if (!author) { showToast('monitor-toast','기록자 이름을 입력해 주세요.','error'); return; }
   const existingSupplyExtra = visitType === '기존 보급처 확인' ? existingSupplyNotes() : [];
-  const extras = ['방문 목적: ' + visitType, easysign && '안내 스티커·도움벨 필요', goodstaff && '직원 설명이 도움이 됨', goodcase && '좋은 사례로 소개 가능'].concat(existingSupplyExtra).filter(Boolean).join(', ');
+  const comfortStoreExtra = visitType === '이용하기 편한 상점 확인' ? comfortStoreNotes() : [];
+  const extras = ['방문 목적: ' + visitType, easysign && '안내 스티커·도움벨 필요', goodstaff && '직원 설명이 도움이 됨', goodcase && '좋은 사례로 소개 가능'].concat(existingSupplyExtra, comfortStoreExtra).filter(Boolean).join(', ');
   const ts = new Date().toLocaleString('ko-KR');
 
   // recordId 미리 생성 (사진 업로드 경로에 사용)
@@ -1645,7 +1705,10 @@ async function submitMonitor() {
   if (visitNotice) { visitNotice.textContent = ''; visitNotice.style.display = 'none'; }
   var existingSupplyCard = document.getElementById('m_existing_supply_card');
   if (existingSupplyCard) existingSupplyCard.style.display = 'none';
+  var comfortStoreCard = document.getElementById('m_comfort_store_card');
+  if (comfortStoreCard) comfortStoreCard.style.display = 'none';
   resetExistingSupplyFields();
+  resetComfortStoreFields();
   // 조치 필요 pill 초기화
   document.getElementById('m_action').value = '';
   ['pill_yes','pill_no','pill_follow'].forEach(function(id) { var el=document.getElementById(id); if(el){el.className='pill';el.setAttribute('aria-pressed','false');} });
@@ -2334,9 +2397,28 @@ function existingSupplyDetailHtml(extras) {
   }).join('');
   return '<div class="detail-row"><span class="detail-label">기존 보급처</span><span class="detail-value">' + rows + '</span></div>';
 }
+function comfortStoreSegments(extras) {
+  return labeledExtraSegments(extras, [
+    '좋은 점',
+    '무장애지도 소개',
+    '소개 이유 또는 추가 확인',
+    '더 좋아질 지원'
+  ]);
+}
+function comfortStoreDetailHtml(extras) {
+  var segments = comfortStoreSegments(extras);
+  if (!segments.length) return '';
+  var rows = segments.map(function(seg) {
+    return '<div><strong>' + seg.label + '</strong>: ' + seg.value + '</div>';
+  }).join('');
+  return '<div class="detail-row"><span class="detail-label">이용하기 편한 상점 확인</span><span class="detail-value">' + rows + '</span></div>';
+}
 function extrasWithoutVisitPurpose(extras) {
   var text = String(extras || '');
   existingSupplySegments(text).slice().reverse().forEach(function(seg) {
+    text = text.slice(0, seg.start) + text.slice(seg.end);
+  });
+  comfortStoreSegments(text).slice().reverse().forEach(function(seg) {
     text = text.slice(0, seg.start) + text.slice(seg.end);
   });
   return text
@@ -2431,10 +2513,12 @@ function recordCard(r, idx) {
     const visitPurpose = visitPurposeFromExtras(monitorExtras);
     const extraDetails = extrasWithoutVisitPurpose(monitorExtras);
     const existingSupplyDetail = existingSupplyDetailHtml(monitorExtras);
+    const comfortStoreDetail = comfortStoreDetailHtml(monitorExtras);
     detail = `
       ${r.date ? `<div class="detail-row"><span class="detail-label">점검 날짜</span><span class="detail-value">${r.date}</span></div>` : ''}
       ${visitPurpose ? `<div class="detail-row"><span class="detail-label">방문 목적</span><span class="detail-value">${visitPurpose}</span></div>` : ''}
       ${existingSupplyDetail}
+      ${comfortStoreDetail}
       ${ratings ? `<div class="detail-row"><span class="detail-label">항목 평가</span><span class="detail-value">${ratings}</span></div>` : ''}
       ${r.comment ? `<div class="detail-row"><span class="detail-label">종합 의견</span><span class="detail-value">${r.comment}</span></div>` : ''}
       ${extraDetails ? `<div class="detail-row"><span class="detail-label">추가 확인</span><span class="detail-value">${extraDetails}</span></div>` : ''}
@@ -3713,6 +3797,7 @@ function mapRecordExtraHtml(rec) {
     const visitPurpose = visitPurposeFromExtras(monitorExtras);
     const extraDetails = extrasWithoutVisitPurpose(monitorExtras);
     const existingSupplyDetail = existingSupplyDetailHtml(monitorExtras);
+    const comfortStoreDetail = comfortStoreDetailHtml(monitorExtras);
     const detailId = 'map-detail-' + String(rec.id || rec.name || '').replace(/[^a-zA-Z0-9_-]/g, '');
 
     return '<button type="button" class="sec-btn map-detail-toggle" aria-expanded="false" aria-controls="' + detailId + '" style="margin-top:10px;width:100%;font-size:12px;padding:8px 10px">점검내용 보기</button>'
@@ -3720,6 +3805,7 @@ function mapRecordExtraHtml(rec) {
       + (rec.date ? '<div class="detail-row"><span class="detail-label">점검 날짜</span><span class="detail-value">' + rec.date + '</span></div>' : '')
       + (visitPurpose ? '<div class="detail-row"><span class="detail-label">방문 목적</span><span class="detail-value">' + visitPurpose + '</span></div>' : '')
       + existingSupplyDetail
+      + comfortStoreDetail
       + (ratings ? '<div class="detail-row"><span class="detail-label">항목 평가</span><span class="detail-value">' + ratings + '</span></div>' : '')
       + (rec.comment ? '<div class="detail-row"><span class="detail-label">종합 의견</span><span class="detail-value">' + rec.comment + '</span></div>' : '')
       + (extraDetails ? '<div class="detail-row"><span class="detail-label">추가 확인</span><span class="detail-value">' + extraDetails + '</span></div>' : '')
