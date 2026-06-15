@@ -129,8 +129,6 @@
   .rating-btn.sel-good { background: var(--good-bg); border-color: var(--good); color: var(--good); font-weight: 700; }
   .rating-btn.sel-fair { background: var(--fair-bg); border-color: var(--fair); color: var(--fair); font-weight: 700; }
   .rating-btn.sel-poor { background: var(--poor-bg); border-color: var(--poor); color: var(--poor); font-weight: 700; }
-  .monitor-visit-group { flex-direction: column; }
-  .monitor-visit-group .rating-btn { width: 100%; min-height: 42px; }
   .pill-group { display: flex; gap: 8px; flex-wrap: wrap; }
   .pill { display: flex; align-items: center; gap: 5px; padding: 7px 14px; border: 1px solid var(--border); border-radius: 20px; font-family: 'Noto Sans KR', sans-serif; font-size: 13px; color: var(--text-muted); background: var(--white); cursor: pointer; transition: all 0.15s; user-select: none; }
   .pill.active-yes { border-color: var(--poor); color: var(--poor); background: var(--poor-bg); }
@@ -635,13 +633,13 @@
   <div class="card">
     <div class="card-title">방문 목적</div>
     <div class="field">
-      <label class="field-label">방문 목적을 선택해 주세요<span class="req">*</span></label>
-      <div class="rating-group monitor-visit-group" id="rg_visit_type">
-        <button type="button" class="rating-btn" aria-pressed="false" onclick="setMonitorVisitType(this,'기존 보급처 확인')">기존 보급처 확인</button>
-        <button type="button" class="rating-btn" aria-pressed="false" onclick="setMonitorVisitType(this,'이용하기 편한 상점 확인')">이용하기 편한 상점 확인</button>
-        <button type="button" class="rating-btn" aria-pressed="false" onclick="setMonitorVisitType(this,'지원이 필요한 상점 확인')">지원이 필요한 상점 확인</button>
-      </div>
-      <input type="hidden" id="m_visit_type" />
+      <label class="field-label" for="m_visit_type">방문 목적<span class="req">*</span></label>
+      <select id="m_visit_type" onchange="setMonitorVisitType(this.value)">
+        <option value="">방문 목적을 선택해 주세요</option>
+        <option value="기존 보급처 확인">기존 보급처 확인</option>
+        <option value="이용하기 편한 상점 확인">이용하기 편한 상점 확인</option>
+        <option value="지원이 필요한 상점 확인">지원이 필요한 상점 확인</option>
+      </select>
       <div id="m_visit_notice" class="notice" style="display:none;margin:10px 0 0"></div>
     </div>
   </div>
@@ -1173,14 +1171,7 @@ function setRating(fieldId, groupId, btn, level) {
   btn.setAttribute('aria-checked', 'true');
   document.getElementById(fieldId).value = level === 'good' ? '좋음' : level === 'fair' ? '보통' : '미흡';
 }
-function setMonitorVisitType(btn, value) {
-  document.querySelectorAll('#rg_visit_type .rating-btn').forEach(function(b) {
-    b.classList.remove('sel-good');
-    b.setAttribute('aria-pressed', 'false');
-  });
-  btn.classList.add('sel-good');
-  btn.setAttribute('aria-pressed', 'true');
-  document.getElementById('m_visit_type').value = value;
+function setMonitorVisitType(value) {
   var messages = {
     '기존 보급처 확인': '기존에 설치된 경사로, 점자메뉴판, QR 메뉴가 잘 관리되고 있는지 확인해주세요.',
     '이용하기 편한 상점 확인': '이 상점이 왜 이용하기 편한지 좋은 점을 중심으로 기록해주세요.',
@@ -1553,7 +1544,6 @@ async function submitMonitor() {
   document.querySelectorAll('.rating-btn').forEach(function(b) { b.classList.remove('sel-good','sel-fair','sel-poor'); b.setAttribute('aria-pressed','false'); b.setAttribute('aria-checked','false'); });
   var visitNotice = document.getElementById('m_visit_notice');
   document.getElementById('m_visit_type').value = '';
-  document.querySelectorAll('#rg_visit_type .rating-btn').forEach(function(b) { b.classList.remove('sel-good'); b.setAttribute('aria-pressed','false'); });
   if (visitNotice) { visitNotice.textContent = ''; visitNotice.style.display = 'none'; }
   // 조치 필요 pill 초기화
   document.getElementById('m_action').value = '';
