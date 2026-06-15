@@ -725,11 +725,11 @@
   <div class="card">
     <div class="card-title">종합 의견</div>
     <div class="field">
-      <label class="field-label">조치 필요 여부</label>
+      <label class="field-label">최종 판단</label>
       <div class="pill-group">
-        <button class="pill" id="pill_yes"    onclick="selectPill('yes')">🚨 조치 필요</button>
-        <button class="pill" id="pill_no"     onclick="selectPill('no')">✅ 양호</button>
-        <button class="pill" id="pill_follow" onclick="selectPill('follow')">🕐 추후 확인</button>
+        <button class="pill" id="pill_yes"    onclick="selectPill('yes')">🚨 지원 검토 필요</button>
+        <button class="pill" id="pill_no"     onclick="selectPill('no')">✅ 확인 완료</button>
+        <button class="pill" id="pill_follow" onclick="selectPill('follow')">🕐 재방문 필요</button>
       </div>
       <input type="hidden" id="m_action" />
     </div>
@@ -801,9 +801,12 @@
       <label for="filter-action" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">상태 필터</label>
       <select id="filter-action" onchange="renderRecords()" style="flex:1" aria-label="상태로 필터">
         <option value="">전체 상태</option>
-        <option value="조치 필요">조치 필요</option>
-        <option value="양호">양호</option>
-        <option value="추후 확인">추후 확인</option>
+        <option value="지원 검토 필요">지원 검토 필요</option>
+        <option value="확인 완료">확인 완료</option>
+        <option value="재방문 필요">재방문 필요</option>
+        <option value="조치 필요">기존: 조치 필요</option>
+        <option value="양호">기존: 양호</option>
+        <option value="추후 확인">기존: 추후 확인</option>
       </select>
     </div>
   </div>
@@ -824,10 +827,10 @@
     <div id="map-legend" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;font-size:11px;color:var(--text-muted);align-items:center;padding:8px 10px;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
       <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#1a8c6e;display:inline-block"></span> 보급 신청</span>
       <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#ec4899;display:inline-block"></span> 상점 추천</span>
-      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block"></span> 조치 필요</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block"></span> 지원 검토 필요</span>
       <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#9ca3af;display:inline-block"></span> 미검증 (모니터링단만 표시)</span>
-      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#d97706;display:inline-block"></span> 추후 확인</span>
-      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#3b82f6;display:inline-block"></span> 모니터링 양호</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#d97706;display:inline-block"></span> 재방문 필요</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#3b82f6;display:inline-block"></span> 확인 완료</span>
     </div>
   </div>
   <div class="card map-list-card">
@@ -872,9 +875,12 @@
         </select>
         <select id="rec-filter-action" onchange="renderSettingsRecords()" aria-label="상태 필터" style="flex:1;min-width:100px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:'Noto Sans KR',sans-serif">
           <option value="">전체 상태</option>
-          <option value="조치 필요">조치 필요</option>
-          <option value="양호">양호</option>
-          <option value="추후 확인">추후 확인</option>
+          <option value="지원 검토 필요">지원 검토 필요</option>
+          <option value="확인 완료">확인 완료</option>
+          <option value="재방문 필요">재방문 필요</option>
+          <option value="조치 필요">기존: 조치 필요</option>
+          <option value="양호">기존: 양호</option>
+          <option value="추후 확인">기존: 추후 확인</option>
           <option value="신청 접수">신청 접수</option>
           <option value="처리 완료">처리 완료</option>
           <option value="추천">추천</option>
@@ -1188,7 +1194,7 @@ function selectPill(val) {
     el.setAttribute('aria-pressed', v === val ? 'true' : 'false');
     if (v === val) el.classList.add('active-' + v);
   });
-  document.getElementById('m_action').value = val === 'yes' ? '조치 필요' : val === 'no' ? '양호' : '추후 확인';
+  document.getElementById('m_action').value = val === 'yes' ? '지원 검토 필요' : val === 'no' ? '확인 완료' : '재방문 필요';
 }
 let selectedPhotos = [];
 
@@ -1725,7 +1731,7 @@ function loadJournalStores() {
     wrap.innerHTML = '<p style="font-size:13px;color:var(--text-muted)">' + date + '에 ' + teamName + '의 모니터링 기록이 없어요. 직접 추가할 수 있어요.</p>';
     return;
   }
-  var actionColor = function(a) { return a==='조치 필요'?'#dc2626':a==='추후 확인'?'#d97706':'#1a8c6e'; };
+  var actionColor = function(a) { return isSupportReviewAction(a)?'#dc2626':isRevisitAction(a)?'#d97706':'#1a8c6e'; };
   var html = '<div style="display:flex;flex-direction:column;gap:8px">';
   records.forEach(function(r) {
     var photoHtml = '';
@@ -2197,13 +2203,30 @@ function extrasWithoutVisitPurpose(extras) {
     .filter(function(item) { return item && !/^방문 목적\s*:/.test(item); })
     .join(', ');
 }
+function isSupportReviewAction(action) {
+  return action === '지원 검토 필요' || action === '조치 필요';
+}
+function isCompleteAction(action) {
+  return action === '확인 완료' || action === '확인 완료 ✓' || action === '양호';
+}
+function isRevisitAction(action) {
+  return action === '재방문 필요' || action === '추후 확인';
+}
+function actionMatches(recordAction, filterAction) {
+  if (!filterAction) return true;
+  if (recordAction === filterAction) return true;
+  if (isSupportReviewAction(filterAction)) return isSupportReviewAction(recordAction);
+  if (isCompleteAction(filterAction)) return isCompleteAction(recordAction);
+  if (isRevisitAction(filterAction)) return isRevisitAction(recordAction);
+  return false;
+}
 
 function renderRecords() {
   const filterType = document.getElementById('filter-type').value;
   const filterAction = document.getElementById('filter-action').value;
   let records = getRecords();
   if (filterType) records = records.filter(r => r.type === filterType);
-  if (filterAction) records = records.filter(r => r.action === filterAction);
+  if (filterAction) records = records.filter(r => actionMatches(r.action, filterAction));
   const el = document.getElementById('records-list');
   const countEl = document.getElementById('records-count');
   if (records.length === 0) {
@@ -2219,9 +2242,9 @@ function recordCard(r, idx) {
   const typeTag = r.type === 'apply'
     ? '<span class="tag tag-apply">보급 신청</span>'
     : '<span class="tag tag-monitor">모니터링</span>';
-  const actionTag = r.action === '조치 필요' ? '<span class="tag tag-action">조치 필요</span>'
-    : r.action === '양호' ? '<span class="tag tag-good">양호</span>'
-    : r.action === '추후 확인' ? '<span class="tag tag-fair">추후 확인</span>'
+  const actionTag = isSupportReviewAction(r.action) ? `<span class="tag tag-action">${r.action}</span>`
+    : isCompleteAction(r.action) ? `<span class="tag tag-good">${r.action}</span>`
+    : isRevisitAction(r.action) ? `<span class="tag tag-fair">${r.action}</span>`
     : r.action === '신청 접수' ? '<span class="tag tag-apply">신청 접수</span>'
     : r.action === '검토 중' ? '<span class="tag" style="background:#f3e8ff;color:#7c3aed">검토 중</span>'
     : r.action === '보급 완료' ? '<span class="tag tag-good">보급 완료 ✓</span>'
@@ -2313,10 +2336,13 @@ function statusDropdown(r) {
     <option value="검토 중">검토 중</option>
     <option value="확인 완료 ✓" style="font-weight:700;color:#16a34a">✅ 확인 완료 (지도 공개)</option>
     <option value="보급 완료">보급 완료</option>
-    <option value="조치 필요">조치 필요</option>
+    <option value="지원 검토 필요">지원 검토 필요</option>
+    <option value="확인 완료">확인 완료</option>
+    <option value="재방문 필요">재방문 필요</option>
+    <option value="조치 필요">기존: 조치 필요</option>
     <option value="조치 완료">조치 완료</option>
-    <option value="양호">양호</option>
-    <option value="추후 확인">추후 확인</option>
+    <option value="양호">기존: 양호</option>
+    <option value="추후 확인">기존: 추후 확인</option>
   </select>`;
 }
 
@@ -2453,7 +2479,7 @@ function openEditModal(e, idx) {
   const filterAction = document.getElementById('filter-action') ? document.getElementById('filter-action').value : '';
   let filtered = records;
   if (filterType) filtered = filtered.filter(r => r.type === filterType);
-  if (filterAction) filtered = filtered.filter(r => r.action === filterAction);
+  if (filterAction) filtered = filtered.filter(r => actionMatches(r.action, filterAction));
   const rec = filtered[num] || records[num];
   // 실제 records에서 인덱스 찾기
   editingRecordIdx = records.indexOf(rec);
@@ -2485,9 +2511,12 @@ function renderEditForm(r) {
       <div class="field"><label class="field-label">안내판</label><select id="ef_r4" aria-label="안내판 평가">${ratingOptions('r4',r.r4)}</select></div>
       <div class="field"><label class="field-label">조치 여부</label>
         <select id="ef_action" aria-label="조치 필요 여부">
-          <option value="조치 필요" ${r.action==='조치 필요'?'selected':''}>조치 필요</option>
-          <option value="양호" ${r.action==='양호'?'selected':''}>양호</option>
-          <option value="추후 확인" ${r.action==='추후 확인'?'selected':''}>추후 확인</option>
+          <option value="지원 검토 필요" ${r.action==='지원 검토 필요'?'selected':''}>지원 검토 필요</option>
+          <option value="확인 완료" ${r.action==='확인 완료'?'selected':''}>확인 완료</option>
+          <option value="재방문 필요" ${r.action==='재방문 필요'?'selected':''}>재방문 필요</option>
+          <option value="조치 필요" ${r.action==='조치 필요'?'selected':''}>기존: 조치 필요</option>
+          <option value="양호" ${r.action==='양호'?'selected':''}>기존: 양호</option>
+          <option value="추후 확인" ${r.action==='추후 확인'?'selected':''}>기존: 추후 확인</option>
         </select>
       </div>
       <div class="field"><label class="field-label">추가 확인 항목</label><textarea id="ef_extras">${r.extras || ''}</textarea></div>
@@ -2956,7 +2985,7 @@ function getFilteredSettingsMonitorRecords() {
   return getRecords().filter(function(r) {
     if (r.type !== 'monitor') return false;
     if (typeFilter && typeFilter !== 'monitor') return false;
-    if (actionFilter && r.action !== actionFilter) return false;
+    if (actionFilter && !actionMatches(r.action, actionFilter)) return false;
     return true;
   });
 }
@@ -3134,7 +3163,7 @@ function renderSettingsRecords() {
     return copy;
   }).filter(function(r) {
     if (typeFilter && r.type !== typeFilter) return false;
-    if (actionFilter && r.action !== actionFilter) return false;
+    if (actionFilter && !actionMatches(r.action, actionFilter)) return false;
     return true;
   });
   if (!records.length) {
@@ -3143,7 +3172,7 @@ function renderSettingsRecords() {
   }
   var typeLabelMap = {apply:'보급 신청', monitor:'모니터링', recommend:'상점 추천'};
   var tagMap = {apply:'tag-apply', monitor:'tag-monitor', recommend:'tag-good'};
-  var statusList = ['조치 필요','양호','추후 확인','신청 접수','처리 완료','추천'];
+  var statusList = ['지원 검토 필요','확인 완료','재방문 필요','조치 필요','양호','추후 확인','신청 접수','처리 완료','추천'];
   el.innerHTML = '';
   records.forEach(function(r) {
     var ts = String(r.timestamp||'');
@@ -3506,13 +3535,15 @@ function isVerified(rec) {
 }
 
 function getMarkerColor(rec) {
+  if (isSupportReviewAction(rec.action)) return '#dc2626';
+  if (isRevisitAction(rec.action)) return '#d97706';
   // 미검증은 회색
   if (!isVerified(rec)) return '#9ca3af';
   // 검증 완료
   if (rec.type === 'apply') return '#1a8c6e';
   if (rec.type === 'recommend') return '#ec4899';
   if (rec.action === '조치 완료') return '#16a34a';
-  if (rec.action === '양호') return '#3b82f6';
+  if (isCompleteAction(rec.action)) return '#3b82f6';
   return '#1a8c6e';
 }
 
@@ -3605,11 +3636,9 @@ function renderMap() {
     const typeMeta = getRecordTypeMeta(rec);
     const typeLabel = typeMeta.label;
     const typeTagStyle = typeMeta.tagClass;
-    const actionLabel = rec.action === '조치 필요' ? '조치 필요'
-      : rec.action === '추후 확인' ? '추후 확인'
-      : rec.action === '양호' ? '양호' : '';
-    const actionTagStyle = rec.action === '조치 필요' ? 'tag tag-action'
-      : rec.action === '추후 확인' ? 'tag tag-fair'
+    const actionLabel = (isSupportReviewAction(rec.action) || isRevisitAction(rec.action) || isCompleteAction(rec.action)) ? rec.action : '';
+    const actionTagStyle = isSupportReviewAction(rec.action) ? 'tag tag-action'
+      : isRevisitAction(rec.action) ? 'tag tag-fair'
       : 'tag tag-good';
 
     const item = document.createElement('div');
