@@ -3888,5 +3888,52 @@ if (!window.__journalEditHandlerAttached) {
 }
 
 </script>
+
+<script>
+// 안전 패치 v3: 탭 전환 중 오류가 나도 화면이 백지로 남지 않도록 방어합니다.
+(function(){
+  function byId(id){ return document.getElementById(id); }
+  window.switchTab = function(id, el) {
+    var target = byId(id);
+    if (!target) {
+      console.warn('탭 대상을 찾을 수 없습니다:', id);
+      return;
+    }
+    document.querySelectorAll('.section').forEach(function(s){ s.classList.remove('active'); });
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
+    target.classList.add('active');
+    if (el) { el.classList.add('active'); el.setAttribute('aria-selected','true'); }
+    try { if (id === 'home' && typeof updateDashboard === 'function') updateDashboard(); } catch(e){ console.warn('홈 갱신 오류:', e); }
+    try { if (id === 'settings' && typeof loadSettingsUI === 'function') loadSettingsUI(); } catch(e){ console.warn('설정 갱신 오류:', e); }
+    try { if (id === 'map' && typeof initMap === 'function') initMap(); } catch(e){ console.warn('지도 초기화 오류:', e); }
+  };
+  window.switchApplyTab = function(tab) {
+    var isApply = (tab === 'apply');
+    var applyForm = byId('apply-form-apply');
+    var recForm = byId('apply-form-recommend');
+    if (applyForm) applyForm.style.display = isApply ? 'block' : 'none';
+    if (recForm) recForm.style.display = isApply ? 'none' : 'block';
+    var ab = byId('apply-subtab-apply');
+    var rb = byId('apply-subtab-rec');
+    if (ab) { ab.className = 'subtab' + (isApply ? ' on-check' : ''); ab.setAttribute('aria-selected', isApply ? 'true' : 'false'); }
+    if (rb) { rb.className = 'subtab' + (isApply ? '' : ' on-journal'); rb.setAttribute('aria-selected', isApply ? 'false' : 'true'); }
+    var applyTab = document.querySelector('.tabs .tab:nth-child(2)');
+    window.switchTab('apply', applyTab);
+  };
+  window.showSubtab = function(tab) {
+    var isCheck = (tab === 'check');
+    var check = byId('sub-check');
+    var journal = byId('sub-journal');
+    if (check) check.style.display = isCheck ? 'block' : 'none';
+    if (journal) journal.style.display = isCheck ? 'none' : 'block';
+    var cb = byId('subtab-check');
+    var jb = byId('subtab-journal');
+    if (cb) { cb.className = 'subtab' + (isCheck ? ' on-check' : ''); cb.setAttribute('aria-selected', isCheck ? 'true' : 'false'); }
+    if (jb) { jb.className = 'subtab' + (isCheck ? '' : ' on-journal'); jb.setAttribute('aria-selected', isCheck ? 'false' : 'true'); }
+    try { if (!isCheck && typeof initJournal === 'function') initJournal(); } catch(e){ console.warn('일지 초기화 오류:', e); }
+  };
+})();
+</script>
+
 </body>
 </html>
