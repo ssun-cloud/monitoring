@@ -279,19 +279,18 @@
     body #map.section.active {
       height: calc(100vh - 101px) !important;
       min-height: 0 !important;
-      overflow: hidden !important;
-      display: flex !important;
-      flex-direction: column !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      display: block !important;
       padding-bottom: 12px !important;
+      -webkit-overflow-scrolling: touch !important;
     }
     body #map.section.active .notice {
-      flex: 0 0 auto !important;
+      margin-bottom: 10px !important;
     }
     body #map.section.active .map-sticky {
       position: static !important;
-      flex: 0 0 auto !important;
-      display: flex !important;
-      flex-direction: column !important;
+      display: block !important;
       height: auto !important;
       min-height: 0 !important;
       padding-bottom: 8px !important;
@@ -302,15 +301,14 @@
       margin-bottom: 6px !important;
     }
     body #map.section.active #kakao-map {
-      height: 230px !important;
-      min-height: 230px !important;
+      height: 190px !important;
+      min-height: 190px !important;
     }
     body #map.section.active .map-list-card {
-      flex: 1 1 0 !important;
       display: flex !important;
       flex-direction: column !important;
-      height: auto !important;
-      min-height: 0 !important;
+      height: calc(100vh - 350px) !important;
+      min-height: 320px !important;
       overflow: hidden !important;
       margin-bottom: 0 !important;
     }
