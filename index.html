@@ -2502,18 +2502,43 @@ function extrasWithoutVisitPurpose(extras) {
     .join(', ');
 }
 function isSupportReviewAction(action) {
+  action = normalizeActionValue(action);
   return action === '지원 검토 필요' || action === '조치 필요';
 }
 function isCompleteAction(action) {
+  action = normalizeActionValue(action);
   return action === '확인 완료' || action === '확인 완료 ✓' || action === '양호';
 }
 function isRevisitAction(action) {
+  action = normalizeActionValue(action);
   return action === '재방문 필요' || action === '추후 확인';
+}
+function normalizeActionValue(action) {
+  var text = String(action || '').replace(/[🚨✅🕐✓]/g, '').replace(/\s+/g, ' ').trim();
+  var compact = text.replace(/\s+/g, '');
+  if (compact === '지원검토필요' || compact === '조치필요') return compact === '조치필요' ? '조치 필요' : '지원 검토 필요';
+  if (compact === '확인완료' || compact === '양호') return compact === '양호' ? '양호' : '확인 완료';
+  if (compact === '재방문필요' || compact === '추후확인') return compact === '추후확인' ? '추후 확인' : '재방문 필요';
+  return text;
 }
 function getRecordAction(record) {
   if (!record) return '';
   if (typeof record === 'string') return record;
-  return record.action || record.action_required || record.status || record.state || '';
+  var candidates = [
+    record.action,
+    record.action_required,
+    record.actionRequired,
+    record.action_required_text,
+    record.status,
+    record.state,
+    record.current_status,
+    record.currentStatus
+  ];
+  for (var i = 0; i < candidates.length; i++) {
+    var value = normalizeActionValue(candidates[i]);
+    if (value) return value;
+  }
+  return '';
 }
 function getRecordType(record) {
   var type = typeof record === 'string' ? record : (record && (record.type || record.record_type || record.kind || record.category)) || '';
@@ -2529,6 +2554,7 @@ function typeMatches(record, filterType) {
 }
 function actionMatches(recordAction, filterAction) {
   recordAction = getRecordAction(recordAction);
+  filterAction = normalizeActionValue(filterAction);
   if (!filterAction) return true;
   if (recordAction === filterAction) return true;
   if (isSupportReviewAction(filterAction)) return isSupportReviewAction(recordAction);
@@ -3545,7 +3571,7 @@ function renderSettingsRecords() {
     statusList.forEach(function(s) {
       var opt = document.createElement('option');
       opt.value = s; opt.textContent = s;
-      if (getRecordAction(r) === s) opt.selected = true;
+      if (actionMatches(r, s)) opt.selected = true;
       sel.appendChild(opt);
     });
     sel.addEventListener('change', function() { updateRecordStatus(ts, r.type, this.value); });
@@ -3710,8 +3736,9 @@ async function syncRecordsFromSupabase(force) {
       name:            r.name,
       addr:            r.addr,
       items:           r.items || '',
-      action:          r.action || r.action_required || r.status || '',
-      action_required: r.action_required || '',
+      action:          normalizeActionValue(r.action || r.action_required || r.actionRequired || r.status || ''),
+      action_required: r.action_required || r.actionRequired || '',
+      actionRequired:  r.actionRequired || r.action_required || '',
       status:          r.status || '',
       monitored_at:    r.monitored_at || '',
       r_braille:       r.r_braille || '',
