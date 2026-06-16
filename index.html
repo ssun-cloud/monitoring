@@ -2529,16 +2529,28 @@ function normalizeActionValue(action) {
 function getRecordAction(record) {
   if (!record) return '';
   if (typeof record === 'string') return record;
-  var candidates = [
-    record.action,
-    record.action_required,
-    record.actionRequired,
-    record.action_required_text,
-    record.status,
-    record.state,
-    record.current_status,
-    record.currentStatus
-  ];
+  var isMonitor = typeMatches(record, 'monitor');
+  var candidates = isMonitor
+    ? [
+        record.action_required,
+        record.actionRequired,
+        record.action_required_text,
+        record.action,
+        record.status,
+        record.state,
+        record.current_status,
+        record.currentStatus
+      ]
+    : [
+        record.action,
+        record.status,
+        record.state,
+        record.action_required,
+        record.actionRequired,
+        record.action_required_text,
+        record.current_status,
+        record.currentStatus
+      ];
   for (var i = 0; i < candidates.length; i++) {
     var value = normalizeActionValue(candidates[i]);
     if (value) return value;
@@ -3585,7 +3597,7 @@ function renderSettingsRecords() {
       if (currentAction === normalizeActionValue(s)) opt.selected = true;
       sel.appendChild(opt);
     });
-    sel.addEventListener('change', function() { updateRecordStatus(ts, r.type, this.value); });
+    sel.addEventListener('change', function() { updateRecordStatus(ts, getRecordType(r), this.value); });
     div.appendChild(sel);
     if (managerUnlocked && typeMatches(r, 'monitor') && r.id) {
       var editBtn = document.createElement('button');
@@ -3739,6 +3751,10 @@ async function syncRecordsFromSupabase(force) {
 
   // 렌더링 함수가 기대하는 형태로 변환
   const records = (data || []).map(function(r) {
+    var normalizedType = getRecordType(r);
+    var normalizedAction = normalizedType === 'monitor'
+      ? normalizeActionValue(r.action_required || r.actionRequired || r.action || r.status || '')
+      : normalizeActionValue(r.action || r.status || r.action_required || r.actionRequired || '');
     return {
       id:              r.id,
       timestamp:       r.created_at,
@@ -3747,7 +3763,7 @@ async function syncRecordsFromSupabase(force) {
       name:            r.name,
       addr:            r.addr,
       items:           r.items || '',
-      action:          normalizeActionValue(r.action || r.action_required || r.actionRequired || r.status || ''),
+      action:          normalizedAction,
       action_required: r.action_required || r.actionRequired || '',
       actionRequired:  r.actionRequired || r.action_required || '',
       status:          r.status || '',
