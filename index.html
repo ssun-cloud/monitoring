@@ -744,8 +744,9 @@
         <label class="check-item"><input type="checkbox" name="m_comfort_good" value="메뉴 확인이 쉬움" /><div class="item-info"><div class="item-name">메뉴 확인이 쉬움</div></div></label>
         <label class="check-item"><input type="checkbox" name="m_comfort_good" value="화장실 이용 가능" /><div class="item-info"><div class="item-name">화장실 이용 가능</div></div></label>
         <label class="check-item"><input type="checkbox" name="m_comfort_good" value="직원 설명 또는 안내가 좋음" /><div class="item-info"><div class="item-name">직원 설명 또는 안내가 좋음</div></div></label>
-        <label class="check-item"><input type="checkbox" name="m_comfort_good" value="기타" /><div class="item-info"><div class="item-name">기타</div></div></label>
+        <label class="check-item"><input type="checkbox" id="m_comfort_good_other" name="m_comfort_good" value="기타" onchange="var el=document.getElementById('m_comfort_good_other_text'); if(el){el.style.display=this.checked?'block':'none'; if(!this.checked) el.value='';}" /><div class="item-info"><div class="item-name">기타</div></div></label>
       </div>
+      <input type="text" id="m_comfort_good_other_text" placeholder="기타 좋은 점을 적어주세요" style="display:none;margin-top:8px" />
     </div>
     <div class="field">
       <label class="field-label" for="m_comfort_recommend">무장애지도에 소개할 만한가요?</label>
@@ -766,8 +767,9 @@
         <label class="check-item"><input type="checkbox" name="m_comfort_support" value="QR 텍스트 메뉴" /><div class="item-info"><div class="item-name">QR 텍스트 메뉴</div></div></label>
         <label class="check-item"><input type="checkbox" name="m_comfort_support" value="안내 스티커·도움벨" /><div class="item-info"><div class="item-name">안내 스티커·도움벨</div></div></label>
         <label class="check-item"><input type="checkbox" name="m_comfort_support" value="추가 지원 필요 없음" /><div class="item-info"><div class="item-name">추가 지원 필요 없음</div></div></label>
-        <label class="check-item"><input type="checkbox" name="m_comfort_support" value="기타" /><div class="item-info"><div class="item-name">기타</div></div></label>
+        <label class="check-item"><input type="checkbox" id="m_comfort_support_other" name="m_comfort_support" value="기타" onchange="var el=document.getElementById('m_comfort_support_other_text'); if(el){el.style.display=this.checked?'block':'none'; if(!this.checked) el.value='';}" /><div class="item-info"><div class="item-name">기타</div></div></label>
       </div>
+      <input type="text" id="m_comfort_support_other_text" placeholder="기타 추가 지원 내용을 적어주세요" style="display:none;margin-top:8px" />
     </div>
   </div>
   <div class="card" id="m_support_needed_card" style="display:none">
@@ -780,8 +782,9 @@
         <label class="check-item"><input type="checkbox" name="m_needed_support" value="QR 텍스트 메뉴" /><div class="item-info"><div class="item-name">QR 텍스트 메뉴</div></div></label>
         <label class="check-item"><input type="checkbox" name="m_needed_support" value="안내 스티커·도움벨" /><div class="item-info"><div class="item-name">안내 스티커·도움벨</div></div></label>
         <label class="check-item"><input type="checkbox" name="m_needed_support" value="재방문 상담" /><div class="item-info"><div class="item-name">재방문 상담</div></div></label>
-        <label class="check-item"><input type="checkbox" name="m_needed_support" value="기타" /><div class="item-info"><div class="item-name">기타</div></div></label>
+        <label class="check-item"><input type="checkbox" id="m_needed_support_other" name="m_needed_support" value="기타" onchange="var el=document.getElementById('m_needed_support_other_text'); if(el){el.style.display=this.checked?'block':'none'; if(!this.checked) el.value='';}" /><div class="item-info"><div class="item-name">기타</div></div></label>
       </div>
+      <input type="text" id="m_needed_support_other_text" placeholder="기타 필요한 지원 내용을 적어주세요" style="display:none;margin-top:8px" />
     </div>
     <div class="field">
       <label class="field-label" for="m_store_intent">상점의 의사는 어떤가요?</label>
@@ -1304,20 +1307,35 @@ function resetExistingSupplyFields() {
 }
 function resetComfortStoreFields() {
   document.querySelectorAll('input[name="m_comfort_good"], input[name="m_comfort_support"]').forEach(function(el) { el.checked = false; });
-  ['m_comfort_recommend','m_comfort_recommend_reason'].forEach(function(id) {
+  ['m_comfort_recommend','m_comfort_recommend_reason','m_comfort_good_other_text','m_comfort_support_other_text'].forEach(function(id) {
     var el = document.getElementById(id);
-    if (el) el.value = '';
+    if (el) {
+      el.value = '';
+      if (id.indexOf('_other_text') !== -1) el.style.display = 'none';
+    }
   });
 }
 function resetSupportNeededFields() {
   document.querySelectorAll('input[name="m_needed_support"]').forEach(function(el) { el.checked = false; });
-  ['m_store_intent','m_manager_recheck'].forEach(function(id) {
+  ['m_store_intent','m_manager_recheck','m_needed_support_other_text'].forEach(function(id) {
     var el = document.getElementById(id);
-    if (el) el.value = '';
+    if (el) {
+      el.value = '';
+      if (id.indexOf('_other_text') !== -1) el.style.display = 'none';
+    }
   });
 }
 function checkedValues(name) {
   return Array.from(document.querySelectorAll('input[name="' + name + '"]:checked')).map(function(el) { return el.value; });
+}
+function checkedValuesWithOther(name, otherTextId) {
+  var values = checkedValues(name);
+  var otherTextEl = document.getElementById(otherTextId);
+  var otherText = otherTextEl ? otherTextEl.value.trim() : '';
+  return values.map(function(value) {
+    if (value === '기타' && otherText) return '기타: ' + otherText;
+    return value;
+  });
 }
 function existingSupplyNotes() {
   var items = checkedValues('m_supply_items');
@@ -1338,10 +1356,10 @@ function existingSupplyNotes() {
   ].filter(Boolean);
 }
 function comfortStoreNotes() {
-  var good = checkedValues('m_comfort_good');
+  var good = checkedValuesWithOther('m_comfort_good', 'm_comfort_good_other_text');
   var recommend = document.getElementById('m_comfort_recommend').value;
   var reason = document.getElementById('m_comfort_recommend_reason').value.trim();
-  var support = checkedValues('m_comfort_support');
+  var support = checkedValuesWithOther('m_comfort_support', 'm_comfort_support_other_text');
   return [
     good.length && '좋은 점: ' + good.join(' · '),
     recommend && '무장애지도 소개: ' + recommend,
@@ -1350,7 +1368,7 @@ function comfortStoreNotes() {
   ].filter(Boolean);
 }
 function supportNeededNotes() {
-  var support = checkedValues('m_needed_support');
+  var support = checkedValuesWithOther('m_needed_support', 'm_needed_support_other_text');
   var intent = document.getElementById('m_store_intent').value;
   var recheck = document.getElementById('m_manager_recheck').value;
   return [
