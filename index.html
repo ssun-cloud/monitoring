@@ -2511,7 +2511,13 @@ function isCompleteAction(action) {
 function isRevisitAction(action) {
   return action === '재방문 필요' || action === '추후 확인';
 }
+function getRecordAction(record) {
+  if (!record) return '';
+  if (typeof record === 'string') return record;
+  return record.action || record.action_required || '';
+}
 function actionMatches(recordAction, filterAction) {
+  recordAction = getRecordAction(recordAction);
   if (!filterAction) return true;
   if (recordAction === filterAction) return true;
   if (isSupportReviewAction(filterAction)) return isSupportReviewAction(recordAction);
@@ -2525,7 +2531,7 @@ function renderRecords() {
   const filterAction = document.getElementById('filter-action').value;
   let records = getRecords();
   if (filterType) records = records.filter(r => r.type === filterType);
-  if (filterAction) records = records.filter(r => actionMatches(r.action, filterAction));
+  if (filterAction) records = records.filter(r => actionMatches(r, filterAction));
   const el = document.getElementById('records-list');
   const countEl = document.getElementById('records-count');
   if (records.length === 0) {
@@ -2784,7 +2790,7 @@ function openEditModal(e, idx) {
   const filterAction = document.getElementById('filter-action') ? document.getElementById('filter-action').value : '';
   let filtered = records;
   if (filterType) filtered = filtered.filter(r => r.type === filterType);
-  if (filterAction) filtered = filtered.filter(r => actionMatches(r.action, filterAction));
+  if (filterAction) filtered = filtered.filter(r => actionMatches(r, filterAction));
   const rec = filtered[num] || records[num];
   // 실제 records에서 인덱스 찾기
   editingRecordIdx = records.indexOf(rec);
@@ -3290,7 +3296,7 @@ function getFilteredSettingsMonitorRecords() {
   return getRecords().filter(function(r) {
     if (r.type !== 'monitor') return false;
     if (typeFilter && typeFilter !== 'monitor') return false;
-    if (actionFilter && !actionMatches(r.action, actionFilter)) return false;
+    if (actionFilter && !actionMatches(r, actionFilter)) return false;
     return true;
   });
 }
@@ -3468,7 +3474,7 @@ function renderSettingsRecords() {
     return copy;
   }).filter(function(r) {
     if (typeFilter && r.type !== typeFilter) return false;
-    if (actionFilter && !actionMatches(r.action, actionFilter)) return false;
+    if (actionFilter && !actionMatches(r, actionFilter)) return false;
     return true;
   });
   if (!records.length) {
@@ -3679,7 +3685,7 @@ async function syncRecordsFromSupabase(force) {
       name:            r.name,
       addr:            r.addr,
       items:           r.items || '',
-      action:          r.action || '',
+      action:          r.action || r.action_required || '',
       action_required: r.action_required || '',
       monitored_at:    r.monitored_at || '',
       r_braille:       r.r_braille || '',
