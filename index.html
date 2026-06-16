@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
@@ -984,7 +984,7 @@
 <div id="settings" class="section" role="tabpanel" aria-label="설정">
   <div class="card">
     <div class="card-title">담당자 인증</div>
-    <div id="manager-auth-status" style="font-size:13px;color:var(--text-muted);margin-bottom:12px">🔒 인증되지 않았어요. 담당자 비번으로 로그인하면 개인정보와 상태 변경이 가능해요.</div>
+    <div id="manager-auth-status" style="font-size:13px;color:var(--text-muted);margin-bottom:12px">🔒 인증되지 않았어요. 담당자 비번으로 로그인하면 개인정보 확인과 체크리스트 수정이 가능해요.</div>
     <button class="sec-btn primary" id="manager-auth-btn" onclick="toggleManagerAuth()" aria-describedby="manager-auth-status">담당자 로그인</button>
   </div>
   <div id="manager-only-section" style="display:none">
@@ -2167,8 +2167,7 @@ async function submitRecommend() {
 async function updateRecordStatus(timestamp, type, status) {
   if (!managerUnlocked || !managerSessionPin) {
     console.warn('[상태변경] 관리자 인증 필요');
-    showStatusChangeToast('⚠️ 관리자 인증이 필요해요.', 'error');
-    return false;
+    return;
   }
 
   // 변경 대상 record_id 찾기
@@ -2177,8 +2176,7 @@ async function updateRecordStatus(timestamp, type, status) {
   if (!target || !target.id) {
     console.warn('[상태변경] record_id를 찾을 수 없음 - timestamp:', timestamp);
     showToast('settings-toast', '⚠️ 기록을 찾을 수 없어요.', 'error');
-    showStatusChangeToast('⚠️ 기록을 찾을 수 없어요.', 'error');
-    return false;
+    return;
   }
 
   console.log('[상태변경] RPC 호출 - type:', type, '/ id:', target.id, '/ status:', status);
@@ -2194,8 +2192,7 @@ async function updateRecordStatus(timestamp, type, status) {
     if (error) {
       console.error('[상태변경] RPC 오류:', error.code, error.message);
       showToast('settings-toast', '⚠️ 상태 변경 실패: ' + error.message, 'error');
-      showStatusChangeToast('⚠️ 상태 변경 실패', 'error');
-      return false;
+      return;
     }
 
     console.log('[상태변경] ✅ Supabase 업데이트 성공');
@@ -2222,13 +2219,10 @@ async function updateRecordStatus(timestamp, type, status) {
     } catch(e) {
       console.warn('[상태변경] 재조회 실패 (로컬 반영은 완료):', e.message);
     }
-    return true;
 
   } catch(e) {
     console.error('[상태변경] catch 오류:', e.message);
     showToast('settings-toast', '⚠️ 연결 오류가 발생했어요.', 'error');
-    showStatusChangeToast('⚠️ 연결 오류가 발생했어요.', 'error');
-    return false;
   }
 }
 // ──────────────────────────────────────────────────────
@@ -2694,94 +2688,13 @@ function recordCard(r, idx) {
     <div class="record-detail" id="detail-${idx}">
       ${detail}
       ${managerUnlocked && r.type === 'monitor' && r.id ? `<button type="button" class="sec-btn primary print-monitor-btn" data-record-id="${String(r.id).replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" onclick="event.stopPropagation()" style="margin-top:10px;width:100%;font-size:12px;padding:8px 10px">🖨️ 체크리스트 출력</button>` : ''}
-      ${managerUnlocked ? statusDropdown(r) : '<div style="font-size:12px;color:var(--text-muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">🔒 상태 변경은 담당자만 가능해요</div>'}
+      ${managerUnlocked && r.type === 'monitor' ? '<div style="font-size:12px;color:var(--text-muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">상태 변경은 체크리스트 수정에서 진행해 주세요.</div>' : ''}
     </div>
   </div>`;
 }
 
-function showStatusChangeToast(message, type) {
-  let toast = document.getElementById('status-toast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'status-toast';
-    toast.setAttribute('role', 'status');
-    toast.setAttribute('aria-live', 'polite');
-    toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a8c6e;color:white;padding:10px 20px;border-radius:8px;font-size:13px;font-family:Noto Sans KR,sans-serif;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,0.16);max-width:calc(100vw - 32px);text-align:center;';
-    document.body.appendChild(toast);
-  }
-  toast.textContent = message;
-  toast.style.background = type === 'error' ? '#dc2626' : (type === 'loading' ? '#6b7280' : '#1a8c6e');
-  toast.style.display = 'block';
-  clearTimeout(window.__statusToastTimer);
-  if (type !== 'loading') {
-    window.__statusToastTimer = setTimeout(function() { toast.style.display = 'none'; }, 3000);
-  }
-}
-
-function setStatusSelectBusy(selectEl, busy) {
-  if (!selectEl) return;
-  selectEl.disabled = !!busy;
-  selectEl.style.opacity = busy ? '0.65' : '';
-  selectEl.style.cursor = busy ? 'wait' : 'pointer';
-  selectEl.setAttribute('aria-busy', busy ? 'true' : 'false');
-}
-
-function setSelectToValue(selectEl, value) {
-  if (!selectEl) return;
-  var found = false;
-  Array.prototype.forEach.call(selectEl.options || [], function(opt) {
-    if (normalizeActionValue(opt.value) === normalizeActionValue(value)) {
-      selectEl.value = opt.value;
-      found = true;
-    }
-  });
-  if (!found) selectEl.value = value || '';
-}
-
-function statusDropdown(r) {
-  const ts = (r.timestamp || '').replace(/'/g, "\'");
-  const currentAction = getRecordAction(r);
-  const statusList = ['신청 접수','검토 중','확인 완료 ✓','보급 완료','지원 검토 필요','확인 완료','재방문 필요','조치 필요','조치 완료','양호','추후 확인'];
-  const optionHtml = statusList.map(function(s) {
-    const label = s === '확인 완료 ✓' ? '✅ 확인 완료 (지도 공개)' : (['조치 필요','양호','추후 확인'].includes(s) ? '기존: ' + s : s);
-    const selected = normalizeActionValue(currentAction) === normalizeActionValue(s) ? ' selected' : '';
-    const style = s === '확인 완료 ✓' ? ' style="font-weight:700;color:#16a34a"' : '';
-    return '<option value="' + escapeHtml(s) + '"' + selected + style + '>' + escapeHtml(label) + '</option>';
-  }).join('');
-  return `<select class="status-select" aria-label="상태 변경" data-previous-value="${escapeHtml(currentAction)}" onchange="changeStatus('${ts}', this.value, this)" onclick="event.stopPropagation()" style="font-family:'Noto Sans KR',sans-serif;font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--white);color:var(--text);cursor:pointer;margin-top:8px">
-    <option value="">── 상태 변경 (담당자)</option>
-    ${optionHtml}
-  </select>`;
-}
-
-async function changeStatus(ts, newStatus, selectEl) {
-  if (!newStatus) return;
-  if (!managerUnlocked) {
-    console.warn('[상태변경] 관리자 미인증 상태에서 changeStatus 호출됨');
-    showStatusChangeToast('⚠️ 관리자 인증이 필요해요.', 'error');
-    if (selectEl) setSelectToValue(selectEl, selectEl.dataset.previousValue || '');
-    return;
-  }
-  const target = getRecords().find(function(r) { return String(r.timestamp) === String(ts); });
-  const oldStatus = selectEl ? (selectEl.dataset.previousValue || getRecordAction(target || {}) || '') : (getRecordAction(target || {}) || '');
-  const recordType = getRecordType(target || {}) || '';
-
-  setStatusSelectBusy(selectEl, true);
-  showStatusChangeToast('저장 중…', 'loading');
-  const ok = await updateRecordStatus(ts, recordType, newStatus);
-  setStatusSelectBusy(selectEl, false);
-
-  if (ok) {
-    if (selectEl) selectEl.dataset.previousValue = newStatus;
-    showStatusChangeToast('✅ 상태가 변경되었습니다.', 'success');
-  } else {
-    if (selectEl) {
-      setSelectToValue(selectEl, oldStatus);
-      selectEl.dataset.previousValue = oldStatus;
-    }
-    showStatusChangeToast('⚠️ 상태 변경에 실패했어요. 이전 값으로 되돌렸습니다.', 'error');
-  }
-}
+// 상태 변경 드롭다운은 제거했습니다.
+// 상태 변경은 관리자 체크리스트 수정 버튼에서만 진행합니다.
 
 function toggleDetail(detailId, card) {
   const detail = document.getElementById(detailId);
@@ -3551,13 +3464,13 @@ function updateManagerAuthUI() {
   const section = document.getElementById('manager-only-section');
   if (!status || !btn) return;
   if (managerUnlocked) {
-    status.textContent = '✅ 담당자로 로그인되어 있어요. 개인정보와 상태 변경이 가능해요.';
+    status.textContent = '✅ 담당자로 로그인되어 있어요. 개인정보 확인과 체크리스트 수정이 가능해요.';
     status.style.color = 'var(--good)';
     btn.textContent = '로그아웃';
     btn.className = 'sec-btn danger';
     if (section) section.style.display = 'block';
   } else {
-    status.textContent = '🔒 인증되지 않았어요. 담당자 비번으로 로그인하면 개인정보와 상태 변경이 가능해요.';
+    status.textContent = '🔒 인증되지 않았어요. 담당자 비번으로 로그인하면 개인정보 확인과 체크리스트 수정이 가능해요.';
     status.style.color = 'var(--text-muted)';
     btn.textContent = '담당자 로그인';
     btn.className = 'sec-btn primary';
@@ -3639,18 +3552,8 @@ function renderSettingsRecords() {
       + (currentAction ? '<div style="font-size:12px;margin-bottom:8px;color:var(--text)">현재 상태: ' + currentAction + '</div>' : '')
       + (settingsSummaryText ? '<div style="font-size:12px;margin-bottom:8px;color:var(--text)">' + settingsSummaryText + '</div>' : '');
     div.innerHTML = header;
-    var sel = document.createElement('select');
-    sel.setAttribute('aria-label', name + ' 상태 변경');
-    sel.style.cssText = 'width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:Noto Sans KR,sans-serif';
-    statusList.forEach(function(s) {
-      var opt = document.createElement('option');
-      opt.value = s; opt.textContent = s;
-      if (currentAction === normalizeActionValue(s)) opt.selected = true;
-      sel.appendChild(opt);
-    });
-    sel.dataset.previousValue = currentAction || '';
-    sel.addEventListener('change', function() { changeStatus(ts, this.value, this); });
-    div.appendChild(sel);
+    // 상태 변경 드롭다운은 혼동을 줄이기 위해 제거했습니다.
+    // 상태 변경은 아래 체크리스트 수정 버튼에서 진행합니다.
     if (managerUnlocked && typeMatches(r, 'monitor') && r.id) {
       var editBtn = document.createElement('button');
       editBtn.type = 'button';
