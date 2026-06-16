@@ -1625,7 +1625,7 @@ async function updateRecentMonitorRecordInSupabase(record) {
     p_r_ramp: record.r2 || '',
     p_r_toilet: record.r3 || '',
     p_r_signage: record.r4 || '',
-    p_action_required: record.action || '',
+    p_action_required: getRecordAction(record),
     p_comment: record.comment || '',
     p_extra_notes: record.extras || '',
     p_recorder: record.author || record.recorder || ''
@@ -2199,7 +2199,12 @@ async function updateRecordStatus(timestamp, type, status) {
 
     // 로컬 반영
     const updated = records.map(function(r) {
-      if (String(r.timestamp) === String(timestamp)) r.action = status;
+      if (String(r.timestamp) === String(timestamp)) {
+        r.action = status;
+        r.action_required = status;
+        r.actionRequired = status;
+        r.status = status;
+      }
       return r;
     });
     localStorage.setItem('records', JSON.stringify(updated));
@@ -2849,6 +2854,7 @@ function renderEditForm(r) {
   } else {
     const ratingOptions = (id, val) => ['좋음','보통','미흡'].map(v =>
       `<option value="${v}" ${val===v?'selected':''}>${v}</option>`).join('');
+    const editAction = getRecordAction(r);
     body.innerHTML = `
       <div class="field"><label class="field-label">장소명</label><input type="text" id="ef_name" value="${r.name || ''}" /></div>
       <div class="field"><label class="field-label">주소</label><input type="text" id="ef_addr" value="${r.addr || ''}" /></div>
@@ -2859,12 +2865,12 @@ function renderEditForm(r) {
       <div class="field"><label class="field-label">안내판</label><select id="ef_r4" aria-label="안내판 평가">${ratingOptions('r4',r.r4)}</select></div>
       <div class="field"><label class="field-label">조치 여부</label>
         <select id="ef_action" aria-label="조치 필요 여부">
-          <option value="지원 검토 필요" ${r.action==='지원 검토 필요'?'selected':''}>지원 검토 필요</option>
-          <option value="확인 완료" ${r.action==='확인 완료'?'selected':''}>확인 완료</option>
-          <option value="재방문 필요" ${r.action==='재방문 필요'?'selected':''}>재방문 필요</option>
-          <option value="조치 필요" ${r.action==='조치 필요'?'selected':''}>기존: 조치 필요</option>
-          <option value="양호" ${r.action==='양호'?'selected':''}>기존: 양호</option>
-          <option value="추후 확인" ${r.action==='추후 확인'?'selected':''}>기존: 추후 확인</option>
+          <option value="지원 검토 필요" ${editAction==='지원 검토 필요'?'selected':''}>지원 검토 필요</option>
+          <option value="확인 완료" ${editAction==='확인 완료'?'selected':''}>확인 완료</option>
+          <option value="재방문 필요" ${editAction==='재방문 필요'?'selected':''}>재방문 필요</option>
+          <option value="조치 필요" ${editAction==='조치 필요'?'selected':''}>기존: 조치 필요</option>
+          <option value="양호" ${editAction==='양호'?'selected':''}>기존: 양호</option>
+          <option value="추후 확인" ${editAction==='추후 확인'?'selected':''}>기존: 추후 확인</option>
         </select>
       </div>
       <div class="field"><label class="field-label">추가 확인 항목</label><textarea id="ef_extras">${r.extras || ''}</textarea></div>
@@ -2996,6 +3002,9 @@ async function saveEdit() {
     r.r3      = document.getElementById('ef_r3').value;
     r.r4      = document.getElementById('ef_r4').value;
     r.action  = document.getElementById('ef_action').value;
+    r.action_required = r.action;
+    r.actionRequired = r.action;
+    r.status = r.action;
     r.extras  = document.getElementById('ef_extras').value.trim();
     r.comment = document.getElementById('ef_comment').value.trim();
     r.author  = document.getElementById('ef_author').value.trim();
@@ -3538,6 +3547,7 @@ function renderSettingsRecords() {
     var ts = String(r.timestamp||'');
     var name = r.name || r.place || '';
     var normalizedType = getRecordType(r);
+    var currentAction = getRecordAction(r);
     var div = document.createElement('div');
     div.className = 'record-item';
     div.setAttribute('role','listitem');
@@ -3563,6 +3573,7 @@ function renderSettingsRecords() {
       + ((monitorUnlocked || managerUnlocked) && (r.recorder || r.author)
           ? '<div style="font-size:12px;margin-bottom:4px">기록자: ' + (r.recorder||r.author) + '</div>'
           : '')
+      + (currentAction ? '<div style="font-size:12px;margin-bottom:8px;color:var(--text)">현재 상태: ' + currentAction + '</div>' : '')
       + (settingsSummaryText ? '<div style="font-size:12px;margin-bottom:8px;color:var(--text)">' + settingsSummaryText + '</div>' : '');
     div.innerHTML = header;
     var sel = document.createElement('select');
@@ -3571,7 +3582,7 @@ function renderSettingsRecords() {
     statusList.forEach(function(s) {
       var opt = document.createElement('option');
       opt.value = s; opt.textContent = s;
-      if (actionMatches(r, s)) opt.selected = true;
+      if (currentAction === normalizeActionValue(s)) opt.selected = true;
       sel.appendChild(opt);
     });
     sel.addEventListener('change', function() { updateRecordStatus(ts, r.type, this.value); });
