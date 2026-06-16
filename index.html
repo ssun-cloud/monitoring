@@ -1011,6 +1011,7 @@
         </select>
       </div>
       <button type="button" class="sec-btn primary" onclick="openPrintFilteredChecklists()" style="margin:0 0 10px 0">🖨️ 현재 조건의 체크리스트만 출력</button>
+      <div id="settings-records-count" style="font-size:12px;color:var(--text-muted);margin-bottom:8px" aria-live="polite"></div>
       <div id="settings-records-list" class="settings-list-scroll" role="list" aria-label="기록 목록" aria-live="polite">
         <div class="empty-state"><div class="empty-icon" aria-hidden="true">📋</div>기록이 없어요. 시트에서 불러오기를 해주세요.</div>
       </div>
@@ -2512,10 +2513,10 @@ function isRevisitAction(action) {
 function getRecordAction(record) {
   if (!record) return '';
   if (typeof record === 'string') return record;
-  return record.action || record.action_required || '';
+  return record.action || record.action_required || record.status || record.state || '';
 }
 function getRecordType(record) {
-  var type = typeof record === 'string' ? record : (record && (record.type || record.kind || record.category)) || '';
+  var type = typeof record === 'string' ? record : (record && (record.type || record.record_type || record.kind || record.category)) || '';
   type = String(type).trim().toLowerCase();
   if (['apply','application','request','신청','보급 신청','보급신청'].includes(type)) return 'apply';
   if (['monitor','monitoring','checklist','체크리스트','모니터링'].includes(type)) return 'monitor';
@@ -3485,6 +3486,7 @@ function bindSettingsRecordFilters() {
 function renderSettingsRecords() {
   var el = document.getElementById('settings-records-list');
   if (!el) return;
+  var countEl = document.getElementById('settings-records-count');
   var typeFilter = (document.getElementById('rec-filter-type')||{}).value || '';
   var actionFilter = (document.getElementById('rec-filter-action')||{}).value || '';
   var allRecords = getRecords();
@@ -3497,6 +3499,7 @@ function renderSettingsRecords() {
     if (actionFilter && !actionMatches(r, actionFilter)) return false;
     return true;
   });
+  if (countEl) countEl.textContent = '표시 중: ' + records.length + '건 / 전체 ' + allRecords.length + '건';
   if (!records.length) {
     el.innerHTML = '<div class="empty-state"><div class="empty-icon" aria-hidden="true">📋</div>기록이 없어요. 시트에서 불러오기를 해주세요.</div>';
     return;
@@ -3702,12 +3705,14 @@ async function syncRecordsFromSupabase(force) {
     return {
       id:              r.id,
       timestamp:       r.created_at,
-      type:            r.type,
+      type:            r.type || r.record_type || '',
+      record_type:     r.record_type || r.type || '',
       name:            r.name,
       addr:            r.addr,
       items:           r.items || '',
-      action:          r.action || r.action_required || '',
+      action:          r.action || r.action_required || r.status || '',
       action_required: r.action_required || '',
+      status:          r.status || '',
       monitored_at:    r.monitored_at || '',
       r_braille:       r.r_braille || '',
       r_ramp:          r.r_ramp || '',
