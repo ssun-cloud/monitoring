@@ -1644,6 +1644,8 @@ async function submitMonitor() {
   const comfortStoreExtra = visitType === '이용하기 편한 상점 확인' ? comfortStoreNotes() : [];
   const supportNeededExtra = visitType === '지원이 필요한 상점 확인' ? supportNeededNotes() : [];
   const extras = ['방문 목적: ' + visitType].concat(existingSupplyExtra, comfortStoreExtra, supportNeededExtra).filter(Boolean).join(', ');
+  const comfortRecommendEl = document.getElementById('m_comfort_recommend');
+  const goodcase = visitType === '이용하기 편한 상점 확인' && comfortRecommendEl && comfortRecommendEl.value === '소개 추천';
   const ts = new Date().toLocaleString('ko-KR');
 
   // recordId 미리 생성 (사진 업로드 경로에 사용)
