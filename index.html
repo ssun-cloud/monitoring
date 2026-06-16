@@ -2514,6 +2514,18 @@ function getRecordAction(record) {
   if (typeof record === 'string') return record;
   return record.action || record.action_required || '';
 }
+function getRecordType(record) {
+  var type = typeof record === 'string' ? record : (record && (record.type || record.kind || record.category)) || '';
+  type = String(type).trim().toLowerCase();
+  if (['apply','application','request','신청','보급 신청','보급신청'].includes(type)) return 'apply';
+  if (['monitor','monitoring','checklist','체크리스트','모니터링'].includes(type)) return 'monitor';
+  if (['recommend','recommendation','추천','상점 추천','상점추천'].includes(type)) return 'recommend';
+  return type;
+}
+function typeMatches(record, filterType) {
+  if (!filterType) return true;
+  return getRecordType(record) === getRecordType(filterType);
+}
 function actionMatches(recordAction, filterAction) {
   recordAction = getRecordAction(recordAction);
   if (!filterAction) return true;
@@ -3292,7 +3304,7 @@ function getFilteredSettingsMonitorRecords() {
   var typeFilter = (document.getElementById('rec-filter-type')||{}).value || '';
   var actionFilter = (document.getElementById('rec-filter-action')||{}).value || '';
   return getRecords().filter(function(r) {
-    if (r.type !== 'monitor') return false;
+    if (!typeMatches(r, 'monitor')) return false;
     if (typeFilter && typeFilter !== 'monitor') return false;
     if (actionFilter && !actionMatches(r, actionFilter)) return false;
     return true;
@@ -3456,8 +3468,18 @@ function updateManagerAuthUI() {
 
 function loadSettingsUI() {
   updateManagerAuthUI();
+  bindSettingsRecordFilters();
   renderSettingsRecords();
   renderSettingsJournalPrints();
+}
+
+function bindSettingsRecordFilters() {
+  ['rec-filter-type','rec-filter-action'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el || el.dataset.filterBound === 'true') return;
+    el.addEventListener('change', renderSettingsRecords);
+    el.dataset.filterBound = 'true';
+  });
 }
 
 function renderSettingsRecords() {
@@ -3471,7 +3493,7 @@ function renderSettingsRecords() {
     copy.__recordIndex = idx;
     return copy;
   }).filter(function(r) {
-    if (typeFilter && r.type !== typeFilter) return false;
+    if (typeFilter && !typeMatches(r, typeFilter)) return false;
     if (actionFilter && !actionMatches(r, actionFilter)) return false;
     return true;
   });
@@ -3486,6 +3508,7 @@ function renderSettingsRecords() {
   records.forEach(function(r) {
     var ts = String(r.timestamp||'');
     var name = r.name || r.place || '';
+    var normalizedType = getRecordType(r);
     var div = document.createElement('div');
     div.className = 'record-item';
     div.setAttribute('role','listitem');
@@ -3496,7 +3519,7 @@ function renderSettingsRecords() {
       : (r.items || r.comment || '');
     var header = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
       + '<div style="display:flex;gap:6px;align-items:center">'
-      + '<span class="tag ' + (tagMap[r.type]||'tag-good') + '">' + (typeLabelMap[r.type]||r.type) + '</span>'
+      + '<span class="tag ' + (tagMap[normalizedType]||'tag-good') + '">' + (typeLabelMap[normalizedType]||r.type) + '</span>'
       + '<span style="font-size:13px;font-weight:700">' + name + '</span>'
       + '</div>'
       + '<span style="font-size:11px;color:var(--text-muted)">' + ts.slice(0,10) + '</span>'
@@ -3519,12 +3542,12 @@ function renderSettingsRecords() {
     statusList.forEach(function(s) {
       var opt = document.createElement('option');
       opt.value = s; opt.textContent = s;
-      if (r.action === s) opt.selected = true;
+      if (getRecordAction(r) === s) opt.selected = true;
       sel.appendChild(opt);
     });
     sel.addEventListener('change', function() { updateRecordStatus(ts, r.type, this.value); });
     div.appendChild(sel);
-    if (managerUnlocked && r.type === 'monitor' && r.id) {
+    if (managerUnlocked && typeMatches(r, 'monitor') && r.id) {
       var editBtn = document.createElement('button');
       editBtn.type = 'button';
       editBtn.className = 'sec-btn primary';
