@@ -1002,7 +1002,7 @@
         </select>
       </div>
       <button type="button" class="sec-btn primary" onclick="openPrintFilteredChecklists()" style="margin:0 0 10px 0">🖨️ 현재 조건의 체크리스트만 출력</button>
-      <button type="button" class="sec-btn primary" onclick="downloadMonitoringExcel()" style="margin:0 0 10px 0;background:#117f3a;border-color:#117f3a">📊 모니터링 기록 엑셀로 받기</button>
+      <button type="button" class="sec-btn primary" onclick="downloadMonitoringExcel()" style="margin:0 0 10px 0;background:#117f3a;border-color:#117f3a">📊 전체 활동 기록 엑셀로 받기</button>
       <div id="settings-records-count" style="font-size:12px;color:var(--text-muted);margin-bottom:8px" aria-live="polite"></div>
       <div id="settings-records-list" class="settings-list-scroll" role="list" aria-label="기록 목록" aria-live="polite">
         <div class="empty-state"><div class="empty-icon" aria-hidden="true">📋</div>기록이 없어요. 시트에서 불러오기를 해주세요.</div>
@@ -3693,49 +3693,92 @@ function downloadMonitoringExcel() {
   if (!managerUnlocked) { alert('엑셀 다운로드는 담당자만 사용할 수 있어요.'); return; }
   if (typeof XLSX === 'undefined') { alert('엑셀 기능을 불러오는 중이에요. 잠시 후 다시 시도해 주세요.'); return; }
 
-  var typeFilter = (document.getElementById('rec-filter-type')||{}).value || '';
-  if (typeFilter === 'apply' || typeFilter === 'recommend') {
-    alert('엑셀 다운로드는 모니터링 기록 기준이에요. 유형 필터를 "모니터링" 또는 "전체 유형"으로 바꿔 주세요.');
+  var all = getRecords();
+  var monitorRows = all.filter(function(r) { return typeMatches(r, 'monitor'); });
+  var applyRows = all.filter(function(r) { return typeMatches(r, 'apply'); });
+  var recommendRows = all.filter(function(r) { return typeMatches(r, 'recommend'); });
+
+  if (!monitorRows.length && !applyRows.length && !recommendRows.length) {
+    alert('다운로드할 기록이 없어요.');
     return;
   }
 
-  var records = getFilteredSettingsMonitorRecords();
-  if (!records.length) { alert('현재 조건에 해당하는 모니터링 기록이 없어요.'); return; }
-
-  var rows = records.map(function(r) {
-    return {
-      '점검일': formatPrintDate(r.date || r.monitored_at || ''),
-      '장소명': r.name || '',
-      '주소': r.addr || '',
-      '활동 팀': r.team_name || '',
-      '점검자': r.recorder || r.author || r.team_members || '',
-      '상태': r.action || '',
-      '점자메뉴판': r.r1 || r.r_braille || '',
-      '경사로': r.r2 || r.r_ramp || '',
-      '화장실': r.r3 || r.r_toilet || '',
-      '안내판': r.r4 || r.r_signage || '',
-      '방문 목적 및 추가확인': r.extras || r.extra_notes || '',
-      '종합 의견': r.comment || ''
-    };
-  });
-
-  var ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [
-    { wch: 11 }, { wch: 16 }, { wch: 26 }, { wch: 10 }, { wch: 12 },
-    { wch: 10 }, { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 9 },
-    { wch: 30 }, { wch: 30 }
-  ];
-
   var wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, '모니터링 기록');
 
-  var actionFilter = (document.getElementById('rec-filter-action')||{}).value || '';
+  if (monitorRows.length) {
+    var monitorSheetRows = monitorRows.map(function(r) {
+      return {
+        '점검일': formatPrintDate(r.date || r.monitored_at || ''),
+        '장소명': r.name || '',
+        '주소': r.addr || '',
+        '활동 팀': r.team_name || '',
+        '점검자': r.recorder || r.author || r.team_members || '',
+        '상태': r.action || '',
+        '점자메뉴판': r.r1 || r.r_braille || '',
+        '경사로': r.r2 || r.r_ramp || '',
+        '화장실': r.r3 || r.r_toilet || '',
+        '안내판': r.r4 || r.r_signage || '',
+        '방문 목적 및 추가확인': r.extras || r.extra_notes || '',
+        '종합 의견': r.comment || ''
+      };
+    });
+    var wsMonitor = XLSX.utils.json_to_sheet(monitorSheetRows);
+    wsMonitor['!cols'] = [
+      { wch: 11 }, { wch: 16 }, { wch: 26 }, { wch: 10 }, { wch: 12 },
+      { wch: 10 }, { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 9 },
+      { wch: 30 }, { wch: 30 }
+    ];
+    XLSX.utils.book_append_sheet(wb, wsMonitor, '모니터링');
+  }
+
+  if (applyRows.length) {
+    var applySheetRows = applyRows.map(function(r) {
+      return {
+        '신청일': formatPrintDate(r.timestamp || r.created_at || ''),
+        '상호명': r.name || '',
+        '주소': r.addr || '',
+        '신청 항목': r.items || '',
+        '신청자': r.applicant || '',
+        '연락처': r.phone || '',
+        '요청 메모': r.memo || '',
+        '진행 상태': r.action || ''
+      };
+    });
+    var wsApply = XLSX.utils.json_to_sheet(applySheetRows);
+    wsApply['!cols'] = [
+      { wch: 11 }, { wch: 16 }, { wch: 26 }, { wch: 18 },
+      { wch: 12 }, { wch: 14 }, { wch: 30 }, { wch: 10 }
+    ];
+    XLSX.utils.book_append_sheet(wb, wsApply, '보급 신청');
+  }
+
+  if (recommendRows.length) {
+    var recommendSheetRows = recommendRows.map(function(r) {
+      return {
+        '추천일': formatPrintDate(r.timestamp || r.created_at || ''),
+        '상호명': r.name || '',
+        '주소': r.addr || '',
+        '좋은 점': r.items || '',
+        '추천인': r.applicant || '',
+        '연락처': r.phone || '',
+        '한줄소개': r.intro || '',
+        '진행 상태': r.action || ''
+      };
+    });
+    var wsRecommend = XLSX.utils.json_to_sheet(recommendSheetRows);
+    wsRecommend['!cols'] = [
+      { wch: 11 }, { wch: 16 }, { wch: 26 }, { wch: 18 },
+      { wch: 12 }, { wch: 14 }, { wch: 30 }, { wch: 10 }
+    ];
+    XLSX.utils.book_append_sheet(wb, wsRecommend, '상점 추천');
+  }
+
   var todayStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
-  var filterTag = actionFilter ? '_' + actionFilter.replace(/\s/g,'') : '';
-  var filename = '열린마을만들기_모니터링기록' + filterTag + '_' + todayStr + '.xlsx';
-
+  var filename = '열린마을만들기_전체활동기록_' + todayStr + '.xlsx';
   XLSX.writeFile(wb, filename);
-  showToast('settings-toast', '✅ 엑셀 파일을 다운로드했어요! (' + rows.length + '건)', 'success');
+
+  var totalCount = monitorRows.length + applyRows.length + recommendRows.length;
+  showToast('settings-toast', '✅ 엑셀 파일을 다운로드했어요! (전체 ' + totalCount + '건)', 'success');
 }
 
 async function openPrintJournalReport(journalIndex) {
