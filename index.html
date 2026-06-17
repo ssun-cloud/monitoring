@@ -841,17 +841,13 @@
       <label class="field-label">종합 의견<span class="req">*</span></label>
       <textarea id="m_comment" placeholder="좋았던 점, 이용이 어려운 부분, 필요한 지원, 재방문이 필요한 이유를 간단히 적어주세요." style="min-height:110px" aria-label="종합 의견"></textarea>
     </div>
-    <div class="field">
-      <label class="field-label">기록자 이름<span class="req">*</span></label>
-      <input type="text" id="m_author" placeholder="예) 홍길동" / aria-label="기록자 이름">
-    </div>
   </div>
   <button class="submit-btn" id="monitor-btn" onclick="submitMonitor()">기록 제출하기</button>
   <div id="monitor-toast" class="toast"></div>
   </div><!-- /sub-check -->
 
   <div id="sub-journal" style="display:none">
-    <div class="notice">그날 방문한 상점과 체크리스트가 자동으로 불러와져요. 활동 소감을 추가로 작성하고 제출하세요.</div>
+    <div class="notice">그날 방문한 상점과 체크리스트가 자동으로 불러와져요. 활동 내용을 작성하고 제출하세요.</div>
     <div class="card">
       <div class="card-title">활동 기본 정보</div>
       <div class="field">
@@ -879,8 +875,9 @@
       </div>
     </div>
     <div class="card">
-      <div class="card-title">활동 소감 / 메모</div>
-      <textarea id="j_memo" placeholder="오늘 활동하면서 느낀 점, 특이사항, 다음에 확인할 것들을 자유롭게 적어주세요." style="min-height:120px" aria-label="활동 소감"></textarea>
+      <div class="card-title">활동 내용</div>
+      <label class="field-label" for="j_memo">활동 내용<span class="req">*</span></label>
+      <textarea id="j_memo" placeholder="방문한 상점, 진행한 활동, 특이사항, 다음에 확인할 내용을 적어주세요." style="min-height:120px" aria-label="활동 내용"></textarea>
     </div>
     <button class="submit-btn" id="journal-btn" onclick="submitJournal()">일지 제출하기</button>
     <div id="journal-toast" class="toast" role="alert" aria-live="polite"></div>
@@ -1725,7 +1722,6 @@ async function submitMonitor() {
   const r3 = document.getElementById('m_r3').value;
   const r4 = document.getElementById('m_r4').value;
   const action = document.getElementById('m_action').value;
-  const author = document.getElementById('m_author').value.trim();
   const visitType = document.getElementById('m_visit_type').value;
   const teamName = document.getElementById('m_team').value;
   await loadAppSettings();
@@ -1733,13 +1729,13 @@ async function submitMonitor() {
   const monitorTeam = teamsForActiveYear().find(function(t) { return t.name === teamName; }) ||
     TEAMS.find(function(t) { return t.name === teamName; });
   const teamMembers = monitorTeam && monitorTeam.members ? monitorTeam.members.join(', ') : '';
+  const author = teamMembers || teamName;
   if (!place) { showToast('monitor-toast','장소명을 입력해 주세요.','error'); return; }
   if (!addr)  { showToast('monitor-toast','주소를 입력해 주세요.','error'); return; }
   if (!date)  { showToast('monitor-toast','날짜를 선택해 주세요.','error'); return; }
   if (!teamName) { showToast('monitor-toast','활동 팀을 선택해 주세요.','error'); return; }
   if (!visitType) { showToast('monitor-toast','방문 목적을 선택해 주세요.','error'); return; }
   if (!comment) { showToast('monitor-toast','종합 의견을 입력해 주세요.','error'); return; }
-  if (!author) { showToast('monitor-toast','기록자 이름을 입력해 주세요.','error'); return; }
   const existingSupplyExtra = visitType === '기존 보급처 확인' ? existingSupplyNotes() : [];
   const comfortStoreExtra = visitType === '이용하기 편한 상점 확인' ? comfortStoreNotes() : [];
   const supportNeededExtra = visitType === '지원이 필요한 상점 확인' ? supportNeededNotes() : [];
@@ -1821,7 +1817,6 @@ async function submitMonitor() {
   document.getElementById('m_place').value = '';
   document.getElementById('m_addr').value = '';
   document.getElementById('m_comment').value = '';
-  document.getElementById('m_author').value = '';
   document.getElementById('m_team').value = '';
   updateMonitorTeamMembers();
   // 평가 버튼 초기화
@@ -1996,7 +1991,8 @@ function loadJournalStores() {
     wrap.innerHTML = '<p style="font-size:13px;color:var(--text-muted)">날짜와 팀을 선택하면 해당 팀의 모니터링 상점이 표시됩니다.</p>';
     return;
   }
-  var team = TEAMS.find(function(t) { return t.name === teamName; });
+  var team = teamsForActiveYear().find(function(t) { return t.name === teamName; }) ||
+    TEAMS.find(function(t) { return t.name === teamName; });
   var members = team ? team.members : [];
   if (memberEl && members.length) memberEl.textContent = '팀원: ' + members.join(', ');
   // 날짜 정규화 (YYYY-MM-DD)
@@ -2011,8 +2007,9 @@ function loadJournalStores() {
   var records = getRecords().filter(function(r) {
     if (r.type !== 'monitor') return false;
     if (normDate(r.date) !== normToday) return false;
+    if ((r.team_name || '') === teamName) return true;
     if (!members.length) return true;
-    return members.some(function(m) { return r.author && r.author.includes(m); });
+    return members.some(function(m) { return (r.team_members || r.author || r.recorder || '').includes(m); });
   });
   if (!records.length) {
     wrap.innerHTML = '<p style="font-size:13px;color:var(--text-muted)">' + date + '에 ' + teamName + '의 모니터링 기록이 없어요. 직접 추가할 수 있어요.</p>';
@@ -2032,7 +2029,7 @@ function loadJournalStores() {
       + '<div style="display:flex;align-items:center;gap:8px">'
       + '<span style="width:8px;height:8px;border-radius:50%;background:' + actionColor(r.action) + ';flex-shrink:0"></span>'
       + '<div><div style="font-size:14px;font-weight:500">' + (r.name||'') + '</div>'
-      + '<div style="font-size:12px;color:var(--text-muted)">' + (r.addr||'') + (r.action?' · '+r.action:'') + (r.author?' · '+r.author:'') + '</div>'
+      + '<div style="font-size:12px;color:var(--text-muted)">' + (r.addr||'') + (r.action?' · '+r.action:'') + (r.team_name?' · '+r.team_name:(r.author?' · '+r.author:'')) + '</div>'
       + (photoHtml ? '<div>' + photoHtml + '</div>' : '')
       + '</div></div></div>';
   });
@@ -2055,6 +2052,7 @@ async function submitJournal() {
   if (!date) { showToast('journal-toast','활동 날짜를 선택해 주세요.','error'); return; }
   if (!time) { showToast('journal-toast','활동 시간을 입력해 주세요.','error'); return; }
   if (!teamName) { showToast('journal-toast','활동 팀을 선택해 주세요.','error'); return; }
+  if (!memo) { showToast('journal-toast','활동 내용을 입력해 주세요.','error'); return; }
   await loadAppSettings();
   var teamYear = String((APP_SETTINGS && APP_SETTINGS.activeYear) || new Date().getFullYear());
   var activeTeams = teamsForActiveYear();
@@ -2070,11 +2068,12 @@ async function submitJournal() {
   var monRecords = getRecords().filter(function(r) {
     if (r.type !== 'monitor') return false;
     if (normDate2(r.date) !== normDate2(date)) return false;
-    return !members.length || members.some(function(m) { return r.author && r.author.includes(m); });
+    if ((r.team_name || '') === teamName) return true;
+    return !members.length || members.some(function(m) { return (r.team_members || r.author || r.recorder || '').includes(m); });
   });
   var stores = monRecords.map(function(r) { return r.name; });
   if (extra) extra.split(',').map(function(s) { return s.trim(); }).filter(Boolean).forEach(function(s) { stores.push(s); });
-  if (!stores.length && !memo) { showToast('journal-toast','방문 상점이 없어요. 날짜·팀을 확인하거나 직접 추가해 주세요.','error'); return; }
+  if (!stores.length) { showToast('journal-toast','방문 상점이 없어요. 날짜·팀을 확인하거나 직접 추가해 주세요.','error'); return; }
   var storeList = stores.join(', ');
   var ts = new Date().toLocaleString('ko-KR');
   var journalId = crypto.randomUUID();
@@ -2737,10 +2736,10 @@ function recordCard(r, idx) {
       ${r.comment ? `<div class="detail-row"><span class="detail-label">종합 의견</span><span class="detail-value">${r.comment}</span></div>` : ''}
       ${extraDetails ? `<div class="detail-row"><span class="detail-label">추가 확인</span><span class="detail-value">${extraDetails}</span></div>` : ''}
       ${(monitorUnlocked || managerUnlocked)
-        ? (r.recorder || r.author
-            ? `<div class="detail-row"><span class="detail-label">기록자</span><span class="detail-value">${r.recorder || r.author}</span></div>`
+        ? (r.team_name || r.recorder || r.author
+            ? `<div class="detail-row"><span class="detail-label">활동 팀</span><span class="detail-value">${r.team_name || r.recorder || r.author}</span></div>`
             : '')
-        : '<div class="detail-row"><span style="font-size:12px;color:var(--text-muted)">🔒 기록자는 모니터링단·담당자만 볼 수 있어요</span></div>'
+        : '<div class="detail-row"><span style="font-size:12px;color:var(--text-muted)">🔒 활동 팀은 모니터링단·담당자만 볼 수 있어요</span></div>'
       }
       ${(monitorUnlocked || managerUnlocked) && r.id
         ? `<div class="photo-view-wrap" data-record-id="${r.id}" data-loaded="false"
@@ -2925,7 +2924,7 @@ function renderEditForm(r) {
       </div>
       <div class="field"><label class="field-label">방문 목적별 추가 내용</label><textarea id="ef_extras">${r.extras || ''}</textarea></div>
       <div class="field"><label class="field-label">종합 의견</label><textarea id="ef_comment">${r.comment || ''}</textarea></div>
-      <div class="field"><label class="field-label">기록자</label><input type="text" id="ef_author" value="${r.author || r.recorder || ''}" /></div>
+      <input type="hidden" id="ef_author" value="${r.author || r.recorder || r.team_members || r.team_name || ''}" />
     `;
   }
 }
@@ -2984,7 +2983,7 @@ function renderJournalEditForm(journal) {
     <div class="field"><label class="field-label">활동 팀</label><input type="text" id="jf_team" value="${journal.team || ''}" /></div>
     <div class="field"><label class="field-label">팀원</label><input type="text" id="jf_author" value="${journal.author || ''}" /></div>
     <div class="field"><label class="field-label">방문 상점</label><textarea id="jf_stores" style="min-height:72px">${journal.stores || ''}</textarea></div>
-    <div class="field"><label class="field-label">활동 소감 / 메모</label><textarea id="jf_memo" style="min-height:120px">${journal.memo || ''}</textarea></div>
+    <div class="field"><label class="field-label">활동 내용</label><textarea id="jf_memo" style="min-height:120px">${journal.memo || ''}</textarea></div>
     <p style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-top:8px">
       같은 날짜·같은 팀으로 묶인 일지가 여러 개라면, 이 내용이 묶인 일지 전체에 반영돼요.
     </p>
@@ -3412,7 +3411,7 @@ async function openPrintMonitorRecordById(recordId) {
     + '<tr><th>장소명</th><td>' + escapeHtml(rec.name || '') + '</td></tr>'
     + '<tr><th>주소</th><td>' + escapeHtml(rec.addr || '') + '</td></tr>'
     + '<tr><th>점검일</th><td>' + escapeHtml(formatPrintDate(rec.date || rec.monitored_at || '')) + '</td></tr>'
-    + '<tr><th>기록자</th><td>' + escapeHtml(rec.recorder || rec.author || '') + '</td></tr>'
+    + '<tr><th>활동 팀</th><td>' + escapeHtml(rec.team_name || rec.recorder || rec.author || '') + '</td></tr>'
     + '<tr><th>상태</th><td>' + escapeHtml(rec.action || '') + '</td></tr>'
     + '<tr><th>항목 평가</th><td>' + escapeHtml(ratingSummaryForPrint(rec)) + '</td></tr>'
     + '<tr><th>추가 확인</th><td>' + escapeHtml(rec.extras || rec.extra_notes || '') + '</td></tr>'
@@ -3456,7 +3455,7 @@ async function openPrintFilteredChecklists() {
       + '<table><tbody>'
       + '<tr><th>주소</th><td>' + escapeHtml(r.addr || '') + '</td></tr>'
       + '<tr><th>점검일</th><td>' + escapeHtml(formatPrintDate(r.date || r.monitored_at || '')) + '</td></tr>'
-      + '<tr><th>기록자</th><td>' + escapeHtml(r.recorder || r.author || '') + '</td></tr>'
+      + '<tr><th>활동 팀</th><td>' + escapeHtml(r.team_name || r.recorder || r.author || '') + '</td></tr>'
       + '<tr><th>상태</th><td>' + escapeHtml(r.action || '') + '</td></tr>'
       + '<tr><th>항목 평가</th><td>' + escapeHtml(ratingSummaryForPrint(r)) + '</td></tr>'
       + '<tr><th>추가 확인</th><td>' + escapeHtml(r.extras || r.extra_notes || '') + '</td></tr>'
@@ -3498,7 +3497,7 @@ async function openPrintJournalReport(journalIndex) {
       + '<table><tbody>'
       + '<tr><th>주소</th><td>' + escapeHtml(r.addr || '') + '</td></tr>'
       + '<tr><th>점검일</th><td>' + escapeHtml(formatPrintDate(r.date || r.monitored_at || '')) + '</td></tr>'
-      + '<tr><th>기록자</th><td>' + escapeHtml(r.recorder || r.author || '') + '</td></tr>'
+      + '<tr><th>활동 팀</th><td>' + escapeHtml(r.team_name || r.recorder || r.author || '') + '</td></tr>'
       + '<tr><th>상태</th><td>' + escapeHtml(r.action || '') + '</td></tr>'
       + '<tr><th>항목 평가</th><td>' + escapeHtml(ratingSummaryForPrint(r)) + '</td></tr>'
       + '<tr><th>추가 확인</th><td>' + escapeHtml(r.extras || r.extra_notes || '') + '</td></tr>'
@@ -3519,7 +3518,7 @@ async function openPrintJournalReport(journalIndex) {
     + '<tr><th>방문상점</th><td>' + escapeHtml(journal.stores || '') + '</td></tr>'
     + '<tr><th>연결 체크리스트</th><td>' + records.length + '건</td></tr>'
     + '</tbody></table>'
-    + '<div class="section-title">활동 소감 / 메모</div><div class="journal-box"><div class="memo">' + escapeHtml(journal.memo || '작성된 소감이 없어요.') + '</div></div>'
+    + '<div class="section-title">활동 내용</div><div class="journal-box"><div class="memo">' + escapeHtml(journal.memo || '작성된 활동 내용이 없어요.') + '</div></div>'
     + '<div class="section-title">연결된 체크리스트 기록</div>' + recordsHtml
     + '<div class="footer">열린 마을 만들기 활동일지</div></div></body></html>';
   win.document.open(); win.document.write(doc); win.document.close();
@@ -3740,8 +3739,8 @@ function renderSettingsRecords() {
       + (managerUnlocked && r.memo
           ? '<div style="font-size:12px;margin-bottom:4px;color:var(--text-muted)">메모: ' + r.memo + '</div>'
           : '')
-      + ((monitorUnlocked || managerUnlocked) && (r.recorder || r.author)
-          ? '<div style="font-size:12px;margin-bottom:4px">기록자: ' + (r.recorder||r.author) + '</div>'
+      + ((monitorUnlocked || managerUnlocked) && (r.team_name || r.recorder || r.author)
+          ? '<div style="font-size:12px;margin-bottom:4px">활동 팀: ' + (r.team_name || r.recorder || r.author) + '</div>'
           : '')
       + (currentAction ? '<div style="font-size:12px;margin-bottom:8px;color:var(--text)">현재 상태: ' + currentAction + '</div>' : '')
       + (settingsSummaryText ? '<div style="font-size:12px;margin-bottom:8px;color:var(--text)">' + settingsSummaryText + '</div>' : '');
@@ -4128,7 +4127,7 @@ function mapRecordExtraHtml(rec) {
       + (ratings ? '<div class="detail-row"><span class="detail-label">항목 평가</span><span class="detail-value">' + ratings + '</span></div>' : '')
       + (rec.comment ? '<div class="detail-row"><span class="detail-label">종합 의견</span><span class="detail-value">' + rec.comment + '</span></div>' : '')
       + (extraDetails ? '<div class="detail-row"><span class="detail-label">추가 확인</span><span class="detail-value">' + extraDetails + '</span></div>' : '')
-      + ((rec.recorder || rec.author) ? '<div class="detail-row"><span class="detail-label">기록자</span><span class="detail-value">' + (rec.recorder || rec.author) + '</span></div>' : '')
+      + ((rec.team_name || rec.recorder || rec.author) ? '<div class="detail-row"><span class="detail-label">활동 팀</span><span class="detail-value">' + (rec.team_name || rec.recorder || rec.author) + '</span></div>' : '')
       + (rec.id ? '<div class="photo-view-wrap" data-record-id="' + rec.id + '" data-loaded="false" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><div style="font-size:12px;color:var(--text-muted)">📷 상세보기를 열면 사진을 불러옵니다.</div></div>' : '')
       + (managerUnlocked && rec.id ? '<button type="button" class="sec-btn primary print-monitor-btn" data-record-id="' + String(rec.id).replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '" style="margin-top:10px;width:100%;font-size:12px;padding:8px 10px">🖨️ 체크리스트 출력</button>' : '')
       + '</div>';
