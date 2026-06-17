@@ -954,6 +954,21 @@
 <div id="settings" class="section" role="tabpanel" aria-label="설정">
   <div class="card">
     <div class="card-title">담당자 인증</div>
+    <div class="card" id="team-settings-card">
+  <div class="card-title">연도별 팀 관리</div>
+
+  <div class="field">
+    <label class="field-label" for="team_active_year">활성 연도</label>
+    <input type="number" id="team_active_year" min="2020" max="2100" placeholder="예: 2026" />
+  </div>
+
+  <div id="team-settings-list" style="display:grid;gap:8px;margin-top:10px"></div>
+
+  <button type="button" class="sec-btn" onclick="addTeamSettingsRow()">팀 추가</button>
+  <button type="button" class="sec-btn primary" onclick="saveTeamSettings()">팀 설정 저장</button>
+
+  <div id="team-settings-toast" class="toast" role="alert" aria-live="polite"></div>
+</div>
     <div id="manager-auth-status" style="font-size:13px;color:var(--text-muted);margin-bottom:12px">🔒 인증되지 않았어요. 담당자 비번으로 로그인하면 개인정보 확인과 체크리스트 수정이 가능해요.</div>
     <button class="sec-btn primary" id="manager-auth-btn" onclick="toggleManagerAuth()" aria-describedby="manager-auth-status">담당자 로그인</button>
   </div>
