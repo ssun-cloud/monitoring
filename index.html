@@ -966,7 +966,7 @@
       <div class="card-title">연도별 팀 관리</div>
       <div class="field">
         <label class="field-label" for="team_active_year">활성 연도</label>
-        <input type="number" id="team_active_year" min="2020" max="2100" placeholder="예: 2026" />
+        <input type="number" id="team_active_year" min="2020" max="2100" placeholder="예: 2026" onchange="renderTeamSettings(this.value)" />
       </div>
       <div id="team-settings-list" style="display:grid;gap:8px;margin-top:10px"></div>
       <button type="button" class="sec-btn" onclick="addTeamSettingsRow()">팀 추가</button>
@@ -3604,6 +3604,16 @@ function teamsForActiveYear() {
   return teams || [];
 }
 
+function teamsForSettingsYear(year) {
+  year = String(year || '').trim();
+  var byYear = (APP_SETTINGS && APP_SETTINGS.teamsByYear) || {};
+  if (Array.isArray(byYear[year])) return byYear[year];
+  if (year === String((APP_SETTINGS && APP_SETTINGS.activeYear) || '') && Array.isArray(APP_SETTINGS.teams)) {
+    return APP_SETTINGS.teams;
+  }
+  return [];
+}
+
 function addTeamSettingsRow(name, members, active) {
   var list = document.getElementById('team-settings-list');
   if (!list) return;
@@ -3618,16 +3628,16 @@ function addTeamSettingsRow(name, members, active) {
   list.appendChild(row);
 }
 
-async function renderTeamSettings() {
+async function renderTeamSettings(yearOverride) {
   var card = document.getElementById('team-settings-card');
   var yearInput = document.getElementById('team_active_year');
   var list = document.getElementById('team-settings-list');
   if (!card || !yearInput || !list) return;
   await loadAppSettings(managerUnlocked || monitorUnlocked);
-  var year = String((APP_SETTINGS && APP_SETTINGS.activeYear) || new Date().getFullYear());
+  var year = String(yearOverride || (APP_SETTINGS && APP_SETTINGS.activeYear) || new Date().getFullYear());
   yearInput.value = year;
   list.innerHTML = '';
-  teamsForActiveYear().forEach(function(team) {
+  teamsForSettingsYear(year).forEach(function(team) {
     addTeamSettingsRow(team.name, team.members, team.active);
   });
   if (!list.children.length) addTeamSettingsRow('', '', true);
