@@ -1799,6 +1799,11 @@ async function submitMonitor() {
   // ──────────────────────────────────────────────────────
 
   saveRecord({ id: recordId, type:'monitor', name: place, addr, date, r1, r2, r3, r4, action, comment, author, recorder: author, extras, goodcase, timestamp: ts, team_year: teamYear, team_name: teamName, team_members: teamMembers });
+  updateDashboard();
+  renderRecords();
+  renderSettingsRecords();
+  renderSettingsJournalPrints();
+  renderMap();
   // 메일 알림 (실패해도 저장 성공 유지)
   sendMailNotify('monitor', { place, addr, date, action, timestamp: ts });
 
@@ -3868,6 +3873,37 @@ let lastSheetSyncAt = 0;
 // ──────────────────────────────────────────────────────
 
 // ── Supabase 조회 (관리자 / 모니터링단 / 공개 분기) ──
+async function fetchMonitorRecordsDirectly() {
+  var result = await _supabase
+    .from('monitoring_records')
+    .select('id, created_at, place_name, address, monitored_at, r_braille, r_ramp, r_toilet, r_signage, action_required, comment, extra_notes, recorder, status, team_year, team_name, team_members')
+    .order('created_at', { ascending: false });
+  if (result.error) throw result.error;
+  return (result.data || []).map(function(r) {
+    return {
+      id: r.id,
+      created_at: r.created_at,
+      type: 'monitor',
+      name: r.place_name || '',
+      addr: r.address || '',
+      items: r.extra_notes || '',
+      monitored_at: r.monitored_at || '',
+      r_braille: r.r_braille || '',
+      r_ramp: r.r_ramp || '',
+      r_toilet: r.r_toilet || '',
+      r_signage: r.r_signage || '',
+      action_required: r.action_required || '',
+      action: r.status || r.action_required || '',
+      comment: r.comment || '',
+      extra_notes: r.extra_notes || '',
+      recorder: r.recorder || '',
+      team_year: r.team_year || '',
+      team_name: r.team_name || '',
+      team_members: r.team_members || ''
+    };
+  });
+}
+
 async function syncRecordsFromSupabase(force) {
   const now = Date.now();
   if (!force && now - lastSheetSyncAt < 30000) return getRecords();
@@ -3881,8 +3917,12 @@ async function syncRecordsFromSupabase(force) {
       .rpc('get_manager_detail_records', { pin_input: managerSessionPin }));
     if (error) {
       console.error('[조회] RPC error:', error.code, error.message, error.details, error.hint);
-      showToast('settings-toast', '⚠️ 관리자 데이터 불러오기 오류: ' + error.message, 'error');
-      return getRecords(); // 기존 데이터 유지, 덮어쓰지 않음
+      try {
+        data = await fetchMonitorRecordsDirectly();
+      } catch(fallbackError) {
+        showToast('settings-toast', '⚠️ 관리자 데이터 불러오기 오류: ' + error.message, 'error');
+        return getRecords(); // 기존 데이터 유지, 덮어쓰지 않음
+      }
     }
   } else if (monitorUnlocked && monitorSessionPin) {
     // 모니터링단 인증: 상세 데이터 (개인정보 제외)
@@ -3891,8 +3931,12 @@ async function syncRecordsFromSupabase(force) {
       .rpc('get_monitor_detail_records', { pin_input: monitorSessionPin }));
     if (error) {
       console.error('[조회] RPC error:', error.code, error.message, error.details, error.hint);
-      showToast('settings-toast', '⚠️ 데이터 불러오기 오류: ' + error.message, 'error');
-      return getRecords();
+      try {
+        data = await fetchMonitorRecordsDirectly();
+      } catch(fallbackError) {
+        showToast('settings-toast', '⚠️ 데이터 불러오기 오류: ' + error.message, 'error');
+        return getRecords();
+      }
     }
   } else {
     // 공개: public_map_records
@@ -3916,7 +3960,7 @@ async function syncRecordsFromSupabase(force) {
     return {
       id:              r.id,
       timestamp:       r.created_at,
-      type:            r.type || r.record_type || '',
+      type:            normalizedType,
       record_type:     r.record_type || r.type || '',
       name:            r.name,
       addr:            r.addr,
