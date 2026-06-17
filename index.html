@@ -1019,7 +1019,7 @@
       <button type="button" class="sec-btn primary" onclick="downloadMonitoringExcel()" style="margin:0 0 10px 0;background:#117f3a;border-color:#117f3a">📊 전체 활동 기록 엑셀로 받기</button>
       <div id="settings-records-count" style="font-size:12px;color:var(--text-muted);margin-bottom:8px" aria-live="polite"></div>
       <div id="settings-records-list" class="settings-list-scroll" role="list" aria-label="기록 목록" aria-live="polite">
-        <div class="empty-state"><div class="empty-icon" aria-hidden="true">📋</div>기록이 없어요. 시트에서 불러오기를 해주세요.</div>
+        <div class="empty-state"><div class="empty-icon" aria-hidden="true">📋</div>기록이 없어요. "최신 기록 다시 불러오기"를 눌러주세요.</div>
       </div>
     </div>
     <div class="card" id="settings-journal-print-card">
@@ -1033,17 +1033,16 @@
       </div>
     </div>
     <div class="card">
-      <div class="card-title">Google 시트 연결</div>
-      <div id="sheet-status" class="settings-status connected">✅ 시트가 연결되어 있어요</div>
-      <p style="font-size:13px;color:var(--text-muted);margin-top:8px">신청 및 모니터링 기록이 Google 시트에 자동으로 저장됩니다.</p>
-      <button class="sec-btn primary" onclick="loadFromSheet()" style="margin-top:12px" aria-label="Google 시트에서 기록 불러오기">📥 시트에서 불러오기</button>
-      <button class="sec-btn" onclick="testSheet()" style="margin-top:8px" aria-label="Google 시트 연결 테스트 전송">테스트 전송</button>
+      <div class="card-title">데이터 연결 상태</div>
+      <div id="sheet-status" class="settings-status connected">✅ 정상적으로 연결되어 있어요</div>
+      <p style="font-size:13px;color:var(--text-muted);margin-top:8px">신청·추천·모니터링 기록은 Supabase에 저장되고, 비밀번호 확인과 알림 메일 발송은 별도 시스템(Google Apps Script)을 통해 처리돼요.</p>
+      <button class="sec-btn primary" onclick="loadFromSheet()" style="margin-top:12px" aria-label="서버에서 최신 기록 다시 불러오기">📥 최신 기록 다시 불러오기</button>
       <div id="settings-toast" class="toast" style="margin-top:10px"></div>
     </div>
     <div class="card">
       <div class="card-title">앱 데이터</div>
-      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">시트에서 불러온 후 로컬 데이터를 초기화할 수 있어요.</p>
-      <button class="sec-btn danger" onclick="clearAllData()" aria-label="앱 로컬 기록 초기화, 시트 데이터는 유지됩니다">모든 기록 초기화</button>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">서버에서 다시 불러온 뒤, 이 기기에 저장된 로컬 데이터만 초기화할 수 있어요. 서버(Supabase)의 데이터는 지워지지 않아요.</p>
+      <button class="sec-btn danger" onclick="clearAllData()" aria-label="이 기기의 로컬 기록만 초기화, 서버 데이터는 유지됩니다">이 기기의 로컬 기록 초기화</button>
     </div>
   </div>
 </div>
@@ -4064,7 +4063,7 @@ function renderSettingsRecords() {
   });
   if (countEl) countEl.textContent = '표시 중: ' + records.length + '건 / 전체 ' + allRecords.length + '건';
   if (!records.length) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-icon" aria-hidden="true">📋</div>기록이 없어요. 시트에서 불러오기를 해주세요.</div>';
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon" aria-hidden="true">📋</div>기록이 없어요. "최신 기록 다시 불러오기"를 눌러주세요.</div>';
     return;
   }
   var typeLabelMap = {apply:'보급 신청', monitor:'모니터링', recommend:'상점 추천'};
@@ -4454,12 +4453,6 @@ async function loadFromSheet() {
         ? '📥 상세 데이터 불러오기'
         : '📥 공개 데이터 불러오기';
   }
-}
-async function testSheet() {
-  try {
-    await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', body: JSON.stringify({type:'test', timestamp: new Date().toLocaleString('ko-KR')}), headers:{'Content-Type':'application/json'} });
-    showToast('settings-toast','✅ 테스트 전송 완료! 시트를 확인해 보세요.','success');
-  } catch(e) { showToast('settings-toast','전송 실패. URL을 확인해 주세요.','error'); }
 }
 
 
