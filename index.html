@@ -1191,6 +1191,9 @@ let pinValue = '', monitorUnlocked = false, managerUnlocked = false, monitorSess
 
 function saveAuthSession() {
   try {
+    sessionStorage.removeItem('openVillageManagerAuth');
+    sessionStorage.removeItem('managerUnlocked');
+    sessionStorage.removeItem('managerSessionPin');
     // 담당자 권한은 새로고침 후 유지하지 않습니다. 모니터링단 세션만 임시 저장합니다.
     if (monitorUnlocked && monitorSessionPin) {
       sessionStorage.setItem('openVillageAuth', JSON.stringify({
@@ -1217,6 +1220,38 @@ function restoreAuthSession() {
     managerSessionPin = '';
   }
 }
+
+
+
+function clearPersistedManagerAuth() {
+  try {
+    var saved = JSON.parse(sessionStorage.getItem('openVillageAuth') || '{}');
+    var keepMonitor = !!saved.monitorUnlocked && !!saved.monitorSessionPin;
+    if (keepMonitor) {
+      sessionStorage.setItem('openVillageAuth', JSON.stringify({
+        monitorUnlocked: true,
+        monitorSessionPin: saved.monitorSessionPin
+      }));
+    } else {
+      sessionStorage.removeItem('openVillageAuth');
+    }
+    sessionStorage.removeItem('openVillageManagerAuth');
+    sessionStorage.removeItem('managerUnlocked');
+    sessionStorage.removeItem('managerSessionPin');
+    localStorage.removeItem('openVillageManagerAuth');
+    localStorage.removeItem('managerUnlocked');
+    localStorage.removeItem('managerSessionPin');
+  } catch(e) {
+    try { sessionStorage.removeItem('openVillageAuth'); } catch(_) {}
+  }
+  managerUnlocked = false;
+  managerSessionPin = '';
+}
+
+window.addEventListener('beforeunload', function() {
+  // 새로고침/재진입 때 담당자 권한이 남지 않도록, 떠나기 직전에 담당자 세션만 제거합니다.
+  clearPersistedManagerAuth();
+});
 
 function requirePin(el) {
   if (monitorUnlocked || managerUnlocked) { switchTab('monitor', el); return; }
@@ -1278,6 +1313,7 @@ async function checkPin() {
     if (await verifyPin('manager', pinValue)) {
       managerUnlocked = true;
       managerSessionPin = pinValue;
+      try { sessionStorage.removeItem('openVillageManagerAuth'); sessionStorage.removeItem('managerUnlocked'); sessionStorage.removeItem('managerSessionPin'); } catch(e) {}
       // 담당자 권한은 모니터링단보다 상위 권한입니다. 모니터링단 로그인 상태는 굳이 해제하지 않습니다.
       // 단, 담당자 권한은 새로고침 후 유지하지 않도록 sessionStorage에 저장하지 않습니다.
       saveAuthSession();
@@ -2674,9 +2710,9 @@ function getRecordAction(record) {
 function getRecordType(record) {
   var type = typeof record === 'string' ? record : (record && (record.type || record.record_type || record.kind || record.category || record.table_name)) || '';
   type = String(type).trim().toLowerCase();
-  if (['apply','application','applications','request','requests','신청','보급 신청','보급신청','신청기록','신청 기록'].includes(type)) return 'apply';
-  if (['monitor','monitoring','monitoring_record','monitoring_records','checklist','checklists','체크리스트','모니터링','모니터링기록','모니터링 기록'].includes(type)) return 'monitor';
-  if (['recommend','recommendation','recommendations','상점추천','상점 추천','추천','추천기록','추천 기록'].includes(type)) return 'recommend';
+  if (['apply','application','applications','request','requests','신청','보급 신청','보급신청'].includes(type)) return 'apply';
+  if (['monitor','monitoring','monitoring_record','monitoring_records','checklist','checklists','체크리스트','모니터링'].includes(type)) return 'monitor';
+  if (['recommend','recommendation','recommendations','상점추천','상점 추천','추천'].includes(type)) return 'recommend';
   if (!type && record && typeof record === 'object') {
     if (record.monitored_at || record.monitoring_date || record.place_name || record.r_braille || record.r_ramp || record.r_toilet || record.r_signage || record.extra_notes) return 'monitor';
     if (record.applicant || record.applyname || record.apply_name || record.support_items) return 'apply';
@@ -3574,6 +3610,7 @@ function toggleManagerAuth() {
     // 로그아웃
     managerUnlocked = false;
     managerSessionPin = '';
+    clearPersistedManagerAuth();
     saveAuthSession();
     lastSheetSyncAt = 0;
     console.log('[권한] mode=' + (monitorUnlocked ? 'monitor' : 'public') + ' (관리자 로그아웃)');
@@ -4437,7 +4474,11 @@ if ('serviceWorker' in navigator) {
 // 샘플 데이터 없음 (실제 운영용)
 
 document.getElementById('m_date').valueAsDate = new Date();
+clearPersistedManagerAuth();
 restoreAuthSession();
+managerUnlocked = false;
+managerSessionPin = '';
+updateManagerAuthUI();
 loadAppSettings().then(function() { populateMonitorTeamSelect(); });
 if (monitorUnlocked || managerUnlocked) {
   syncRecordsFromSupabase(true).then(function() {
