@@ -1667,9 +1667,11 @@ async function updateRecentActivityJournalInSupabase(journal) {
     p_activity_date: journal.date || null,
     p_activity_time: journal.time || '',
     p_team_name: journal.team || '',
-    p_members: journal.author || '',
+    p_members: journal.author || journal.team_members || '',
     p_stores: journal.stores || '',
-    p_memo: journal.memo || ''
+    p_memo: journal.memo || '',
+    p_team_year: journal.team_year || '',
+    p_team_members: journal.team_members || journal.author || ''
   };
   var result = await _supabase.rpc('update_recent_activity_journal', payload);
   if (result.error) throw result.error;
@@ -2004,7 +2006,9 @@ async function submitJournal() {
   if (!time) { showToast('journal-toast','활동 시간을 입력해 주세요.','error'); return; }
   if (!teamName) { showToast('journal-toast','활동 팀을 선택해 주세요.','error'); return; }
   await loadAppSettings();
-  var team = TEAMS.find(function(t) { return t.name === teamName; });
+  var teamYear = String((APP_SETTINGS && APP_SETTINGS.activeYear) || new Date().getFullYear());
+  var activeTeams = teamsForActiveYear();
+  var team = activeTeams.find(function(t) { return t.name === teamName; }) || TEAMS.find(function(t) { return t.name === teamName; });
   var members = team ? team.members : [];
   var author = members.join(', ');
   function normDate2(d) {
@@ -2038,8 +2042,10 @@ async function submitJournal() {
     id:            journalId,
     activity_date: date,
     activity_time: time,
+    team_year:     teamYear,
     team_name:     teamName,
     members:       author,
+    team_members:  author,
     stores:        storeList,
     memo:          memo,
     photo_links:   null
@@ -2060,7 +2066,7 @@ async function submitJournal() {
 
   // 로컬 저장
   var journals = getJournals();
-  journals.unshift({id: journalId, date, time, team:teamName, author, stores:storeList, memo, timestamp:ts});
+  journals.unshift({id: journalId, date, time, team_year:teamYear, team:teamName, author, team_members:author, stores:storeList, memo, timestamp:ts});
   localStorage.setItem('journals', JSON.stringify(journals));
   // 메일 알림 (실패해도 저장 성공 유지)
   sendMailNotify('journal', { date, time, team: teamName, stores: storeList, timestamp: ts });
@@ -2907,9 +2913,11 @@ async function updateActivityJournalInSupabase(journal) {
     p_activity_date: journal.date || null,
     p_activity_time: journal.time || '',
     p_team_name: journal.team || '',
-    p_members: journal.author || '',
+    p_members: journal.author || journal.team_members || '',
     p_stores: journal.stores || '',
-    p_memo: journal.memo || ''
+    p_memo: journal.memo || '',
+    p_team_year: journal.team_year || '',
+    p_team_members: journal.team_members || journal.author || ''
   };
   const { error } = await _supabase.rpc('update_activity_journal', payload);
   if (error) throw error;
@@ -3116,8 +3124,10 @@ async function fetchManagerJournalsFromSupabase() {
         id: j.id || '',
         date: j.activity_date || '',
         time: j.activity_time || '',
+        team_year: j.team_year || '',
         team: j.team_name || '',
-        author: j.members || '',
+        author: j.team_members || j.members || '',
+        team_members: j.team_members || j.members || '',
         stores: j.stores || '',
         memo: j.memo || '',
         photo_links: j.photo_links || '',
@@ -3916,8 +3926,10 @@ async function loadFromSheet() {
             return {
               date:      j.activity_date,
               time:      j.activity_time || '',
+              team_year: j.team_year || '',
               team:      j.team_name || '',
-              author:    j.members || '',
+              author:    j.team_members || j.members || '',
+              team_members: j.team_members || j.members || '',
               stores:    j.stores || '',
               memo:      j.memo || '',
               timestamp: j.created_at
@@ -4304,4 +4316,6 @@ if (!window.__journalEditHandlerAttached) {
 </script>
 </body>
 </html>
+
+
 
