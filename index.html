@@ -1248,10 +1248,10 @@ function clearPersistedManagerAuth() {
   managerSessionPin = '';
 }
 
-window.addEventListener('beforeunload', function() {
-  // 새로고침/재진입 때 담당자 권한이 남지 않도록, 떠나기 직전에 담당자 세션만 제거합니다.
-  clearPersistedManagerAuth();
-});
+// 담당자 권한은 sessionStorage에 절대 저장하지 않으므로(saveAuthSession 참고),
+// 새로고침/탭 재진입 시 restoreAuthSession()만으로 항상 자동 초기화됩니다.
+// 예전에는 beforeunload 시점에 별도로 지우려 했지만, 모바일/PWA에서 beforeunload가
+// 불안정하게 동작해 모니터링단 세션까지 함께 사라지는 문제가 있어 제거했습니다.
 
 function requirePin(el) {
   if (monitorUnlocked || managerUnlocked) { switchTab('monitor', el); return; }
@@ -1313,12 +1313,11 @@ async function checkPin() {
     if (await verifyPin('manager', pinValue)) {
       managerUnlocked = true;
       managerSessionPin = pinValue;
-      try { sessionStorage.removeItem('openVillageManagerAuth'); sessionStorage.removeItem('managerUnlocked'); sessionStorage.removeItem('managerSessionPin'); } catch(e) {}
-      // 담당자 권한은 모니터링단보다 상위 권한입니다. 모니터링단 로그인 상태는 굳이 해제하지 않습니다.
-      // 단, 담당자 권한은 새로고침 후 유지하지 않도록 sessionStorage에 저장하지 않습니다.
+      // 담당자 권한은 모니터링단보다 상위 권한입니다. 모니터링단 로그인 상태는 그대로 유지합니다.
+      // 단, 담당자 권한 자체는 sessionStorage에 저장하지 않아 새로고침 시 자동으로 풀립니다.
       saveAuthSession();
       lastSheetSyncAt = 0;
-      console.log('[권한] mode=manager');
+      console.log('[권한] mode=manager (모니터링단 상태 유지: ' + (monitorUnlocked ? 'Y' : 'N') + ')');
       document.getElementById('lock-screen').classList.remove('show');
       // 관리자 데이터 즉시 재조회
       syncRecordsFromSupabase(true).then(async function() {
@@ -4474,10 +4473,10 @@ if ('serviceWorker' in navigator) {
 // 샘플 데이터 없음 (실제 운영용)
 
 document.getElementById('m_date').valueAsDate = new Date();
+// 1) 과거 버전에서 남아있을 수 있는 매니저 관련 저장값(레거시 localStorage 키 등)을 정리합니다.
 clearPersistedManagerAuth();
+// 2) 모니터링단 세션만 sessionStorage에서 복원합니다. (매니저는 항상 false로 시작)
 restoreAuthSession();
-managerUnlocked = false;
-managerSessionPin = '';
 updateManagerAuthUI();
 loadAppSettings().then(function() { populateMonitorTeamSelect(); });
 if (monitorUnlocked || managerUnlocked) {
