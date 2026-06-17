@@ -954,21 +954,6 @@
 <div id="settings" class="section" role="tabpanel" aria-label="설정">
   <div class="card">
     <div class="card-title">담당자 인증</div>
-    <div class="card" id="team-settings-card">
-  <div class="card-title">연도별 팀 관리</div>
-
-  <div class="field">
-    <label class="field-label" for="team_active_year">활성 연도</label>
-    <input type="number" id="team_active_year" min="2020" max="2100" placeholder="예: 2026" />
-  </div>
-
-  <div id="team-settings-list" style="display:grid;gap:8px;margin-top:10px"></div>
-
-  <button type="button" class="sec-btn" onclick="addTeamSettingsRow()">팀 추가</button>
-  <button type="button" class="sec-btn primary" onclick="saveTeamSettings()">팀 설정 저장</button>
-
-  <div id="team-settings-toast" class="toast" role="alert" aria-live="polite"></div>
-</div>
     <div id="manager-auth-status" style="font-size:13px;color:var(--text-muted);margin-bottom:12px">🔒 인증되지 않았어요. 담당자 비번으로 로그인하면 개인정보 확인과 체크리스트 수정이 가능해요.</div>
     <button class="sec-btn primary" id="manager-auth-btn" onclick="toggleManagerAuth()" aria-describedby="manager-auth-status">담당자 로그인</button>
   </div>
@@ -1061,59 +1046,22 @@ try {
   if (Array.isArray(savedTeams) && savedTeams.length) TEAMS = savedTeams;
 } catch(e) {}
 let appSettingsPromise = null;
-let APP_SETTINGS = {
-  activeYear: String(new Date().getFullYear()),
-  teamsByYear: {},
-  teams: []
-};
 
 async function loadAppSettings(force) {
   if (appSettingsPromise && !force) return appSettingsPromise;
-
-  appSettingsPromise = (async function() {
-    let data = null;
-
-    try {
-      if (monitorUnlocked && monitorSessionPin) {
-        data = await postSheetData({
-          type: 'getSettings',
-          monitorPin: monitorSessionPin
-        });
-      } else if (managerUnlocked && managerSessionPin) {
-        data = await postSheetData({
-          type: 'getSettings',
-          managerPin: managerSessionPin
-        });
-      }
-    } catch(e) {
-      console.warn('인증 설정 불러오기 실패:', e);
-    }
-
-    if (!data || data.result !== 'ok') {
-      try {
-        const res = await fetch(SCRIPT_URL + '?type=settings', { cache: 'no-store' });
-        data = await res.json();
-      } catch(e) {
-        console.warn('공개 설정 불러오기 실패:', e);
-      }
-    }
-
-    if (data && data.result === 'ok' && data.settings) {
-      APP_SETTINGS = {
-        activeYear: data.settings.activeYear || String(new Date().getFullYear()),
-        teamsByYear: data.settings.teamsByYear || {},
-        teams: Array.isArray(data.settings.teams) ? data.settings.teams : []
-      };
-
-      if (APP_SETTINGS.teams.length) {
-        TEAMS = APP_SETTINGS.teams;
+  appSettingsPromise = fetch(SCRIPT_URL + '?type=settings', { cache: 'no-store' })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      if (data && data.result === 'ok' && data.settings && Array.isArray(data.settings.teams) && data.settings.teams.length) {
+        TEAMS = data.settings.teams;
         localStorage.setItem('appTeams', JSON.stringify(TEAMS));
       }
-    }
-
-    return TEAMS;
-  })();
-
+      return TEAMS;
+    })
+    .catch(function(e) {
+      console.warn('설정 불러오기 실패:', e);
+      return TEAMS;
+    });
   return appSettingsPromise;
 }
 
