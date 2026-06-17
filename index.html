@@ -923,13 +923,20 @@
         📍 내 위치
       </button>
     </div>
-    <div id="map-legend" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;font-size:11px;color:var(--text-muted);align-items:center;padding:8px 10px;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
-      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#1a8c6e;display:inline-block"></span> 보급 신청</span>
-      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#ec4899;display:inline-block"></span> 상점 추천</span>
-      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block"></span> 지원 검토 필요</span>
-      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#9ca3af;display:inline-block"></span> 미검증 (모니터링단만 표시)</span>
-      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#d97706;display:inline-block"></span> 재방문 필요</span>
-      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#3b82f6;display:inline-block"></span> 확인 완료</span>
+    <div id="map-legend" role="group" aria-label="지도 표시 필터" style="display:flex;flex-direction:column;gap:6px;margin-top:6px;padding:8px 10px;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:11px;color:var(--text-muted);margin-right:2px">유형</span>
+        <button type="button" class="map-filter-btn" data-filter-group="type" data-filter-value="apply" onclick="toggleMapFilter('type','apply')" aria-pressed="true" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#1a8c6e;display:inline-block" aria-hidden="true"></span> 보급 신청</button>
+        <button type="button" class="map-filter-btn" data-filter-group="type" data-filter-value="recommend" onclick="toggleMapFilter('type','recommend')" aria-pressed="true" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#ec4899;display:inline-block" aria-hidden="true"></span> 상점 추천</button>
+        <button type="button" class="map-filter-btn" data-filter-group="type" data-filter-value="monitor" onclick="toggleMapFilter('type','monitor')" aria-pressed="true" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#3b82f6;display:inline-block" aria-hidden="true"></span> 모니터링</button>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:11px;color:var(--text-muted);margin-right:2px">상태</span>
+        <button type="button" class="map-filter-btn" data-filter-group="status" data-filter-value="review" onclick="toggleMapFilter('status','review')" aria-pressed="true" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#dc2626;display:inline-block" aria-hidden="true"></span> 지원 검토 필요</button>
+        <button type="button" class="map-filter-btn" data-filter-group="status" data-filter-value="revisit" onclick="toggleMapFilter('status','revisit')" aria-pressed="true" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#d97706;display:inline-block" aria-hidden="true"></span> 재방문 필요</button>
+        <button type="button" class="map-filter-btn" data-filter-group="status" data-filter-value="complete" onclick="toggleMapFilter('status','complete')" aria-pressed="true" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#16a34a;display:inline-block" aria-hidden="true"></span> 확인 완료</button>
+        <button type="button" class="map-filter-btn" data-filter-group="status" data-filter-value="unverified" onclick="toggleMapFilter('status','unverified')" aria-pressed="true" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#9ca3af;display:inline-block" aria-hidden="true"></span> 미검증<span class="map-legend-monitor-only" style="display:none"> (모니터링단만)</span></button>
+      </div>
     </div>
   </div>
   <div class="card map-list-card">
@@ -2561,6 +2568,9 @@ function selectPlace(place) {
   } else if (_placeSearchTarget === 'monitor') {
     document.getElementById('m_place').value = name;
     document.getElementById('m_addr').value = addr;
+  } else if (_placeSearchTarget === 'edit') {
+    document.getElementById('ef_name').value = name;
+    document.getElementById('ef_addr').value = addr;
   }
   closePlaceSearch();
 }
@@ -2844,7 +2854,7 @@ function recordCard(r, idx) {
     <div class="rec-top">
       <span class="rec-name">${r.name}</span>
       <div style="display:flex;align-items:center;gap:4px;margin-left:auto">
-        ${managerUnlocked && (r.type === 'monitor' || r.type === 'apply' || r.type === 'recommend') ? `<button class="edit-btn" onclick="openEditModal(event, '${idx}')">✏️ ${r.type === 'monitor' ? '수정' : '상태 변경'}</button>` : ''}
+        ${managerUnlocked && (r.type === 'monitor' || r.type === 'apply' || r.type === 'recommend') ? `<button class="edit-btn" onclick="openEditModal(event, '${idx}')">✏️ 수정</button>` : ''}
         <span class="rec-toggle" id="toggle-${idx}">▼ 상세</span>
       </div>
     </div>
@@ -2987,12 +2997,16 @@ function renderEditForm(r) {
   if (r.type === 'apply') {
     const editAction = getRecordAction(r) || '신청 접수';
     body.innerHTML = `
-      <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">상호명·주소 등 신청 내용은 현재 읽기 전용이에요. 진행 상태만 변경할 수 있어요.</p>
-      <div class="field"><label class="field-label">상호명</label><input type="text" id="ef_name" value="${r.name || ''}" disabled /></div>
-      <div class="field"><label class="field-label">주소</label><input type="text" id="ef_addr" value="${r.addr || ''}" disabled /></div>
-      <div class="field"><label class="field-label">신청 항목</label><input type="text" id="ef_items" value="${r.items || ''}" disabled /></div>
-      <div class="field"><label class="field-label">연락처</label><input type="tel" id="ef_phone" value="${r.phone || ''}" disabled /></div>
-      <div class="field"><label class="field-label">요청 메모</label><textarea id="ef_memo" disabled>${r.memo || ''}</textarea></div>
+      <div class="field"><label class="field-label">상호명</label><input type="text" id="ef_name" value="${r.name || ''}" /></div>
+      <div class="field"><label class="field-label">주소</label>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="ef_addr" value="${r.addr || ''}" placeholder="주소를 확인해서 입력해 주세요" style="flex:1" />
+          <button type="button" onclick="openPlaceSearch('edit')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif">🔍 찾기</button>
+        </div>
+      </div>
+      <div class="field"><label class="field-label">신청 항목</label><input type="text" id="ef_items" value="${r.items || ''}" /></div>
+      <div class="field"><label class="field-label">연락처</label><input type="tel" id="ef_phone" value="${r.phone || ''}" /></div>
+      <div class="field"><label class="field-label">요청 메모</label><textarea id="ef_memo">${r.memo || ''}</textarea></div>
       <div class="field"><label class="field-label">진행 상태</label>
         <select id="ef_status" aria-label="신청 진행 상태">
           <option value="신청 접수" ${editAction==='신청 접수'?'selected':''}>신청 접수</option>
@@ -3005,12 +3019,16 @@ function renderEditForm(r) {
   } else if (r.type === 'recommend') {
     const editAction = getRecordAction(r) || '추천';
     body.innerHTML = `
-      <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">상호명·주소 등 추천 내용은 현재 읽기 전용이에요. 진행 상태만 변경할 수 있어요.</p>
-      <div class="field"><label class="field-label">상호명</label><input type="text" id="ef_name" value="${r.name || ''}" disabled /></div>
-      <div class="field"><label class="field-label">주소</label><input type="text" id="ef_addr" value="${r.addr || ''}" disabled /></div>
-      <div class="field"><label class="field-label">좋은 점</label><input type="text" id="ef_items" value="${r.items || ''}" disabled /></div>
-      <div class="field"><label class="field-label">연락처</label><input type="tel" id="ef_phone" value="${r.phone || ''}" disabled /></div>
-      <div class="field"><label class="field-label">한줄소개</label><textarea id="ef_memo" disabled>${r.intro || ''}</textarea></div>
+      <div class="field"><label class="field-label">상호명</label><input type="text" id="ef_name" value="${r.name || ''}" /></div>
+      <div class="field"><label class="field-label">주소</label>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="ef_addr" value="${r.addr || ''}" placeholder="주소를 확인해서 입력해 주세요" style="flex:1" />
+          <button type="button" onclick="openPlaceSearch('edit')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif">🔍 찾기</button>
+        </div>
+      </div>
+      <div class="field"><label class="field-label">좋은 점</label><input type="text" id="ef_items" value="${r.items || ''}" /></div>
+      <div class="field"><label class="field-label">연락처</label><input type="tel" id="ef_phone" value="${r.phone || ''}" /></div>
+      <div class="field"><label class="field-label">한줄소개</label><textarea id="ef_memo">${r.intro || ''}</textarea></div>
       <div class="field"><label class="field-label">진행 상태</label>
         <select id="ef_status" aria-label="추천 진행 상태">
           <option value="추천" ${editAction==='추천'?'selected':''}>추천 접수</option>
@@ -3162,16 +3180,59 @@ async function saveEdit() {
     if (!r) throw new Error('수정할 기록을 찾지 못했어요.');
 
     if (r.type === 'apply' || r.type === 'recommend') {
-      if (!r.id) throw new Error('상태를 변경할 기록의 ID가 없어요.');
+      if (!r.id) throw new Error('수정할 기록의 ID가 없어요.');
+
+      const newName  = document.getElementById('ef_name').value.trim();
+      const newAddr  = document.getElementById('ef_addr').value.trim();
+      const newItems = document.getElementById('ef_items').value.trim();
+      const newPhone = document.getElementById('ef_phone').value.trim();
+      const newMemo  = document.getElementById('ef_memo').value.trim();
       const newStatus = document.getElementById('ef_status').value;
-      const { error } = await _supabase.rpc('update_record_status', {
+
+      if (!newName) throw new Error('상호명을 입력해 주세요.');
+
+      if (r.type === 'apply') {
+        const { error: detailError } = await _supabase.rpc('update_application_detail', {
+          pin_input: managerSessionPin,
+          record_id: r.id,
+          new_store_name: newName,
+          new_address: newAddr,
+          new_items: newItems,
+          new_applicant: r.applicant || '',
+          new_phone: newPhone,
+          new_memo: newMemo
+        });
+        if (detailError) throw detailError;
+      } else {
+        const { error: detailError } = await _supabase.rpc('update_recommendation_detail', {
+          pin_input: managerSessionPin,
+          record_id: r.id,
+          new_store_name: newName,
+          new_address: newAddr,
+          new_good_points: newItems,
+          new_recommender: r.applicant || '',
+          new_phone: newPhone,
+          new_intro: newMemo
+        });
+        if (detailError) throw detailError;
+      }
+
+      const { error: statusError } = await _supabase.rpc('update_record_status', {
         pin_input: managerSessionPin,
         record_type: r.type,
         record_id: r.id,
         new_status: newStatus
       });
-      if (error) throw error;
+      if (statusError) throw statusError;
 
+      r.name = newName;
+      r.place = newName;
+      r.place_name = newName;
+      r.addr = newAddr;
+      r.address = newAddr;
+      r.items = newItems;
+      r.phone = newPhone;
+      if (r.type === 'recommend') { r.intro = newMemo; } else { r.memo = newMemo; }
       r.action = newStatus;
       r.action_required = newStatus;
       r.actionRequired = newStatus;
@@ -3184,7 +3245,7 @@ async function saveEdit() {
 
       await refreshViewsAfterEdit(true);
 
-      showToast('edit-toast', '✅ 진행 상태를 변경했어요!', 'success');
+      showToast('edit-toast', '✅ 신청/추천 정보를 저장했어요!', 'success');
       setTimeout(() => {
         document.getElementById('edit-modal').classList.remove('show');
         refreshViewsAfterEdit(false);
@@ -3584,8 +3645,13 @@ function getFilteredSettingsMonitorRecords() {
 
 async function openPrintFilteredChecklists() {
   if (!managerUnlocked) { alert('체크리스트 목록 출력은 담당자만 사용할 수 있어요.'); return; }
+  var typeFilter = (document.getElementById('rec-filter-type')||{}).value || '';
+  if (typeFilter === 'apply' || typeFilter === 'recommend') {
+    alert('체크리스트 출력은 모니터링 기록에서만 사용할 수 있어요. 유형 필터를 "모니터링" 또는 "전체 유형"으로 바꿔 주세요.');
+    return;
+  }
   var records = getFilteredSettingsMonitorRecords();
-  if (!records.length) { alert('현재 조건에 해당하는 체크리스트 기록이 없어요.'); return; }
+  if (!records.length) { alert('현재 조건에 해당하는 모니터링 체크리스트 기록이 없어요.'); return; }
   var win = window.open('', '_blank');
   if (!win) { alert('팝업이 차단되었어요. 팝업 허용 후 다시 시도해 주세요.'); return; }
   win.document.open();
@@ -3913,7 +3979,7 @@ function renderSettingsRecords() {
       editBtn.type = 'button';
       editBtn.className = 'sec-btn primary';
       editBtn.style.cssText = 'width:100%;margin-top:8px;font-size:12px;padding:7px 8px';
-      var editBtnLabel = typeMatches(r, 'monitor') ? '✏️ 체크리스트 수정' : '✏️ 진행 상태 변경';
+      var editBtnLabel = typeMatches(r, 'monitor') ? '✏️ 체크리스트 수정' : '✏️ 신청/추천 수정';
       editBtn.textContent = editBtnLabel;
       editBtn.setAttribute('aria-label', name + ' ' + editBtnLabel.replace('✏️ ', ''));
       editBtn.addEventListener('click', function(e) {
@@ -4269,6 +4335,29 @@ async function testSheet() {
 // ── 지도 ─────────────────────────────────────────
 let mapInstance = null;
 let mapMarkers = [];
+// 지도 유형/상태 필터: 기본값은 전부 켜짐(true)이며, 버튼을 누르면 꺼짐(false)으로 토글됩니다.
+let mapTypeFilter = { apply: true, recommend: true, monitor: true };
+let mapStatusFilter = { review: true, revisit: true, complete: true, unverified: true };
+
+function getMapStatusKey(rec) {
+  if (isSupportReviewAction(rec.action)) return 'review';
+  if (isRevisitAction(rec.action)) return 'revisit';
+  if (!isVerified(rec)) return 'unverified';
+  return 'complete';
+}
+
+function toggleMapFilter(group, value) {
+  var store = group === 'type' ? mapTypeFilter : mapStatusFilter;
+  store[value] = !store[value];
+  var btn = document.querySelector('.map-filter-btn[data-filter-group="' + group + '"][data-filter-value="' + value + '"]');
+  if (btn) {
+    btn.setAttribute('aria-pressed', store[value] ? 'true' : 'false');
+    btn.style.opacity = store[value] ? '1' : '0.4';
+    btn.style.background = store[value] ? 'var(--white)' : '#f3f4f6';
+  }
+  renderMap();
+}
+
 let currentInfoWindow = null;
 
 function initMap() {
@@ -4390,12 +4479,19 @@ function mapRecordExtraHtml(rec) {
 }
 
 function renderMap() {
+  // 비로그인 공개 사용자에게는 미검증 항목 자체가 노출되지 않으므로, 해당 필터 버튼은 숨깁니다.
+  var unverifiedBtn = document.querySelector('.map-filter-btn[data-filter-value="unverified"]');
+  if (unverifiedBtn) {
+    unverifiedBtn.style.display = (monitorUnlocked || managerUnlocked) ? '' : 'none';
+  }
   const allRecords = getRecords();
   // 모니터링단(PIN 인증)이면 전체, 아니면 검증된 것만 표시
   const mapRecords = allRecords.filter(r => {
     if (!r.addr) return false;
-    if (monitorUnlocked || managerUnlocked) return true;
-    return isVerified(r);
+    if (!(monitorUnlocked || managerUnlocked) && !isVerified(r)) return false;
+    if (mapTypeFilter[r.type] === false) return false;
+    if (mapStatusFilter[getMapStatusKey(r)] === false) return false;
+    return true;
   });
   const container = document.getElementById('kakao-map');
   const listEl = document.getElementById('map-list');
