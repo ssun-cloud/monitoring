@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
@@ -443,6 +443,11 @@
     </div>
   </div>
 
+  <div class="card">
+    <div class="card-title">모니터링단이 확인한 편한 가게</div>
+    <div id="home-recommend-list" role="list" aria-live="polite"></div>
+  </div>
+
   <div class="card" style="padding:0;overflow:hidden">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px">
       <div class="card-title" style="margin-bottom:0">현황 지도</div>
@@ -657,7 +662,8 @@
     <div class="card-title">항목별 평가</div>
     <div class="field">
       <label class="field-label">점자메뉴판·QR 메뉴 이용</label>
-      <div class="rating-group" id="rg_r1" role="radiogroup" aria-label="점자메뉴판·QR 메뉴 이용 평가">
+      <div id="r1-criteria" style="font-size:11px;color:var(--text-muted);margin-bottom:6px">좋음: 점자·음성·QR 등으로 메뉴를 스스로 확인할 수 있어요 · 보통: 직원 설명이 있으면 확인 가능해요 · 미흡: 메뉴 확인 방법이 없어요</div>
+      <div class="rating-group" id="rg_r1" role="radiogroup" aria-label="점자메뉴판·QR 메뉴 이용 평가" aria-describedby="r1-criteria">
         <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'good')">👍 좋음</button>
         <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'fair')">😐 보통</button>
         <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'poor')">👎 미흡</button>
@@ -666,7 +672,8 @@
     </div>
     <div class="field">
       <label class="field-label">출입구 및 경사로 접근성</label>
-      <div class="rating-group" id="rg_r2" role="radiogroup" aria-label="출입구 및 경사로 접근성 평가">
+      <div id="r2-criteria" style="font-size:11px;color:var(--text-muted);margin-bottom:6px">좋음: 문턱이 없거나 경사로가 있어 휠체어·유모차가 혼자 들어갈 수 있어요 · 보통: 도움을 받으면 들어갈 수 있어요 · 미흡: 턱이 높아 들어가기 어려워요</div>
+      <div class="rating-group" id="rg_r2" role="radiogroup" aria-label="출입구 및 경사로 접근성 평가" aria-describedby="r2-criteria">
         <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r2','rg_r2',this,'good')">👍 좋음</button>
         <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r2','rg_r2',this,'fair')">😐 보통</button>
         <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r2','rg_r2',this,'poor')">👎 미흡</button>
@@ -675,7 +682,8 @@
     </div>
     <div class="field">
       <label class="field-label">화장실 접근성</label>
-      <div class="rating-group" id="rg_r3" role="radiogroup" aria-label="화장실 접근성 평가">
+      <div id="r3-criteria" style="font-size:11px;color:var(--text-muted);margin-bottom:6px">좋음: 휠체어로 진입해 혼자 이용할 수 있어요 · 보통: 공간이 좁거나 손잡이가 부족해 불편함이 있어요 · 미흡: 휠체어 진입이 어렵거나 화장실이 없어요</div>
+      <div class="rating-group" id="rg_r3" role="radiogroup" aria-label="화장실 접근성 평가" aria-describedby="r3-criteria">
         <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r3','rg_r3',this,'good')">👍 좋음</button>
         <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r3','rg_r3',this,'fair')">😐 보통</button>
         <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r3','rg_r3',this,'poor')">👎 미흡</button>
@@ -684,7 +692,8 @@
     </div>
     <div class="field">
       <label class="field-label">실내 이동 및 이용 편의</label>
-      <div class="rating-group" id="rg_r4" role="radiogroup" aria-label="실내 이동 및 이용 편의 평가">
+      <div id="r4-criteria" style="font-size:11px;color:var(--text-muted);margin-bottom:6px">좋음: 테이블 사이가 넓어 이동이 자유롭고 안내판도 알아보기 쉬워요 · 보통: 일부 좁은 구간이 있어요 · 미흡: 통로가 좁아 이동이 어려워요</div>
+      <div class="rating-group" id="rg_r4" role="radiogroup" aria-label="실내 이동 및 이용 편의 평가" aria-describedby="r4-criteria">
         <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'good')">👍 좋음</button>
         <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'fair')">😐 보통</button>
         <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'poor')">👎 미흡</button>
@@ -924,24 +933,29 @@
         📍 내 위치
       </button>
     </div>
-    <div id="map-legend" role="group" aria-label="지도 표시 필터" style="display:flex;flex-direction:column;gap:6px;margin-top:6px;padding:8px 10px;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
-      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+    <div id="map-legend" style="display:flex;flex-direction:column;gap:6px;margin-top:6px;padding:8px 10px;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
+      <div role="radiogroup" aria-label="유형 필터" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
         <span style="font-size:11px;color:var(--text-muted);margin-right:2px">유형</span>
-        <button type="button" class="map-filter-btn" data-filter-group="type" data-filter-value="apply" onclick="toggleMapFilter('type','apply')" aria-pressed="true" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#1a8c6e;display:inline-block" aria-hidden="true"></span> 보급 신청</button>
-        <button type="button" class="map-filter-btn" data-filter-group="type" data-filter-value="recommend" onclick="toggleMapFilter('type','recommend')" aria-pressed="true" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#ec4899;display:inline-block" aria-hidden="true"></span> 상점 추천</button>
-        <button type="button" class="map-filter-btn" data-filter-group="type" data-filter-value="monitor" onclick="toggleMapFilter('type','monitor')" aria-pressed="true" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#3b82f6;display:inline-block" aria-hidden="true"></span> 모니터링</button>
+        <button type="button" class="map-filter-btn" data-filter-group="type" data-filter-value="" role="radio" onclick="setMapFilter('type','')" aria-checked="true" style="font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--teal-light);color:var(--teal);font-weight:600;cursor:pointer;font-family:'Noto Sans KR',sans-serif">전체</button>
+        <button type="button" class="map-filter-btn" data-filter-group="type" data-filter-value="apply" role="radio" onclick="setMapFilter('type','apply')" aria-checked="false" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#1a8c6e;display:inline-block" aria-hidden="true"></span> 보급 신청</button>
+        <button type="button" class="map-filter-btn" data-filter-group="type" data-filter-value="recommend" role="radio" onclick="setMapFilter('type','recommend')" aria-checked="false" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#ec4899;display:inline-block" aria-hidden="true"></span> 상점 추천</button>
+        <button type="button" class="map-filter-btn" data-filter-group="type" data-filter-value="monitor" role="radio" onclick="setMapFilter('type','monitor')" aria-checked="false" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#3b82f6;display:inline-block" aria-hidden="true"></span> 모니터링</button>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <div role="radiogroup" aria-label="상태 필터" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
         <span style="font-size:11px;color:var(--text-muted);margin-right:2px">상태</span>
-        <button type="button" class="map-filter-btn" data-filter-group="status" data-filter-value="review" onclick="toggleMapFilter('status','review')" aria-pressed="true" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#dc2626;display:inline-block" aria-hidden="true"></span> 지원 검토 필요</button>
-        <button type="button" class="map-filter-btn" data-filter-group="status" data-filter-value="revisit" onclick="toggleMapFilter('status','revisit')" aria-pressed="true" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#d97706;display:inline-block" aria-hidden="true"></span> 재방문 필요</button>
-        <button type="button" class="map-filter-btn" data-filter-group="status" data-filter-value="complete" onclick="toggleMapFilter('status','complete')" aria-pressed="true" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#16a34a;display:inline-block" aria-hidden="true"></span> 확인 완료</button>
-        <button type="button" class="map-filter-btn" data-filter-group="status" data-filter-value="unverified" onclick="toggleMapFilter('status','unverified')" aria-pressed="true" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#9ca3af;display:inline-block" aria-hidden="true"></span> 미검증<span class="map-legend-monitor-only" style="display:none"> (모니터링단만)</span></button>
+        <button type="button" class="map-filter-btn" data-filter-group="status" data-filter-value="" role="radio" onclick="setMapFilter('status','')" aria-checked="true" style="font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--teal-light);color:var(--teal);font-weight:600;cursor:pointer;font-family:'Noto Sans KR',sans-serif">전체</button>
+        <button type="button" class="map-filter-btn" data-filter-group="status" data-filter-value="review" role="radio" onclick="setMapFilter('status','review')" aria-checked="false" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#dc2626;display:inline-block" aria-hidden="true"></span> 지원 검토 필요</button>
+        <button type="button" class="map-filter-btn" data-filter-group="status" data-filter-value="revisit" role="radio" onclick="setMapFilter('status','revisit')" aria-checked="false" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#d97706;display:inline-block" aria-hidden="true"></span> 재방문 필요</button>
+        <button type="button" class="map-filter-btn" data-filter-group="status" data-filter-value="complete" role="radio" onclick="setMapFilter('status','complete')" aria-checked="false" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#16a34a;display:inline-block" aria-hidden="true"></span> 확인 완료</button>
+        <button type="button" class="map-filter-btn" data-filter-group="status" data-filter-value="unverified" role="radio" onclick="setMapFilter('status','unverified')" aria-checked="false" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#9ca3af;display:inline-block" aria-hidden="true"></span> 미검증<span class="map-legend-monitor-only" style="display:none"> (모니터링단만)</span></button>
       </div>
     </div>
   </div>
   <div class="card map-list-card">
     <div class="card-title" id="map-list-title">지도 목록</div>
+    <div class="field" style="margin-bottom:10px">
+      <input type="search" id="map-search-input" placeholder="장소명으로 검색" aria-label="지도 목록에서 장소명 검색" oninput="renderMap()" style="width:100%" />
+    </div>
     <div id="map-list" role="list" aria-labelledby="map-list-title" aria-live="polite"></div>
   </div>
 </div>
@@ -2400,6 +2414,30 @@ async function updateRecordStatus(timestamp, type, status) {
 function updateDashboard() {
   var records = getRecords();
   renderHomeMap(records);
+  renderHomeRecommendList(records);
+}
+
+function renderHomeRecommendList(records) {
+  const el = document.getElementById('home-recommend-list');
+  if (!el) return;
+  const verified = records
+    .filter(function(r) { return typeMatches(r, 'recommend') && isVerified(r); })
+    .sort(function(a, b) { return new Date(b.timestamp || b.created_at || 0) - new Date(a.timestamp || a.created_at || 0); })
+    .slice(0, 5);
+
+  if (verified.length === 0) {
+    el.innerHTML = '<div class="empty-state" style="padding:16px 0"><div class="empty-icon" aria-hidden="true">🌟</div>아직 모니터링단이 확인한 가게가 없어요</div>';
+    return;
+  }
+
+  el.innerHTML = verified.map(function(r) {
+    const goodPoints = (r.items || '').trim();
+    return '<div role="listitem" style="padding:12px 0;border-bottom:1px solid var(--border)">'
+      + '<div style="font-weight:700;font-size:14px">' + escapeHtml(r.name || '') + '</div>'
+      + '<div style="font-size:12px;color:var(--text-muted);margin-top:2px">' + escapeHtml(r.addr || '') + '</div>'
+      + (goodPoints ? '<div style="font-size:12px;color:#1a5c4a;margin-top:6px;background:var(--teal-light);display:inline-block;padding:2px 8px;border-radius:10px">' + escapeHtml(goodPoints) + '</div>' : '')
+      + '</div>';
+  }).join('');
 }
 
 function renderHomeMap(records) {
@@ -4429,9 +4467,9 @@ async function testSheet() {
 // ── 지도 ─────────────────────────────────────────
 let mapInstance = null;
 let mapMarkers = [];
-// 지도 유형/상태 필터: 기본값은 전부 켜짐(true)이며, 버튼을 누르면 꺼짐(false)으로 토글됩니다.
-let mapTypeFilter = { apply: true, recommend: true, monitor: true };
-let mapStatusFilter = { review: true, revisit: true, complete: true, unverified: true };
+// 지도 유형/상태 필터: 빈 문자열이면 "전체", 값이 있으면 그 한 가지만 선택된 상태입니다.
+let mapTypeFilter = '';
+let mapStatusFilter = '';
 
 function getMapStatusKey(rec) {
   if (isSupportReviewAction(rec.action)) return 'review';
@@ -4440,15 +4478,19 @@ function getMapStatusKey(rec) {
   return 'complete';
 }
 
-function toggleMapFilter(group, value) {
-  var store = group === 'type' ? mapTypeFilter : mapStatusFilter;
-  store[value] = !store[value];
-  var btn = document.querySelector('.map-filter-btn[data-filter-group="' + group + '"][data-filter-value="' + value + '"]');
-  if (btn) {
-    btn.setAttribute('aria-pressed', store[value] ? 'true' : 'false');
-    btn.style.opacity = store[value] ? '1' : '0.4';
-    btn.style.background = store[value] ? 'var(--white)' : '#f3f4f6';
-  }
+function setMapFilter(group, value) {
+  if (group === 'type') { mapTypeFilter = value; } else { mapStatusFilter = value; }
+  var selected = group === 'type' ? mapTypeFilter : mapStatusFilter;
+  document.querySelectorAll('.map-filter-btn[data-filter-group="' + group + '"]').forEach(function(btn) {
+    var isOn = (btn.dataset.filterValue || '') === selected;
+    btn.setAttribute('aria-checked', isOn ? 'true' : 'false');
+    btn.style.background = isOn ? 'var(--teal-light)' : 'var(--white)';
+    btn.style.borderColor = isOn ? 'var(--teal-mid)' : 'var(--border)';
+    if ((btn.dataset.filterValue || '') === '') {
+      btn.style.color = isOn ? 'var(--teal)' : '';
+      btn.style.fontWeight = isOn ? '600' : '';
+    }
+  });
   renderMap();
 }
 
@@ -4573,18 +4615,26 @@ function mapRecordExtraHtml(rec) {
 }
 
 function renderMap() {
-  // 비로그인 공개 사용자에게는 미검증 항목 자체가 노출되지 않으므로, 해당 필터 버튼은 숨깁니다.
+  // 비로그인 공개 사용자에게는 미검증 항목 자체가 노출되지 않으므로, 해당 필터 버튼은 숨기고 선택도 해제합니다.
   var unverifiedBtn = document.querySelector('.map-filter-btn[data-filter-value="unverified"]');
   if (unverifiedBtn) {
-    unverifiedBtn.style.display = (monitorUnlocked || managerUnlocked) ? '' : 'none';
+    var canSeeUnverified = monitorUnlocked || managerUnlocked;
+    unverifiedBtn.style.display = canSeeUnverified ? '' : 'none';
+    if (!canSeeUnverified && mapStatusFilter === 'unverified') {
+      setMapFilter('status', '');
+      return; // setMapFilter가 renderMap을 다시 호출하므로 중복 실행 방지
+    }
   }
   const allRecords = getRecords();
+  const searchInput = document.getElementById('map-search-input');
+  const searchKeyword = searchInput ? searchInput.value.trim().toLowerCase() : '';
   // 모니터링단(PIN 인증)이면 전체, 아니면 검증된 것만 표시
   const mapRecords = allRecords.filter(r => {
     if (!r.addr) return false;
     if (!(monitorUnlocked || managerUnlocked) && !isVerified(r)) return false;
-    if (mapTypeFilter[r.type] === false) return false;
-    if (mapStatusFilter[getMapStatusKey(r)] === false) return false;
+    if (mapTypeFilter && r.type !== mapTypeFilter) return false;
+    if (mapStatusFilter && getMapStatusKey(r) !== mapStatusFilter) return false;
+    if (searchKeyword && !(r.name || '').toLowerCase().includes(searchKeyword)) return false;
     return true;
   });
   const container = document.getElementById('kakao-map');
