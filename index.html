@@ -2844,7 +2844,7 @@ function recordCard(r, idx) {
     <div class="rec-top">
       <span class="rec-name">${r.name}</span>
       <div style="display:flex;align-items:center;gap:4px;margin-left:auto">
-        ${managerUnlocked && r.type === 'monitor' ? `<button class="edit-btn" onclick="openEditModal(event, '${idx}')">✏️ 수정</button>` : ''}
+        ${managerUnlocked && (r.type === 'monitor' || r.type === 'apply' || r.type === 'recommend') ? `<button class="edit-btn" onclick="openEditModal(event, '${idx}')">✏️ ${r.type === 'monitor' ? '수정' : '상태 변경'}</button>` : ''}
         <span class="rec-toggle" id="toggle-${idx}">▼ 상세</span>
       </div>
     </div>
@@ -3908,13 +3908,14 @@ function renderSettingsRecords() {
     div.innerHTML = header;
     // 상태 변경 드롭다운은 혼동을 줄이기 위해 제거했습니다.
     // 상태 변경은 아래 체크리스트 수정 버튼에서 진행합니다.
-    if (managerUnlocked && typeMatches(r, 'monitor') && r.id) {
+    if (managerUnlocked && (typeMatches(r, 'monitor') || typeMatches(r, 'apply') || typeMatches(r, 'recommend')) && r.id) {
       var editBtn = document.createElement('button');
       editBtn.type = 'button';
       editBtn.className = 'sec-btn primary';
       editBtn.style.cssText = 'width:100%;margin-top:8px;font-size:12px;padding:7px 8px';
-      editBtn.textContent = '✏️ 체크리스트 수정';
-      editBtn.setAttribute('aria-label', name + ' 체크리스트 수정');
+      var editBtnLabel = typeMatches(r, 'monitor') ? '✏️ 체크리스트 수정' : '✏️ 진행 상태 변경';
+      editBtn.textContent = editBtnLabel;
+      editBtn.setAttribute('aria-label', name + ' ' + editBtnLabel.replace('✏️ ', ''));
       editBtn.addEventListener('click', function(e) {
         e.stopPropagation();
         var recordsNow = getRecords();
