@@ -1074,10 +1074,11 @@ async function loadAppSettings(force) {
     let data = null;
 
     try {
-      if (monitorUnlocked && monitorSessionPin) {
-        data = await postSheetData({ type: 'getSettings', monitorPin: monitorSessionPin });
-      } else if (managerUnlocked && managerSessionPin) {
+      // 담당자 권한이 상위이므로, 둘 다 true인 경우 담당자 설정을 우선 조회합니다.
+      if (managerUnlocked && managerSessionPin) {
         data = await postSheetData({ type: 'getSettings', managerPin: managerSessionPin });
+      } else if (monitorUnlocked && monitorSessionPin) {
+        data = await postSheetData({ type: 'getSettings', monitorPin: monitorSessionPin });
       }
     } catch(e) {
       console.warn('인증 설정 불러오기 실패:', e);
@@ -1170,7 +1171,7 @@ function switchApplyTab(tab) {
 function requirePinDirect(subtab) {
   if (subtab === 'checklist') subtab = 'check';
   var monTab = document.querySelector('.tabs .tab:nth-child(3)');
-  if (monitorUnlocked) {
+  if (monitorUnlocked || managerUnlocked) {
     switchTab('monitor', monTab);
     setTimeout(function() { showSubtab(subtab); }, 50);
     return;
@@ -1190,12 +1191,15 @@ let pinValue = '', monitorUnlocked = false, managerUnlocked = false, monitorSess
 
 function saveAuthSession() {
   try {
-    sessionStorage.setItem('openVillageAuth', JSON.stringify({
-      monitorUnlocked: monitorUnlocked,
-      managerUnlocked: managerUnlocked,
-      monitorSessionPin: monitorSessionPin,
-      managerSessionPin: managerSessionPin
-    }));
+    // 담당자 권한은 새로고침 후 유지하지 않습니다. 모니터링단 세션만 임시 저장합니다.
+    if (monitorUnlocked && monitorSessionPin) {
+      sessionStorage.setItem('openVillageAuth', JSON.stringify({
+        monitorUnlocked: true,
+        monitorSessionPin: monitorSessionPin
+      }));
+    } else {
+      sessionStorage.removeItem('openVillageAuth');
+    }
   } catch(e) {}
 }
 
@@ -1203,14 +1207,19 @@ function restoreAuthSession() {
   try {
     var saved = JSON.parse(sessionStorage.getItem('openVillageAuth') || '{}');
     monitorUnlocked = !!saved.monitorUnlocked;
-    managerUnlocked = !!saved.managerUnlocked;
     monitorSessionPin = saved.monitorSessionPin || '';
-    managerSessionPin = saved.managerSessionPin || '';
-  } catch(e) {}
+    // 기존 버전에서 저장된 담당자 세션이 있어도 복원하지 않습니다.
+    managerUnlocked = false;
+    managerSessionPin = '';
+    if (saved.managerUnlocked || saved.managerSessionPin) saveAuthSession();
+  } catch(e) {
+    managerUnlocked = false;
+    managerSessionPin = '';
+  }
 }
 
 function requirePin(el) {
-  if (monitorUnlocked) { switchTab('monitor', el); return; }
+  if (monitorUnlocked || managerUnlocked) { switchTab('monitor', el); return; }
   pendingTabEl = el;
   pendingPinType = 'monitor';
   pinValue = '';
@@ -1269,9 +1278,8 @@ async function checkPin() {
     if (await verifyPin('manager', pinValue)) {
       managerUnlocked = true;
       managerSessionPin = pinValue;
-      // 관리자 모드 우선 - 모니터링단 상태 초기화
-      monitorUnlocked = false;
-      monitorSessionPin = '';
+      // 담당자 권한은 모니터링단보다 상위 권한입니다. 모니터링단 로그인 상태는 굳이 해제하지 않습니다.
+      // 단, 담당자 권한은 새로고침 후 유지하지 않도록 sessionStorage에 저장하지 않습니다.
       saveAuthSession();
       lastSheetSyncAt = 0;
       console.log('[권한] mode=manager');
@@ -2035,7 +2043,7 @@ function loadJournalStores() {
   }
   var normToday = normDate(date);
   var records = getRecords().filter(function(r) {
-    if (r.type !== 'monitor') return false;
+    if (!typeMatches(r, 'monitor')) return false;
     if (normDate(r.date) !== normToday) return false;
     if ((r.team_name || '') === teamName) return true;
     if (!members.length) return true;
@@ -2096,7 +2104,7 @@ async function submitJournal() {
     return m ? m[0] : s.trim();
   }
   var monRecords = getRecords().filter(function(r) {
-    if (r.type !== 'monitor') return false;
+    if (!typeMatches(r, 'monitor')) return false;
     if (normDate2(r.date) !== normDate2(date)) return false;
     if ((r.team_name || '') === teamName) return true;
     return !members.length || members.some(function(m) { return (r.team_members || r.author || r.recorder || '').includes(m); });
@@ -2664,11 +2672,16 @@ function getRecordAction(record) {
   return '';
 }
 function getRecordType(record) {
-  var type = typeof record === 'string' ? record : (record && (record.type || record.record_type || record.kind || record.category)) || '';
+  var type = typeof record === 'string' ? record : (record && (record.type || record.record_type || record.kind || record.category || record.table_name)) || '';
   type = String(type).trim().toLowerCase();
-  if (['apply','application','request','신청','보급 신청','보급신청'].includes(type)) return 'apply';
-  if (['monitor','monitoring','checklist','체크리스트','모니터링'].includes(type)) return 'monitor';
-  if (['recommend','recommendation','추천','상점 추천','상점추천'].includes(type)) return 'recommend';
+  if (['apply','application','applications','request','requests','신청','보급 신청','보급신청','신청기록','신청 기록'].includes(type)) return 'apply';
+  if (['monitor','monitoring','monitoring_record','monitoring_records','checklist','checklists','체크리스트','모니터링','모니터링기록','모니터링 기록'].includes(type)) return 'monitor';
+  if (['recommend','recommendation','recommendations','상점추천','상점 추천','추천','추천기록','추천 기록'].includes(type)) return 'recommend';
+  if (!type && record && typeof record === 'object') {
+    if (record.monitored_at || record.monitoring_date || record.place_name || record.r_braille || record.r_ramp || record.r_toilet || record.r_signage || record.extra_notes) return 'monitor';
+    if (record.applicant || record.applyname || record.apply_name || record.support_items) return 'apply';
+    if (record.recommender || record.good_points || record.intro) return 'recommend';
+  }
   return type;
 }
 function typeMatches(record, filterType) {
@@ -2690,7 +2703,7 @@ function renderRecords() {
   const filterType = document.getElementById('filter-type').value;
   const filterAction = document.getElementById('filter-action').value;
   let records = getRecords();
-  if (filterType) records = records.filter(r => r.type === filterType);
+  if (filterType) records = records.filter(function(r) { return typeMatches(r, filterType); });
   if (filterAction) records = records.filter(r => actionMatches(r, filterAction));
   const el = document.getElementById('records-list');
   const countEl = document.getElementById('records-count');
@@ -3561,8 +3574,9 @@ function toggleManagerAuth() {
     // 로그아웃
     managerUnlocked = false;
     managerSessionPin = '';
+    saveAuthSession();
     lastSheetSyncAt = 0;
-    console.log('[권한] mode=public (관리자 로그아웃)');
+    console.log('[권한] mode=' + (monitorUnlocked ? 'monitor' : 'public') + ' (관리자 로그아웃)');
     updateManagerAuthUI();
     // 공개 데이터 재조회
     syncRecordsFromSupabase(true).then(function() {
@@ -3977,50 +3991,89 @@ async function syncRecordsFromSupabase(force) {
     }
   }
 
+  console.log('[조회] 원본 데이터 ' + ((data || []).length) + '건 수신');
+  if ((data || []).length) console.log('[조회] 첫 번째 원본 키:', Object.keys((data || [])[0] || {}));
+
+  function firstNonEmpty() {
+    for (var i = 0; i < arguments.length; i++) {
+      var v = arguments[i];
+      if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+    }
+    return '';
+  }
+
   // 렌더링 함수가 기대하는 형태로 변환
-  const records = (data || []).map(function(r) {
+  let records = (data || []).map(function(r) {
     var normalizedType = getRecordType(r);
+    var name = firstNonEmpty(r.name, r.place_name, r.place, r.store_name, r.shop_name, r.business_name, r.title);
+    var addr = firstNonEmpty(r.addr, r.address, r.road_address, r.location);
+    var timestamp = firstNonEmpty(r.created_at, r.timestamp, r.inserted_at, r.updated_at);
+    var monitoredAt = firstNonEmpty(r.monitored_at, r.monitoring_date, r.date, r.activity_date);
+    var extraNotes = firstNonEmpty(r.extra_notes, r.extras, r.extra, r.items, r.detail_items, r.check_items);
     var normalizedAction = normalizedType === 'monitor'
-      ? normalizeActionValue(r.action_required || r.actionRequired || r.action || r.status || '')
-      : normalizeActionValue(r.action || r.status || r.action_required || r.actionRequired || '');
+      ? normalizeActionValue(firstNonEmpty(r.action_required, r.actionRequired, r.action_required_text, r.action, r.status, r.state, r.current_status, r.currentStatus))
+      : normalizeActionValue(firstNonEmpty(r.action, r.status, r.state, r.action_required, r.actionRequired, r.current_status, r.currentStatus));
     return {
-      id:              r.id,
-      timestamp:       r.created_at,
+      id:              firstNonEmpty(r.id, r.record_id, r.monitor_id),
+      timestamp:       timestamp,
+      created_at:      timestamp,
       type:            normalizedType,
-      record_type:     r.record_type || r.type || '',
-      name:            r.name,
-      addr:            r.addr,
-      items:           r.items || '',
+      record_type:     firstNonEmpty(r.record_type, r.type, normalizedType),
+      name:            name,
+      place:           name,
+      place_name:      name,
+      addr:            addr,
+      address:         addr,
+      items:           firstNonEmpty(r.items, r.support_items, r.good_points, extraNotes),
       action:          normalizedAction,
-      action_required: r.action_required || r.actionRequired || '',
-      actionRequired:  r.actionRequired || r.action_required || '',
-      status:          r.status || '',
-      monitored_at:    r.monitored_at || '',
-      r_braille:       r.r_braille || '',
-      r_ramp:          r.r_ramp || '',
-      r_toilet:        r.r_toilet || '',
-      r_signage:       r.r_signage || '',
-      comment:         r.comment || '',
-      extra_notes:     r.extra_notes || '',
-      recorder:        r.recorder || '',
-      team_year:       r.team_year || '',
-      team_name:       r.team_name || '',
-      team_members:    r.team_members || '',
+      action_required: firstNonEmpty(r.action_required, r.actionRequired, r.action_required_text, normalizedAction),
+      actionRequired:  firstNonEmpty(r.actionRequired, r.action_required, normalizedAction),
+      status:          firstNonEmpty(r.status, normalizedAction),
+      monitored_at:    monitoredAt,
+      r_braille:       firstNonEmpty(r.r_braille, r.braille, r.braille_menu),
+      r_ramp:          firstNonEmpty(r.r_ramp, r.ramp, r.entrance_access),
+      r_toilet:        firstNonEmpty(r.r_toilet, r.toilet),
+      r_signage:       firstNonEmpty(r.r_signage, r.signage, r.indoor_access),
+      comment:         firstNonEmpty(r.comment, r.opinion, r.summary, r.memo),
+      extra_notes:     extraNotes,
+      recorder:        firstNonEmpty(r.recorder, r.author, r.created_by),
+      team_year:       firstNonEmpty(r.team_year, r.activity_year),
+      team_name:       firstNonEmpty(r.team_name, r.team),
+      team_members:    firstNonEmpty(r.team_members, r.members, r.author),
       // 기존 렌더링 함수가 기대하는 별칭도 함께 보존
-      date:            r.monitored_at || '',
-      r1:              r.r_braille || '',
-      r2:              r.r_ramp || '',
-      r3:              r.r_toilet || '',
-      r4:              r.r_signage || '',
-      extras:          r.extra_notes || '',
-      author:          r.recorder || '',
+      date:            monitoredAt,
+      r1:              firstNonEmpty(r.r_braille, r.braille, r.braille_menu),
+      r2:              firstNonEmpty(r.r_ramp, r.ramp, r.entrance_access),
+      r3:              firstNonEmpty(r.r_toilet, r.toilet),
+      r4:              firstNonEmpty(r.r_signage, r.signage, r.indoor_access),
+      extras:          extraNotes,
+      author:          firstNonEmpty(r.recorder, r.author, r.created_by),
       // 관리자 전용 필드 (공개/모니터링단 상태에서는 빈 값으로 들어옴)
-      applicant:       r.applicant || '',   // 신청자명 / 추천인명
-      phone:           r.phone || '',       // 연락처
-      memo:            r.memo || '',        // 내부 메모
-      intro:           r.intro || ''        // 한줄소개
+      applicant:       firstNonEmpty(r.applicant, r.applyname, r.recommender),
+      phone:           firstNonEmpty(r.phone, r.contact),
+      memo:            firstNonEmpty(r.memo, r.internal_memo),
+      intro:           firstNonEmpty(r.intro, r.one_line_intro)
     };
   });
+
+  // 관리자/모니터링단 조회에서 모니터링 기록이 누락되면 직접 조회를 보조로 한 번 더 시도합니다.
+  // RPC 컬럼 변경으로 프론트 매핑이 흔들리는 상황을 막기 위한 안전장치입니다.
+  if ((managerUnlocked || monitorUnlocked) && !records.some(function(r) { return typeMatches(r, 'monitor'); })) {
+    try {
+      console.warn('[조회] 상세 RPC 결과에 모니터링 기록이 없어 직접 조회를 보조로 시도합니다.');
+      var directMonitors = await fetchMonitorRecordsDirectly();
+      if (directMonitors && directMonitors.length) {
+        var seen = {};
+        records.forEach(function(r) { if (r.id) seen[String(r.id)] = true; });
+        directMonitors.forEach(function(r) {
+          if (!r.id || !seen[String(r.id)]) records.push(r);
+        });
+        console.log('[조회] 보조 직접 조회로 모니터링 ' + directMonitors.length + '건 확인');
+      }
+    } catch(fallbackError) {
+      console.warn('[조회] 보조 직접 조회 실패:', fallbackError.message || fallbackError);
+    }
+  }
 
   localStorage.setItem('records', JSON.stringify(records));
   lastSheetSyncAt = now;
