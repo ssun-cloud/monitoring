@@ -223,6 +223,7 @@
   .lock-screen { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 200; align-items: center; justify-content: center; flex-direction: column; }
   .lock-screen.show { display: flex; }
   .lock-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px 28px; width: 300px; text-align: center; }
+  .lock-card:focus { outline: none; box-shadow: 0 0 0 3px rgba(26,140,110,0.25); }
   .lock-icon { font-size: 36px; margin-bottom: 12px; }
   .lock-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
   .lock-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; }
@@ -347,7 +348,7 @@
 
 <!-- 비밀번호 잠금 -->
 <div class="lock-screen" id="lock-screen" role="dialog" aria-modal="true" aria-labelledby="lock-title" aria-describedby="lock-sub">
-  <div class="lock-card">
+  <div class="lock-card" id="lock-card" tabindex="-1">
     <div class="lock-icon">🔒</div>
     <div class="lock-title" id="lock-title">모니터링단 전용</div>
     <div class="lock-sub" id="lock-sub">4자리 비밀번호를 입력해 주세요</div>
@@ -655,37 +656,37 @@
     <div class="card-title">항목별 평가</div>
     <div class="field">
       <label class="field-label">점자메뉴판·QR 메뉴 이용</label>
-      <div class="rating-group" id="rg_r1">
-        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r1','rg_r1',this,'good')">👍 좋음</button>
-        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r1','rg_r1',this,'fair')">😐 보통</button>
-        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r1','rg_r1',this,'poor')">👎 미흡</button>
+      <div class="rating-group" id="rg_r1" role="radiogroup" aria-label="점자메뉴판·QR 메뉴 이용 평가">
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'good')">👍 좋음</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'fair')">😐 보통</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'poor')">👎 미흡</button>
       </div>
       <input type="hidden" id="m_r1" />
     </div>
     <div class="field">
       <label class="field-label">출입구 및 경사로 접근성</label>
-      <div class="rating-group" id="rg_r2">
-        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r2','rg_r2',this,'good')">👍 좋음</button>
-        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r2','rg_r2',this,'fair')">😐 보통</button>
-        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r2','rg_r2',this,'poor')">👎 미흡</button>
+      <div class="rating-group" id="rg_r2" role="radiogroup" aria-label="출입구 및 경사로 접근성 평가">
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r2','rg_r2',this,'good')">👍 좋음</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r2','rg_r2',this,'fair')">😐 보통</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r2','rg_r2',this,'poor')">👎 미흡</button>
       </div>
       <input type="hidden" id="m_r2" />
     </div>
     <div class="field">
       <label class="field-label">화장실 접근성</label>
-      <div class="rating-group" id="rg_r3">
-        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r3','rg_r3',this,'good')">👍 좋음</button>
-        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r3','rg_r3',this,'fair')">😐 보통</button>
-        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r3','rg_r3',this,'poor')">👎 미흡</button>
+      <div class="rating-group" id="rg_r3" role="radiogroup" aria-label="화장실 접근성 평가">
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r3','rg_r3',this,'good')">👍 좋음</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r3','rg_r3',this,'fair')">😐 보통</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r3','rg_r3',this,'poor')">👎 미흡</button>
       </div>
       <input type="hidden" id="m_r3" />
     </div>
     <div class="field">
       <label class="field-label">실내 이동 및 이용 편의</label>
-      <div class="rating-group" id="rg_r4">
-        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r4','rg_r4',this,'good')">👍 좋음</button>
-        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r4','rg_r4',this,'fair')">😐 보통</button>
-        <button class="rating-btn" role="radio" aria-pressed="false" onclick="setRating('m_r4','rg_r4',this,'poor')">👎 미흡</button>
+      <div class="rating-group" id="rg_r4" role="radiogroup" aria-label="실내 이동 및 이용 편의 평가">
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'good')">👍 좋음</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'fair')">😐 보통</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'poor')">👎 미흡</button>
       </div>
       <input type="hidden" id="m_r4" />
     </div>
@@ -1235,7 +1236,9 @@ function requirePin(el) {
   document.getElementById('lock-title').textContent = '모니터링단 전용';
   document.getElementById('lock-sub').textContent = '4자리 비밀번호를 입력해 주세요';
   document.getElementById('lock-error').textContent = '';
+  lockReturnFocusEl = document.activeElement;
   document.getElementById('lock-screen').classList.add('show');
+  focusLockCard();
 }
 
 function requireManagerPin(callback) {
@@ -1247,9 +1250,21 @@ function requireManagerPin(callback) {
   document.getElementById('lock-title').textContent = '담당자 확인';
   document.getElementById('lock-sub').textContent = '담당자 비밀번호를 입력해 주세요';
   document.getElementById('lock-error').textContent = '';
+  lockReturnFocusEl = document.activeElement;
   document.getElementById('lock-screen').classList.add('show');
+  focusLockCard();
 }
 let pendingManagerCallback = null;
+let lockReturnFocusEl = null;
+// 모달이 화면에 보이게 된 직후 포커스를 이동시킵니다.
+// display 전환(transition) 직후에는 아직 레이아웃이 갱신되지 않아 focus()가 무시될 수 있어
+// 한 프레임 미뤄서 호출합니다.
+function focusLockCard() {
+  requestAnimationFrame(function() {
+    var card = document.getElementById('lock-card');
+    if (card) card.focus();
+  });
+}
 function pinInput(num) {
   if (pinValue.length >= 4) return;
   pinValue += num; updateDots();
@@ -1278,6 +1293,14 @@ function closeLock() {
   document.getElementById('lock-screen').classList.remove('show');
   pinValue = '';
   updateDots();
+  returnFocusAfterLock();
+}
+// 모달을 열게 한 원래 요소(버튼 등)로 포커스를 되돌립니다.
+function returnFocusAfterLock() {
+  if (lockReturnFocusEl && typeof lockReturnFocusEl.focus === 'function') {
+    lockReturnFocusEl.focus();
+  }
+  lockReturnFocusEl = null;
 }
 
 async function checkPin() {
@@ -1292,6 +1315,7 @@ async function checkPin() {
       lastSheetSyncAt = 0;
       console.log('[권한] mode=manager (모니터링단 상태 유지: ' + (monitorUnlocked ? 'Y' : 'N') + ')');
       document.getElementById('lock-screen').classList.remove('show');
+      returnFocusAfterLock();
       // 관리자 데이터 즉시 재조회
       syncRecordsFromSupabase(true).then(async function() {
         await fetchManagerJournalsFromSupabase();
@@ -1314,6 +1338,7 @@ async function checkPin() {
       if (managerUnlocked) {
         console.log('[권한] 관리자 로그인 상태 유지 - 모니터링단 전환 무시');
         document.getElementById('lock-screen').classList.remove('show');
+        returnFocusAfterLock();
         switchTab('monitor', pendingTabEl);
       } else {
         monitorUnlocked = true;
@@ -1322,6 +1347,7 @@ async function checkPin() {
         lastSheetSyncAt = 0;
         console.log('[권한] mode=monitor');
         document.getElementById('lock-screen').classList.remove('show');
+        returnFocusAfterLock();
         // 모니터링단 데이터 즉시 재조회
         syncRecordsFromSupabase(true).then(function() {
           updateDashboard();
@@ -1349,11 +1375,9 @@ async function checkPin() {
 function setRating(fieldId, groupId, btn, level) {
   document.getElementById(groupId).querySelectorAll('.rating-btn').forEach(b => {
     b.classList.remove('sel-good','sel-fair','sel-poor');
-    b.setAttribute('aria-pressed', 'false');
     b.setAttribute('aria-checked', 'false');
   });
   btn.classList.add('sel-' + level);
-  btn.setAttribute('aria-pressed', 'true');
   btn.setAttribute('aria-checked', 'true');
   document.getElementById(fieldId).value = level === 'good' ? '좋음' : level === 'fair' ? '보통' : '미흡';
 }
