@@ -16,12 +16,12 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --teal: #1a8c6e; --teal-light: #e6f5f1; --teal-mid: #a8ddd0;
+    --teal: #188367; --teal-light: #e6f5f1; --teal-mid: #a8ddd0;
     --text: #1e1e1e; --text-muted: #6b7280; --border: #e0e0e0;
     --bg: #f7f8fa; --white: #ffffff; --red: #dc2626;
-    --good: #16a34a; --good-bg: #dcfce7;
-    --fair: #d97706; --fair-bg: #fef3c7;
-    --poor: #dc2626; --poor-bg: #fee2e2;
+    --good: #117f3a; --good-bg: #dcfce7;
+    --fair: #a75c05; --fair-bg: #fef3c7;
+    --poor: #c82020; --poor-bg: #fee2e2;
     --radius: 12px; --radius-sm: 8px;
   }
   body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
@@ -1193,15 +1193,34 @@ let pinValue = '', monitorUnlocked = false, managerUnlocked = false, monitorSess
 // 담당자/모니터링단 권한 모두 sessionStorage에 저장하지 않습니다.
 // 두 권한 모두 메모리 변수(monitorUnlocked, managerUnlocked)로만 유지되며,
 // 새로고침하거나 탭/앱을 완전히 닫았다가 다시 열면 항상 초기화되어 재인증이 필요합니다.
-// (이전 버전에서 sessionStorage에 저장했던 흔적이 남아있을 수 있어 정리만 해줍니다.)
+// 모니터링단 권한은 sessionStorage에 저장되어, 탭/창을 닫았다가 다시 열어도
+// (그리고 새로고침해도) 유지됩니다. 시각장애인 모니터링단이 현장 활동 중
+// 매번 PIN을 다시 입력해야 하는 부담을 줄이기 위한 정책입니다.
+// 담당자 권한은 개인정보(신청자명·연락처 등)에 접근하므로, 보안을 위해
+// sessionStorage에 저장하지 않고 새로고침/재진입 시 항상 재인증을 요구합니다.
 function saveAuthSession() {
-  // no-op: 더 이상 세션을 저장하지 않습니다.
+  try {
+    if (monitorUnlocked && monitorSessionPin) {
+      sessionStorage.setItem('openVillageAuth', JSON.stringify({
+        monitorUnlocked: true,
+        monitorSessionPin: monitorSessionPin
+      }));
+    } else {
+      sessionStorage.removeItem('openVillageAuth');
+    }
+  } catch(e) {}
 }
 
 function restoreAuthSession() {
-  // no-op: 더 이상 세션을 복원하지 않습니다. 항상 잠금 상태로 시작합니다.
-  monitorUnlocked = false;
-  monitorSessionPin = '';
+  try {
+    var saved = JSON.parse(sessionStorage.getItem('openVillageAuth') || '{}');
+    monitorUnlocked = !!saved.monitorUnlocked;
+    monitorSessionPin = saved.monitorSessionPin || '';
+  } catch(e) {
+    monitorUnlocked = false;
+    monitorSessionPin = '';
+  }
+  // 담당자 권한은 절대 복원하지 않습니다. 항상 잠금 상태로 시작합니다.
   managerUnlocked = false;
   managerSessionPin = '';
 }
@@ -1209,9 +1228,8 @@ function restoreAuthSession() {
 
 
 function clearPersistedManagerAuth() {
-  // 과거 버전에서 저장됐을 수 있는 인증 관련 흔적을 모두 정리합니다.
+  // 과거 버전에서 저장됐을 수 있는 담당자 관련 흔적만 정리합니다. (모니터링단 세션은 보존)
   try {
-    sessionStorage.removeItem('openVillageAuth');
     sessionStorage.removeItem('openVillageManagerAuth');
     sessionStorage.removeItem('managerUnlocked');
     sessionStorage.removeItem('managerSessionPin');
@@ -1222,10 +1240,6 @@ function clearPersistedManagerAuth() {
   managerUnlocked = false;
   managerSessionPin = '';
 }
-
-// 담당자/모니터링단 권한은 모두 새로고침 시 자동으로 초기화됩니다(restoreAuthSession).
-// 과거에는 beforeunload 시점에 별도로 지우려 했지만, 모바일/PWA에서 beforeunload가
-// 불안정하게 동작해 세션이 서로 영향을 주는 문제가 있어 제거했습니다.
 
 function requirePin(el) {
   if (monitorUnlocked || managerUnlocked) { switchTab('monitor', el); return; }
@@ -4470,9 +4484,9 @@ if ('serviceWorker' in navigator) {
 // 샘플 데이터 없음 (실제 운영용)
 
 document.getElementById('m_date').valueAsDate = new Date();
-// 1) 과거 버전에서 남아있을 수 있는 인증 관련 저장값(레거시 localStorage/sessionStorage 키)을 정리합니다.
+// 1) 과거 버전에서 남아있을 수 있는 담당자 관련 저장값(레거시 키)을 정리합니다.
 clearPersistedManagerAuth();
-// 2) 담당자/모니터링단 권한 모두 항상 잠금 상태로 시작합니다(새로고침 시 재인증 필요).
+// 2) 모니터링단 세션은 sessionStorage에서 복원하고, 담당자는 항상 잠금 상태로 시작합니다.
 restoreAuthSession();
 updateManagerAuthUI();
 loadAppSettings().then(function() { populateMonitorTeamSelect(); });
