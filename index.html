@@ -1188,6 +1188,27 @@ function gotoMapTab() {
 // ── PIN 잠금 ──────────────────────────────────────
 let pinValue = '', monitorUnlocked = false, managerUnlocked = false, monitorSessionPin = '', managerSessionPin = '', pendingTabEl = null, pendingPinType = 'monitor';
 
+function saveAuthSession() {
+  try {
+    sessionStorage.setItem('openVillageAuth', JSON.stringify({
+      monitorUnlocked: monitorUnlocked,
+      managerUnlocked: managerUnlocked,
+      monitorSessionPin: monitorSessionPin,
+      managerSessionPin: managerSessionPin
+    }));
+  } catch(e) {}
+}
+
+function restoreAuthSession() {
+  try {
+    var saved = JSON.parse(sessionStorage.getItem('openVillageAuth') || '{}');
+    monitorUnlocked = !!saved.monitorUnlocked;
+    managerUnlocked = !!saved.managerUnlocked;
+    monitorSessionPin = saved.monitorSessionPin || '';
+    managerSessionPin = saved.managerSessionPin || '';
+  } catch(e) {}
+}
+
 function requirePin(el) {
   if (monitorUnlocked) { switchTab('monitor', el); return; }
   pendingTabEl = el;
@@ -1251,6 +1272,7 @@ async function checkPin() {
       // 관리자 모드 우선 - 모니터링단 상태 초기화
       monitorUnlocked = false;
       monitorSessionPin = '';
+      saveAuthSession();
       lastSheetSyncAt = 0;
       console.log('[권한] mode=manager');
       document.getElementById('lock-screen').classList.remove('show');
@@ -1280,6 +1302,7 @@ async function checkPin() {
       } else {
         monitorUnlocked = true;
         monitorSessionPin = pinValue;
+        saveAuthSession();
         lastSheetSyncAt = 0;
         console.log('[권한] mode=monitor');
         document.getElementById('lock-screen').classList.remove('show');
@@ -1288,6 +1311,8 @@ async function checkPin() {
           updateDashboard();
           renderMap();
           renderSettingsRecords();
+          renderSettingsJournalPrints();
+          renderRecords();
         });
         switchTab('monitor', pendingTabEl);
         if (window._pendingSubtab) {
@@ -3224,7 +3249,7 @@ function getRelatedRecordsForJournal(journal) {
   var stores = splitStoreNames(journal.stores);
   var storeKeys = stores.map(normalizePrintText).filter(Boolean);
   return getRecords().filter(function(r) {
-    if (r.type !== 'monitor') return false;
+    if (!typeMatches(r, 'monitor')) return false;
     if (date && getRecordPrintDate(r) !== date) return false;
     if (!storeKeys.length) return false;
     var recordName = normalizePrintText(r.name || r.place || r.place_name || '');
@@ -3560,6 +3585,7 @@ function toggleMonitorAuth() {
   if (monitorUnlocked) {
     monitorUnlocked = false;
     monitorSessionPin = '';
+    saveAuthSession();
     lastSheetSyncAt = 0;
     console.log('[권한] mode=public (모니터링단 로그아웃)');
     // 공개 데이터 재조회
@@ -4054,6 +4080,7 @@ async function loadFromSheet() {
     }
 
     updateDashboard();
+    renderRecords();
     renderMap();
     renderSettingsRecords(); // 설정 탭 기록 목록 갱신 (사진 로드 포함)
     renderSettingsJournalPrints();
@@ -4086,7 +4113,18 @@ let currentInfoWindow = null;
 
 function initMap() {
   if (window.kakaoMapReady) {
-    renderMap();
+    if ((monitorUnlocked || managerUnlocked) && !getRecords().some(function(r) { return typeMatches(r, 'monitor'); })) {
+      syncRecordsFromSupabase(true).then(function() {
+        renderRecords();
+        renderSettingsRecords();
+        renderSettingsJournalPrints();
+        renderMap();
+      }).catch(function() {
+        renderMap();
+      });
+    } else {
+      renderMap();
+    }
   } else {
     window.pendingMapRender = renderMap;
   }
@@ -4346,7 +4384,17 @@ if ('serviceWorker' in navigator) {
 // 샘플 데이터 없음 (실제 운영용)
 
 document.getElementById('m_date').valueAsDate = new Date();
+restoreAuthSession();
 loadAppSettings().then(function() { populateMonitorTeamSelect(); });
+if (monitorUnlocked || managerUnlocked) {
+  syncRecordsFromSupabase(true).then(function() {
+    updateDashboard();
+    renderRecords();
+    renderSettingsRecords();
+    renderSettingsJournalPrints();
+    renderMap();
+  });
+}
 updateDashboard();
 loadSettingsUI();
 
