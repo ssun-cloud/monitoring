@@ -1046,16 +1046,61 @@ try {
   if (Array.isArray(savedTeams) && savedTeams.length) TEAMS = savedTeams;
 } catch(e) {}
 let appSettingsPromise = null;
+let APP_SETTINGS = {
+  activeYear: String(new Date().getFullYear()),
+  teamsByYear: {},
+  teams: []
+};
 
 async function loadAppSettings(force) {
   if (appSettingsPromise && !force) return appSettingsPromise;
-  appSettingsPromise = fetch(SCRIPT_URL + '?type=settings', { cache: 'no-store' })
-    .then(function(res) { return res.json(); })
-    .then(function(data) {
-      if (data && data.result === 'ok' && data.settings && Array.isArray(data.settings.teams) && data.settings.teams.length) {
-        TEAMS = data.settings.teams;
+
+  appSettingsPromise = (async function() {
+    let data = null;
+
+    try {
+      if (monitorUnlocked && monitorSessionPin) {
+        data = await postSheetData({
+          type: 'getSettings',
+          monitorPin: monitorSessionPin
+        });
+      } else if (managerUnlocked && managerSessionPin) {
+        data = await postSheetData({
+          type: 'getSettings',
+          managerPin: managerSessionPin
+        });
+      }
+    } catch(e) {
+      console.warn('인증 설정 불러오기 실패:', e);
+    }
+
+    if (!data || data.result !== 'ok') {
+      try {
+        const res = await fetch(SCRIPT_URL + '?type=settings', { cache: 'no-store' });
+        data = await res.json();
+      } catch(e) {
+        console.warn('공개 설정 불러오기 실패:', e);
+      }
+    }
+
+    if (data && data.result === 'ok' && data.settings) {
+      APP_SETTINGS = {
+        activeYear: data.settings.activeYear || String(new Date().getFullYear()),
+        teamsByYear: data.settings.teamsByYear || {},
+        teams: Array.isArray(data.settings.teams) ? data.settings.teams : []
+      };
+
+      if (APP_SETTINGS.teams.length) {
+        TEAMS = APP_SETTINGS.teams;
         localStorage.setItem('appTeams', JSON.stringify(TEAMS));
       }
+    }
+
+    return TEAMS;
+  })();
+
+  return appSettingsPromise;
+}
       return TEAMS;
     })
     .catch(function(e) {
