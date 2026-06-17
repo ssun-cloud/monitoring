@@ -630,6 +630,13 @@
       <label class="field-label">모니터링 날짜<span class="req">*</span></label>
       <input type="date" id="m_date" / aria-label="모니터링 날짜">
     </div>
+    <div class="field">
+      <label class="field-label" for="m_team">활동 팀<span class="req">*</span></label>
+      <select id="m_team" onchange="updateMonitorTeamMembers()" aria-label="모니터링 활동 팀 선택">
+        <option value="">-- 팀을 선택하세요 --</option>
+      </select>
+      <p id="m_team_members" style="font-size:12px;color:var(--text-muted);margin-top:5px"></p>
+    </div>
   </div>
   <div class="card">
     <div class="card-title">방문 목적</div>
@@ -1130,6 +1137,7 @@ function switchTab(id, el) {
   if (id === 'home') updateDashboard();
   if (id === 'settings') loadSettingsUI();
   if (id === 'map') initMap();
+  if (id === 'monitor') loadAppSettings().then(function() { populateMonitorTeamSelect(); });
 }
 
 // ── 서브탭 전환 (모니터링: 체크리스트/일지) ──────────
@@ -1652,7 +1660,10 @@ async function updateRecentMonitorRecordInSupabase(record) {
     p_action_required: getRecordAction(record),
     p_comment: record.comment || '',
     p_extra_notes: record.extras || '',
-    p_recorder: record.author || record.recorder || ''
+    p_recorder: record.author || record.recorder || '',
+    p_team_year: record.team_year || '',
+    p_team_name: record.team_name || '',
+    p_team_members: record.team_members || ''
   };
   var result = await _supabase.rpc('update_recent_monitor_record', payload);
   if (result.error) throw result.error;
@@ -1677,6 +1688,32 @@ async function updateRecentActivityJournalInSupabase(journal) {
   if (result.error) throw result.error;
 }
 
+function populateMonitorTeamSelect() {
+  var teamSel = document.getElementById('m_team');
+  if (!teamSel) return;
+  var teams = teamsForActiveYear();
+  var cur = teamSel.value;
+  teamSel.innerHTML = '<option value="">-- 팀을 선택하세요 --</option>';
+  teams.forEach(function(t) {
+    var opt = document.createElement('option');
+    opt.value = t.name;
+    opt.textContent = t.name + ' (' + (t.members || []).join(', ') + ')';
+    if (t.name === cur) opt.selected = true;
+    teamSel.appendChild(opt);
+  });
+  updateMonitorTeamMembers();
+}
+
+function updateMonitorTeamMembers() {
+  var teamSel = document.getElementById('m_team');
+  var memberEl = document.getElementById('m_team_members');
+  if (!teamSel || !memberEl) return;
+  var teamName = teamSel.value;
+  var team = teamsForActiveYear().find(function(t) { return t.name === teamName; }) ||
+    TEAMS.find(function(t) { return t.name === teamName; });
+  memberEl.textContent = team && team.members && team.members.length ? '팀원: ' + team.members.join(', ') : '';
+}
+
 // ── 모니터링 제출 ──────────────────────────────────
 async function submitMonitor() {
   const place = document.getElementById('m_place').value.trim();
@@ -1690,9 +1727,16 @@ async function submitMonitor() {
   const action = document.getElementById('m_action').value;
   const author = document.getElementById('m_author').value.trim();
   const visitType = document.getElementById('m_visit_type').value;
+  const teamName = document.getElementById('m_team').value;
+  await loadAppSettings();
+  const teamYear = String((APP_SETTINGS && APP_SETTINGS.activeYear) || new Date().getFullYear());
+  const monitorTeam = teamsForActiveYear().find(function(t) { return t.name === teamName; }) ||
+    TEAMS.find(function(t) { return t.name === teamName; });
+  const teamMembers = monitorTeam && monitorTeam.members ? monitorTeam.members.join(', ') : '';
   if (!place) { showToast('monitor-toast','장소명을 입력해 주세요.','error'); return; }
   if (!addr)  { showToast('monitor-toast','주소를 입력해 주세요.','error'); return; }
   if (!date)  { showToast('monitor-toast','날짜를 선택해 주세요.','error'); return; }
+  if (!teamName) { showToast('monitor-toast','활동 팀을 선택해 주세요.','error'); return; }
   if (!visitType) { showToast('monitor-toast','방문 목적을 선택해 주세요.','error'); return; }
   if (!comment) { showToast('monitor-toast','종합 의견을 입력해 주세요.','error'); return; }
   if (!author) { showToast('monitor-toast','기록자 이름을 입력해 주세요.','error'); return; }
@@ -1735,6 +1779,9 @@ async function submitMonitor() {
     comment:         comment,
     extra_notes:     extras,
     recorder:        author,
+    team_year:       teamYear,
+    team_name:       teamName,
+    team_members:    teamMembers,
     status:          '확인 중'
   };
   console.log('[모니터링] insert payload:', monitorPayload);
@@ -1755,7 +1802,7 @@ async function submitMonitor() {
   }
   // ──────────────────────────────────────────────────────
 
-  saveRecord({ id: recordId, type:'monitor', name: place, addr, date, r1, r2, r3, r4, action, comment, author, recorder: author, extras, goodcase, timestamp: ts });
+  saveRecord({ id: recordId, type:'monitor', name: place, addr, date, r1, r2, r3, r4, action, comment, author, recorder: author, extras, goodcase, timestamp: ts, team_year: teamYear, team_name: teamName, team_members: teamMembers });
   // 메일 알림 (실패해도 저장 성공 유지)
   sendMailNotify('monitor', { place, addr, date, action, timestamp: ts });
 
@@ -1775,6 +1822,8 @@ async function submitMonitor() {
   document.getElementById('m_addr').value = '';
   document.getElementById('m_comment').value = '';
   document.getElementById('m_author').value = '';
+  document.getElementById('m_team').value = '';
+  updateMonitorTeamMembers();
   // 평가 버튼 초기화
   ['m_r1','m_r2','m_r3','m_r4'].forEach(function(id) { document.getElementById(id).value = ''; });
   document.querySelectorAll('.rating-btn').forEach(function(b) { b.classList.remove('sel-good','sel-fair','sel-poor'); b.setAttribute('aria-pressed','false'); b.setAttribute('aria-checked','false'); });
@@ -1913,8 +1962,9 @@ async function initJournal() {
   await loadAppSettings();
   // 팀 목록 업데이트
   var cur = teamSel.value;
+  var teams = teamsForActiveYear();
   teamSel.innerHTML = '<option value="">-- 팀을 선택하세요 --</option>';
-  TEAMS.forEach(function(t) {
+  teams.forEach(function(t) {
     var opt = document.createElement('option');
     opt.value = t.name;
     opt.textContent = t.name + ' (' + t.members.join(', ') + ')';
@@ -2897,7 +2947,10 @@ async function updateMonitorRecordInSupabase(record) {
     p_action_required: record.action || '',
     p_comment: record.comment || '',
     p_extra_notes: record.extras || '',
-    p_recorder: record.author || record.recorder || ''
+    p_recorder: record.author || record.recorder || '',
+    p_team_year: record.team_year || '',
+    p_team_name: record.team_name || '',
+    p_team_members: record.team_members || ''
   };
   const { error } = await _supabase.rpc('update_monitor_record', payload);
   if (error) throw error;
@@ -3871,6 +3924,9 @@ async function syncRecordsFromSupabase(force) {
       comment:         r.comment || '',
       extra_notes:     r.extra_notes || '',
       recorder:        r.recorder || '',
+      team_year:       r.team_year || '',
+      team_name:       r.team_name || '',
+      team_members:    r.team_members || '',
       // 기존 렌더링 함수가 기대하는 별칭도 함께 보존
       date:            r.monitored_at || '',
       r1:              r.r_braille || '',
@@ -4237,7 +4293,7 @@ if ('serviceWorker' in navigator) {
 // 샘플 데이터 없음 (실제 운영용)
 
 document.getElementById('m_date').valueAsDate = new Date();
-loadAppSettings();
+loadAppSettings().then(function() { populateMonitorTeamSelect(); });
 updateDashboard();
 loadSettingsUI();
 
