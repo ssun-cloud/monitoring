@@ -2985,12 +2985,40 @@ function openEditModal(e, idx) {
 function renderEditForm(r) {
   const body = document.getElementById('edit-form-body');
   if (r.type === 'apply') {
+    const editAction = getRecordAction(r) || '신청 접수';
     body.innerHTML = `
-      <div class="field"><label class="field-label">상호명</label><input type="text" id="ef_name" value="${r.name || ''}" /></div>
-      <div class="field"><label class="field-label">주소</label><input type="text" id="ef_addr" value="${r.addr || ''}" /></div>
-      <div class="field"><label class="field-label">신청 항목</label><input type="text" id="ef_items" value="${r.items || ''}" /></div>
-      <div class="field"><label class="field-label">연락처</label><input type="tel" id="ef_phone" value="${r.phone || ''}" /></div>
-      <div class="field"><label class="field-label">요청 메모</label><textarea id="ef_memo">${r.memo || ''}</textarea></div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">상호명·주소 등 신청 내용은 현재 읽기 전용이에요. 진행 상태만 변경할 수 있어요.</p>
+      <div class="field"><label class="field-label">상호명</label><input type="text" id="ef_name" value="${r.name || ''}" disabled /></div>
+      <div class="field"><label class="field-label">주소</label><input type="text" id="ef_addr" value="${r.addr || ''}" disabled /></div>
+      <div class="field"><label class="field-label">신청 항목</label><input type="text" id="ef_items" value="${r.items || ''}" disabled /></div>
+      <div class="field"><label class="field-label">연락처</label><input type="tel" id="ef_phone" value="${r.phone || ''}" disabled /></div>
+      <div class="field"><label class="field-label">요청 메모</label><textarea id="ef_memo" disabled>${r.memo || ''}</textarea></div>
+      <div class="field"><label class="field-label">진행 상태</label>
+        <select id="ef_status" aria-label="신청 진행 상태">
+          <option value="신청 접수" ${editAction==='신청 접수'?'selected':''}>신청 접수</option>
+          <option value="확인 중" ${editAction==='확인 중'?'selected':''}>확인 중</option>
+          <option value="처리 완료" ${editAction==='처리 완료'?'selected':''}>처리 완료</option>
+          <option value="반려" ${editAction==='반려'?'selected':''}>반려</option>
+        </select>
+      </div>
+    `;
+  } else if (r.type === 'recommend') {
+    const editAction = getRecordAction(r) || '추천';
+    body.innerHTML = `
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">상호명·주소 등 추천 내용은 현재 읽기 전용이에요. 진행 상태만 변경할 수 있어요.</p>
+      <div class="field"><label class="field-label">상호명</label><input type="text" id="ef_name" value="${r.name || ''}" disabled /></div>
+      <div class="field"><label class="field-label">주소</label><input type="text" id="ef_addr" value="${r.addr || ''}" disabled /></div>
+      <div class="field"><label class="field-label">좋은 점</label><input type="text" id="ef_items" value="${r.items || ''}" disabled /></div>
+      <div class="field"><label class="field-label">연락처</label><input type="tel" id="ef_phone" value="${r.phone || ''}" disabled /></div>
+      <div class="field"><label class="field-label">한줄소개</label><textarea id="ef_memo" disabled>${r.intro || ''}</textarea></div>
+      <div class="field"><label class="field-label">진행 상태</label>
+        <select id="ef_status" aria-label="추천 진행 상태">
+          <option value="추천" ${editAction==='추천'?'selected':''}>추천 접수</option>
+          <option value="확인 중" ${editAction==='확인 중'?'selected':''}>확인 중</option>
+          <option value="양호" ${editAction==='양호'?'selected':''}>양호 (등록 완료)</option>
+          <option value="반려" ${editAction==='반려'?'selected':''}>반려</option>
+        </select>
+      </div>
     `;
   } else {
     const ratingOptions = (id, val) => ['좋음','보통','미흡'].map(v =>
@@ -3133,8 +3161,39 @@ async function saveEdit() {
     const r = records[editingRecordIdx];
     if (!r) throw new Error('수정할 기록을 찾지 못했어요.');
 
+    if (r.type === 'apply' || r.type === 'recommend') {
+      if (!r.id) throw new Error('상태를 변경할 기록의 ID가 없어요.');
+      const newStatus = document.getElementById('ef_status').value;
+      const { error } = await _supabase.rpc('update_record_status', {
+        pin_input: managerSessionPin,
+        record_type: r.type,
+        record_id: r.id,
+        new_status: newStatus
+      });
+      if (error) throw error;
+
+      r.action = newStatus;
+      r.action_required = newStatus;
+      r.actionRequired = newStatus;
+      r.status = newStatus;
+      if (r.id) {
+        const sameIdIdx = records.findIndex(function(x) { return String(x.id) === String(r.id); });
+        if (sameIdIdx >= 0) records[sameIdIdx] = r;
+      }
+      localStorage.setItem('records', JSON.stringify(records));
+
+      await refreshViewsAfterEdit(true);
+
+      showToast('edit-toast', '✅ 진행 상태를 변경했어요!', 'success');
+      setTimeout(() => {
+        document.getElementById('edit-modal').classList.remove('show');
+        refreshViewsAfterEdit(false);
+      }, 500);
+      return;
+    }
+
     if (r.type !== 'monitor') {
-      throw new Error('현재는 체크리스트 기록 수정만 지원해요.');
+      throw new Error('현재는 체크리스트·신청·추천 기록만 수정할 수 있어요.');
     }
 
     r.name    = document.getElementById('ef_name').value.trim();
