@@ -1116,14 +1116,6 @@ async function loadAppSettings(force) {
 
   return appSettingsPromise;
 }
-      return TEAMS;
-    })
-    .catch(function(e) {
-      console.warn('설정 불러오기 실패:', e);
-      return TEAMS;
-    });
-  return appSettingsPromise;
-}
 
 async function verifyPin(pinType, pin) {
   try {
