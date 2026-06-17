@@ -1189,69 +1189,42 @@ function gotoMapTab() {
 // ── PIN 잠금 ──────────────────────────────────────
 let pinValue = '', monitorUnlocked = false, managerUnlocked = false, monitorSessionPin = '', managerSessionPin = '', pendingTabEl = null, pendingPinType = 'monitor';
 
+// 담당자/모니터링단 권한 모두 sessionStorage에 저장하지 않습니다.
+// 두 권한 모두 메모리 변수(monitorUnlocked, managerUnlocked)로만 유지되며,
+// 새로고침하거나 탭/앱을 완전히 닫았다가 다시 열면 항상 초기화되어 재인증이 필요합니다.
+// (이전 버전에서 sessionStorage에 저장했던 흔적이 남아있을 수 있어 정리만 해줍니다.)
 function saveAuthSession() {
-  try {
-    sessionStorage.removeItem('openVillageManagerAuth');
-    sessionStorage.removeItem('managerUnlocked');
-    sessionStorage.removeItem('managerSessionPin');
-    // 담당자 권한은 새로고침 후 유지하지 않습니다. 모니터링단 세션만 임시 저장합니다.
-    if (monitorUnlocked && monitorSessionPin) {
-      sessionStorage.setItem('openVillageAuth', JSON.stringify({
-        monitorUnlocked: true,
-        monitorSessionPin: monitorSessionPin
-      }));
-    } else {
-      sessionStorage.removeItem('openVillageAuth');
-    }
-  } catch(e) {}
+  // no-op: 더 이상 세션을 저장하지 않습니다.
 }
 
 function restoreAuthSession() {
-  try {
-    var saved = JSON.parse(sessionStorage.getItem('openVillageAuth') || '{}');
-    monitorUnlocked = !!saved.monitorUnlocked;
-    monitorSessionPin = saved.monitorSessionPin || '';
-    // 기존 버전에서 저장된 담당자 세션이 있어도 복원하지 않습니다.
-    managerUnlocked = false;
-    managerSessionPin = '';
-    if (saved.managerUnlocked || saved.managerSessionPin) saveAuthSession();
-  } catch(e) {
-    managerUnlocked = false;
-    managerSessionPin = '';
-  }
+  // no-op: 더 이상 세션을 복원하지 않습니다. 항상 잠금 상태로 시작합니다.
+  monitorUnlocked = false;
+  monitorSessionPin = '';
+  managerUnlocked = false;
+  managerSessionPin = '';
 }
 
 
 
 function clearPersistedManagerAuth() {
+  // 과거 버전에서 저장됐을 수 있는 인증 관련 흔적을 모두 정리합니다.
   try {
-    var saved = JSON.parse(sessionStorage.getItem('openVillageAuth') || '{}');
-    var keepMonitor = !!saved.monitorUnlocked && !!saved.monitorSessionPin;
-    if (keepMonitor) {
-      sessionStorage.setItem('openVillageAuth', JSON.stringify({
-        monitorUnlocked: true,
-        monitorSessionPin: saved.monitorSessionPin
-      }));
-    } else {
-      sessionStorage.removeItem('openVillageAuth');
-    }
+    sessionStorage.removeItem('openVillageAuth');
     sessionStorage.removeItem('openVillageManagerAuth');
     sessionStorage.removeItem('managerUnlocked');
     sessionStorage.removeItem('managerSessionPin');
     localStorage.removeItem('openVillageManagerAuth');
     localStorage.removeItem('managerUnlocked');
     localStorage.removeItem('managerSessionPin');
-  } catch(e) {
-    try { sessionStorage.removeItem('openVillageAuth'); } catch(_) {}
-  }
+  } catch(e) {}
   managerUnlocked = false;
   managerSessionPin = '';
 }
 
-// 담당자 권한은 sessionStorage에 절대 저장하지 않으므로(saveAuthSession 참고),
-// 새로고침/탭 재진입 시 restoreAuthSession()만으로 항상 자동 초기화됩니다.
-// 예전에는 beforeunload 시점에 별도로 지우려 했지만, 모바일/PWA에서 beforeunload가
-// 불안정하게 동작해 모니터링단 세션까지 함께 사라지는 문제가 있어 제거했습니다.
+// 담당자/모니터링단 권한은 모두 새로고침 시 자동으로 초기화됩니다(restoreAuthSession).
+// 과거에는 beforeunload 시점에 별도로 지우려 했지만, 모바일/PWA에서 beforeunload가
+// 불안정하게 동작해 세션이 서로 영향을 주는 문제가 있어 제거했습니다.
 
 function requirePin(el) {
   if (monitorUnlocked || managerUnlocked) { switchTab('monitor', el); return; }
@@ -4473,9 +4446,9 @@ if ('serviceWorker' in navigator) {
 // 샘플 데이터 없음 (실제 운영용)
 
 document.getElementById('m_date').valueAsDate = new Date();
-// 1) 과거 버전에서 남아있을 수 있는 매니저 관련 저장값(레거시 localStorage 키 등)을 정리합니다.
+// 1) 과거 버전에서 남아있을 수 있는 인증 관련 저장값(레거시 localStorage/sessionStorage 키)을 정리합니다.
 clearPersistedManagerAuth();
-// 2) 모니터링단 세션만 sessionStorage에서 복원합니다. (매니저는 항상 false로 시작)
+// 2) 담당자/모니터링단 권한 모두 항상 잠금 상태로 시작합니다(새로고침 시 재인증 필요).
 restoreAuthSession();
 updateManagerAuthUI();
 loadAppSettings().then(function() { populateMonitorTeamSelect(); });
