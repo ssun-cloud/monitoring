@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
@@ -661,16 +661,6 @@
   <div class="card">
     <div class="card-title">항목별 평가</div>
     <div class="field">
-      <label class="field-label">점자메뉴판·QR 메뉴 이용</label>
-      <div id="r1-criteria" style="font-size:11px;color:var(--text-muted);margin-bottom:6px">좋음: 점자·음성·QR 등으로 메뉴를 스스로 확인할 수 있어요 · 보통: 직원 설명이 있으면 확인 가능해요 · 미흡: 메뉴 확인 방법이 없어요</div>
-      <div class="rating-group" id="rg_r1" role="radiogroup" aria-label="점자메뉴판·QR 메뉴 이용 평가" aria-describedby="r1-criteria">
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'good')">👍 좋음</button>
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'fair')">😐 보통</button>
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'poor')">👎 미흡</button>
-      </div>
-      <input type="hidden" id="m_r1" />
-    </div>
-    <div class="field">
       <label class="field-label">출입구 및 경사로 접근성</label>
       <div id="r2-criteria" style="font-size:11px;color:var(--text-muted);margin-bottom:6px">좋음: 문턱이 없거나 경사로가 있어 휠체어·유모차가 혼자 들어갈 수 있어요 · 보통: 도움을 받으면 들어갈 수 있어요 · 미흡: 턱이 높아 들어가기 어려워요</div>
       <div class="rating-group" id="rg_r2" role="radiogroup" aria-label="출입구 및 경사로 접근성 평가" aria-describedby="r2-criteria">
@@ -681,6 +671,26 @@
       <input type="hidden" id="m_r2" />
     </div>
     <div class="field">
+      <label class="field-label">실내 이동 및 이용 편의</label>
+      <div id="r4-criteria" style="font-size:11px;color:var(--text-muted);margin-bottom:6px">좋음: 테이블 사이가 넓어 이동이 자유롭고 안내판도 알아보기 쉬워요 · 보통: 일부 좁은 구간이 있어요 · 미흡: 통로가 좁아 이동이 어려워요</div>
+      <div class="rating-group" id="rg_r4" role="radiogroup" aria-label="실내 이동 및 이용 편의 평가" aria-describedby="r4-criteria">
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'good')">👍 좋음</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'fair')">😐 보통</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'poor')">👎 미흡</button>
+      </div>
+      <input type="hidden" id="m_r4" />
+    </div>
+    <div class="field">
+      <label class="field-label">점자메뉴판·QR 메뉴 이용</label>
+      <div id="r1-criteria" style="font-size:11px;color:var(--text-muted);margin-bottom:6px">좋음: 점자·음성·QR 등으로 메뉴를 스스로 확인할 수 있어요 · 보통: 직원 설명이 있으면 확인 가능해요 · 미흡: 메뉴 확인 방법이 없어요</div>
+      <div class="rating-group" id="rg_r1" role="radiogroup" aria-label="점자메뉴판·QR 메뉴 이용 평가" aria-describedby="r1-criteria">
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'good')">👍 좋음</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'fair')">😐 보통</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'poor')">👎 미흡</button>
+      </div>
+      <input type="hidden" id="m_r1" />
+    </div>
+    <div class="field">
       <label class="field-label">화장실 접근성</label>
       <div id="r3-criteria" style="font-size:11px;color:var(--text-muted);margin-bottom:6px">좋음: 휠체어로 진입해 혼자 이용할 수 있어요 · 보통: 공간이 좁거나 손잡이가 부족해 불편함이 있어요 · 미흡: 휠체어 진입이 어렵거나 화장실이 없어요</div>
       <div class="rating-group" id="rg_r3" role="radiogroup" aria-label="화장실 접근성 평가" aria-describedby="r3-criteria">
@@ -689,15 +699,6 @@
         <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r3','rg_r3',this,'poor')">👎 미흡</button>
       </div>
       <input type="hidden" id="m_r3" />
-    </div>
-    <div class="field">
-      <label class="field-label">실내 이동 및 이용 편의</label>
-      <div id="r4-criteria" style="font-size:11px;color:var(--text-muted);margin-bottom:6px">좋음: 테이블 사이가 넓어 이동이 자유롭고 안내판도 알아보기 쉬워요 · 보통: 일부 좁은 구간이 있어요 · 미흡: 통로가 좁아 이동이 어려워요</div>
-      <div class="rating-group" id="rg_r4" role="radiogroup" aria-label="실내 이동 및 이용 편의 평가" aria-describedby="r4-criteria">
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'good')">👍 좋음</button>
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'fair')">😐 보통</button>
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'poor')">👎 미흡</button>
-      </div>
       <input type="hidden" id="m_r4" />
     </div>
   </div>
@@ -2853,10 +2854,10 @@ function recordCard(r, idx) {
     `;
   } else {
     const ratings = [
-      r.r1 ? `점자메뉴판 ${r.r1}` : '',
       r.r2 ? `경사로 ${r.r2}` : '',
-      r.r3 ? `화장실 ${r.r3}` : '',
-      r.r4 ? `안내판 ${r.r4}` : ''
+      r.r4 ? `안내판 ${r.r4}` : '',
+      r.r1 ? `점자메뉴판 ${r.r1}` : '',
+      r.r3 ? `화장실 ${r.r3}` : ''
     ].filter(Boolean).join(' · ');
     const monitorExtras = r.extras || r.extra_notes || '';
     const visitPurpose = visitPurposeFromExtras(monitorExtras);
@@ -3085,10 +3086,10 @@ function renderEditForm(r) {
       <div class="field"><label class="field-label">장소명</label><input type="text" id="ef_name" value="${r.name || ''}" /></div>
       <div class="field"><label class="field-label">주소</label><input type="text" id="ef_addr" value="${r.addr || ''}" /></div>
       <div class="field"><label class="field-label">점검 날짜</label><input type="date" id="ef_date" value="${r.date || ''}" /></div>
-      <div class="field"><label class="field-label">점자메뉴판</label><select id="ef_r1" aria-label="점자메뉴판 평가">${ratingOptions('r1',r.r1)}</select></div>
       <div class="field"><label class="field-label">경사로</label><select id="ef_r2" aria-label="경사로 평가">${ratingOptions('r2',r.r2)}</select></div>
-      <div class="field"><label class="field-label">화장실</label><select id="ef_r3" aria-label="화장실 평가">${ratingOptions('r3',r.r3)}</select></div>
       <div class="field"><label class="field-label">안내판</label><select id="ef_r4" aria-label="안내판 평가">${ratingOptions('r4',r.r4)}</select></div>
+      <div class="field"><label class="field-label">점자메뉴판</label><select id="ef_r1" aria-label="점자메뉴판 평가">${ratingOptions('r1',r.r1)}</select></div>
+      <div class="field"><label class="field-label">화장실</label><select id="ef_r3" aria-label="화장실 평가">${ratingOptions('r3',r.r3)}</select></div>
       <div class="field"><label class="field-label">조치 여부</label>
         <select id="ef_action" aria-label="조치 필요 여부">
           <option value="지원 검토 필요" ${editAction==='지원 검토 필요'?'selected':''}>지원 검토 필요</option>
@@ -3618,10 +3619,10 @@ async function fetchPrintPhotos(recordId) {
 
 function ratingSummaryForPrint(r) {
   return [
-    r.r1 ? '점자메뉴판: ' + r.r1 : '',
     r.r2 ? '경사로: ' + r.r2 : '',
-    r.r3 ? '화장실: ' + r.r3 : '',
-    r.r4 ? '안내판: ' + r.r4 : ''
+    r.r4 ? '안내판: ' + r.r4 : '',
+    r.r1 ? '점자메뉴판: ' + r.r1 : '',
+    r.r3 ? '화장실: ' + r.r3 : ''
   ].filter(Boolean).join('\n');
 }
 
@@ -3751,10 +3752,10 @@ function downloadMonitoringExcel() {
         '활동 팀': r.team_name || '',
         '점검자': r.recorder || r.author || r.team_members || '',
         '상태': r.action || '',
-        '점자메뉴판': r.r1 || r.r_braille || '',
         '경사로': r.r2 || r.r_ramp || '',
-        '화장실': r.r3 || r.r_toilet || '',
         '안내판': r.r4 || r.r_signage || '',
+        '점자메뉴판': r.r1 || r.r_braille || '',
+        '화장실': r.r3 || r.r_toilet || '',
         '방문 목적 및 추가확인': r.extras || r.extra_notes || '',
         '종합 의견': r.comment || ''
       };
@@ -4574,10 +4575,10 @@ function mapRecordExtraHtml(rec) {
 
   if (rec.type === 'monitor') {
     const ratings = [
-      rec.r1 ? '점자메뉴판 ' + rec.r1 : '',
       rec.r2 ? '경사로 ' + rec.r2 : '',
-      rec.r3 ? '화장실 ' + rec.r3 : '',
-      rec.r4 ? '안내판 ' + rec.r4 : ''
+      rec.r4 ? '안내판 ' + rec.r4 : '',
+      rec.r1 ? '점자메뉴판 ' + rec.r1 : '',
+      rec.r3 ? '화장실 ' + rec.r3 : ''
     ].filter(Boolean).join(' · ');
     const monitorExtras = rec.extras || rec.extra_notes || '';
     const visitPurpose = visitPurposeFromExtras(monitorExtras);
