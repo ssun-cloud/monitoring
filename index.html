@@ -4737,14 +4737,14 @@ function renderMap() {
 
       const popupTypeLabel = rec.type === 'apply' ? '신청' : rec.type === 'recommend' ? '추천' : typeLabel;
       const popupStatus = rec.action || (!isVerified(rec) ? '미검증' : '');
-      const kakaoSearchUrl = rec.addr
-        ? 'https://map.kakao.com/link/search/' + encodeURIComponent((rec.name || '') + ' ' + rec.addr)
+      const naverSearchUrl = rec.addr
+        ? 'https://map.naver.com/p/search/' + encodeURIComponent((rec.name || '') + ' ' + rec.addr)
         : '';
       const infoHtml = '<div style="padding:10px 12px;font-size:13px;font-family:Noto Sans KR,sans-serif;min-width:150px;line-height:1.5">'
         + '<strong>'+rec.name+'</strong><br>'
         + '<span style="color:'+markerColor+';font-size:12px;font-weight:600">기록 유형: '+popupTypeLabel+'</span>'
         + (popupStatus ? '<br><span style="color:#6b7280;font-size:12px">상태: '+popupStatus+'</span>' : '')
-        + (kakaoSearchUrl ? '<br><a href="'+kakaoSearchUrl+'" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;padding:5px 8px;border-radius:6px;background:#1a8c6e;color:white;text-decoration:none;font-size:12px;font-weight:700">지도에서 보기</a>' : '')
+        + (naverSearchUrl ? '<br><a href="'+naverSearchUrl+'" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;padding:5px 8px;border-radius:6px;background:#1a8c6e;color:white;text-decoration:none;font-size:12px;font-weight:700">지도에서 보기</a>' : '')
         + '</div>';
       const info = new kakao.maps.InfoWindow({ content: infoHtml });
 
