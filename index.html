@@ -482,6 +482,8 @@
         <input type="text" id="a_addr" placeholder="상호명 검색으로 자동 입력돼요" aria-label="주소" style="flex:1" />
         <button type="button" onclick="openPlaceSearch('apply')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="지도에서 장소 찾기">🔍 찾기</button>
       </div>
+      <input type="hidden" id="a_lat" />
+      <input type="hidden" id="a_lng" />
     </div>
   </div>
   <div class="card">
@@ -575,6 +577,8 @@
           <input type="text" id="r_addr" placeholder="상호명 검색으로 자동 입력돼요" aria-label="추천 상점 주소" style="flex:1" />
           <button type="button" onclick="openPlaceSearch('recommend')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="지도에서 장소 찾기">🔍 찾기</button>
         </div>
+        <input type="hidden" id="r_lat" />
+        <input type="hidden" id="r_lng" />
       </div>
     </div>
     <div class="card">
@@ -632,6 +636,8 @@
         <input type="text" id="m_addr" placeholder="상호명 검색으로 자동 입력돼요" aria-label="모니터링 주소" style="flex:1" />
         <button type="button" onclick="openPlaceSearch('monitor')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="지도에서 장소 찾기">🔍 찾기</button>
       </div>
+      <input type="hidden" id="m_lat" />
+      <input type="hidden" id="m_lng" />
     </div>
     <div class="field">
       <label class="field-label">모니터링 날짜<span class="req">*</span></label>
@@ -1622,6 +1628,8 @@ async function sendMailNotify(notifyType, payload) {
 async function submitApply() {
   const name = document.getElementById('a_name').value.trim();
   const addr = document.getElementById('a_addr').value.trim();
+  const lat = parseFloat(document.getElementById('a_lat').value) || null;
+  const lng = parseFloat(document.getElementById('a_lng').value) || null;
   const applyname = document.getElementById('a_applyname').value.trim();
   const phone = document.getElementById('a_phone').value.trim();
   const braille = document.getElementById('a_braille').checked;
@@ -1655,6 +1663,8 @@ async function submitApply() {
     const { error } = await _supabase.from('applications').insert({
       store_name:    name,
       address:       addr,
+      lat:           lat,
+      lng:           lng,
       items:         items,
       applicant:     applyname,
       phone:         phone,
@@ -1668,11 +1678,11 @@ async function submitApply() {
   }
   // ──────────────────────────────────────────────────────
 
-  saveRecord({ type:'apply', name, addr, items, applyname, phone, memo, timestamp: ts });
+  saveRecord({ type:'apply', name, addr, lat, lng, items, applyname, phone, memo, timestamp: ts });
   // 메일 알림 (실패해도 저장 성공 유지)
   sendMailNotify('apply', { name, addr, items, timestamp: ts });
   showToast('apply-toast','✅ 신청이 접수되었습니다. 담당자가 확인 후 연락드릴게요!','success');
-  ['a_name','a_addr','a_applyname','a_phone','a_memo','a_other_detail'].forEach(id => document.getElementById(id).value = '');
+  ['a_name','a_addr','a_applyname','a_phone','a_memo','a_other_detail','a_lat','a_lng'].forEach(id => document.getElementById(id).value = '');
   ['a_braille','a_qr','a_ramp','a_sign','a_other'].forEach(id => document.getElementById(id).checked = false);
   document.getElementById('other-input-wrap').style.display = 'none';
   document.getElementById('a_privacy').checked = false;
@@ -1817,6 +1827,8 @@ function updateMonitorTeamMembers() {
 async function submitMonitor() {
   const place = document.getElementById('m_place').value.trim();
   const addr = document.getElementById('m_addr').value.trim();
+  const lat = parseFloat(document.getElementById('m_lat').value) || null;
+  const lng = parseFloat(document.getElementById('m_lng').value) || null;
   const date = document.getElementById('m_date').value;
   const comment = document.getElementById('m_comment').value.trim();
   const r1 = document.getElementById('m_r1').value;
@@ -1868,6 +1880,8 @@ async function submitMonitor() {
     id:              recordId,
     place_name:      place,
     address:         addr,
+    lat:             lat,
+    lng:             lng,
     monitored_at:    date,
     r_braille:       r1,
     r_ramp:          r2,
@@ -1900,7 +1914,7 @@ async function submitMonitor() {
   }
   // ──────────────────────────────────────────────────────
 
-  saveRecord({ id: recordId, type:'monitor', name: place, addr, date, r1, r2, r3, r4, action, comment, author, recorder: author, extras, goodcase, timestamp: ts, team_year: teamYear, team_name: teamName, team_members: teamMembers });
+  saveRecord({ id: recordId, type:'monitor', name: place, addr, lat, lng, date, r1, r2, r3, r4, action, comment, author, recorder: author, extras, goodcase, timestamp: ts, team_year: teamYear, team_name: teamName, team_members: teamMembers });
   updateDashboard();
   renderRecords();
   renderSettingsRecords();
@@ -1923,6 +1937,8 @@ async function submitMonitor() {
   if (selectedPhotos.length === 0) setLoading('monitor-btn', false, '기록 제출하기');
   document.getElementById('m_place').value = '';
   document.getElementById('m_addr').value = '';
+  document.getElementById('m_lat').value = '';
+  document.getElementById('m_lng').value = '';
   document.getElementById('m_comment').value = '';
   document.getElementById('m_team').value = '';
   updateMonitorTeamMembers();
@@ -2260,6 +2276,8 @@ async function submitRecommend() {
 
   var name = document.getElementById('r_name').value.trim();
   var addr = document.getElementById('r_addr').value.trim();
+  var lat = parseFloat(document.getElementById('r_lat').value) || null;
+  var lng = parseFloat(document.getElementById('r_lng').value) || null;
   var author = document.getElementById('r_author').value.trim();
   var phone = (document.getElementById('r_phone')||{}).value || '';
   var intro = (document.getElementById('r_intro')||{}).value || '';
@@ -2289,6 +2307,8 @@ async function submitRecommend() {
   const payload = {
     store_name:  name,
     address:     addr,
+    lat:         lat,
+    lng:         lng,
     good_points: items,
     recommender: author,
     phone:       phone.trim(),
@@ -2316,11 +2336,11 @@ async function submitRecommend() {
   }
   // ──────────────────────────────────────────────────────
 
-  saveRecord({type:'recommend', name, addr, items, recommender:author, action:'추천', timestamp:ts});
+  saveRecord({type:'recommend', name, addr, lat, lng, items, recommender:author, action:'추천', timestamp:ts});
   // 메일 알림 (실패해도 저장 성공 유지)
   sendMailNotify('recommend', { name, addr, items, timestamp: ts });
   showToast('recommend-toast','✅ 추천이 접수되었습니다! 감사해요 😊','success');
-  ['r_name','r_addr','r_author','r_phone','r_intro','r_other_text'].forEach(function(id) { var el=document.getElementById(id); if(el) el.value=''; });
+  ['r_name','r_addr','r_author','r_phone','r_intro','r_other_text','r_lat','r_lng'].forEach(function(id) { var el=document.getElementById(id); if(el) el.value=''; });
   ['r_braille','r_ramp','r_toilet','r_staff','r_sign','r_other_chk'].forEach(function(id) { var el=document.getElementById(id); if(el) el.checked=false; });
   document.getElementById('r_other_wrap').style.display = 'none';
   setLoading('recommend-btn', false, '추천 제출하기');
@@ -2468,15 +2488,23 @@ function renderHomeMap(records) {
   const geocoder = new kakao.maps.services.Geocoder();
   mapRecords.forEach(rec => {
     const color = getMarkerColor(rec);
-    geocoder.addressSearch(rec.addr, function(result, status) {
-      if (status !== kakao.maps.services.Status.OK) return;
-      const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+    if (typeof rec.lat === 'number' && typeof rec.lng === 'number' && !isNaN(rec.lat) && !isNaN(rec.lng)) {
       new kakao.maps.Marker({
         map: homeMap,
-        position: coords,
+        position: new kakao.maps.LatLng(rec.lat, rec.lng),
         image: makeMarkerImage(color)
       });
-    });
+    } else {
+      geocoder.addressSearch(rec.addr, function(result, status) {
+        if (status !== kakao.maps.services.Status.OK) return;
+        const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+        new kakao.maps.Marker({
+          map: homeMap,
+          position: coords,
+          image: makeMarkerImage(color)
+        });
+      });
+    }
   });
 }
 
@@ -2599,18 +2627,29 @@ function searchPlace() {
 function selectPlace(place) {
   var addr = place.road_address_name || place.address_name;
   var name = place.place_name;
+  // 카카오 Places API 응답: y=위도(lat), x=경도(lng), 문자열로 내려오므로 숫자로 변환합니다.
+  var lat = place.y ? parseFloat(place.y) : '';
+  var lng = place.x ? parseFloat(place.x) : '';
   if (_placeSearchTarget === 'apply') {
     document.getElementById('a_name').value = name;
     document.getElementById('a_addr').value = addr;
+    document.getElementById('a_lat').value = lat;
+    document.getElementById('a_lng').value = lng;
   } else if (_placeSearchTarget === 'recommend') {
     document.getElementById('r_name').value = name;
     document.getElementById('r_addr').value = addr;
+    document.getElementById('r_lat').value = lat;
+    document.getElementById('r_lng').value = lng;
   } else if (_placeSearchTarget === 'monitor') {
     document.getElementById('m_place').value = name;
     document.getElementById('m_addr').value = addr;
+    document.getElementById('m_lat').value = lat;
+    document.getElementById('m_lng').value = lng;
   } else if (_placeSearchTarget === 'edit') {
     document.getElementById('ef_name').value = name;
     document.getElementById('ef_addr').value = addr;
+    document.getElementById('ef_lat').value = lat;
+    document.getElementById('ef_lng').value = lng;
   }
   closePlaceSearch();
 }
@@ -3043,6 +3082,8 @@ function renderEditForm(r) {
           <input type="text" id="ef_addr" value="${r.addr || ''}" placeholder="주소를 확인해서 입력해 주세요" style="flex:1" />
           <button type="button" onclick="openPlaceSearch('edit')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif">🔍 찾기</button>
         </div>
+        <input type="hidden" id="ef_lat" value="${r.lat || ''}" />
+        <input type="hidden" id="ef_lng" value="${r.lng || ''}" />
       </div>
       <div class="field"><label class="field-label">신청 항목</label><input type="text" id="ef_items" value="${r.items || ''}" /></div>
       <div class="field"><label class="field-label">연락처</label><input type="tel" id="ef_phone" value="${r.phone || ''}" /></div>
@@ -3065,6 +3106,8 @@ function renderEditForm(r) {
           <input type="text" id="ef_addr" value="${r.addr || ''}" placeholder="주소를 확인해서 입력해 주세요" style="flex:1" />
           <button type="button" onclick="openPlaceSearch('edit')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif">🔍 찾기</button>
         </div>
+        <input type="hidden" id="ef_lat" value="${r.lat || ''}" />
+        <input type="hidden" id="ef_lng" value="${r.lng || ''}" />
       </div>
       <div class="field"><label class="field-label">좋은 점</label><input type="text" id="ef_items" value="${r.items || ''}" /></div>
       <div class="field"><label class="field-label">연락처</label><input type="tel" id="ef_phone" value="${r.phone || ''}" /></div>
@@ -3084,7 +3127,14 @@ function renderEditForm(r) {
     const editAction = getRecordAction(r);
     body.innerHTML = `
       <div class="field"><label class="field-label">장소명</label><input type="text" id="ef_name" value="${r.name || ''}" /></div>
-      <div class="field"><label class="field-label">주소</label><input type="text" id="ef_addr" value="${r.addr || ''}" /></div>
+      <div class="field"><label class="field-label">주소</label>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="ef_addr" value="${r.addr || ''}" style="flex:1" />
+          <button type="button" onclick="openPlaceSearch('edit')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif">🔍 찾기</button>
+        </div>
+        <input type="hidden" id="ef_lat" value="${r.lat || ''}" />
+        <input type="hidden" id="ef_lng" value="${r.lng || ''}" />
+      </div>
       <div class="field"><label class="field-label">점검 날짜</label><input type="date" id="ef_date" value="${r.date || ''}" /></div>
       <div class="field"><label class="field-label">경사로</label><select id="ef_r2" aria-label="경사로 평가">${ratingOptions('r2',r.r2)}</select></div>
       <div class="field"><label class="field-label">안내판</label><select id="ef_r4" aria-label="안내판 평가">${ratingOptions('r4',r.r4)}</select></div>
@@ -3124,7 +3174,9 @@ async function updateMonitorRecordInSupabase(record) {
     p_recorder: record.author || record.recorder || '',
     p_team_year: record.team_year || '',
     p_team_name: record.team_name || '',
-    p_team_members: record.team_members || ''
+    p_team_members: record.team_members || '',
+    p_lat: (typeof record.lat === 'number' ? record.lat : null),
+    p_lng: (typeof record.lng === 'number' ? record.lng : null)
   };
   const { error } = await _supabase.rpc('update_monitor_record', payload);
   if (error) throw error;
@@ -3224,6 +3276,8 @@ async function saveEdit() {
 
       const newName  = document.getElementById('ef_name').value.trim();
       const newAddr  = document.getElementById('ef_addr').value.trim();
+      const newLat   = parseFloat(document.getElementById('ef_lat').value) || null;
+      const newLng   = parseFloat(document.getElementById('ef_lng').value) || null;
       const newItems = document.getElementById('ef_items').value.trim();
       const newPhone = document.getElementById('ef_phone').value.trim();
       const newMemo  = document.getElementById('ef_memo').value.trim();
@@ -3240,7 +3294,9 @@ async function saveEdit() {
           new_items: newItems,
           new_applicant: r.applicant || '',
           new_phone: newPhone,
-          new_memo: newMemo
+          new_memo: newMemo,
+          new_lat: newLat,
+          new_lng: newLng
         });
         if (detailError) throw detailError;
       } else {
@@ -3252,7 +3308,9 @@ async function saveEdit() {
           new_good_points: newItems,
           new_recommender: r.applicant || '',
           new_phone: newPhone,
-          new_intro: newMemo
+          new_intro: newMemo,
+          new_lat: newLat,
+          new_lng: newLng
         });
         if (detailError) throw detailError;
       }
@@ -3270,6 +3328,8 @@ async function saveEdit() {
       r.place_name = newName;
       r.addr = newAddr;
       r.address = newAddr;
+      if (newLat !== null) r.lat = newLat;
+      if (newLng !== null) r.lng = newLng;
       r.items = newItems;
       r.phone = newPhone;
       if (r.type === 'recommend') { r.intro = newMemo; } else { r.memo = newMemo; }
@@ -3299,6 +3359,10 @@ async function saveEdit() {
 
     r.name    = document.getElementById('ef_name').value.trim();
     r.addr    = document.getElementById('ef_addr').value.trim();
+    var efLatEl = document.getElementById('ef_lat');
+    var efLngEl = document.getElementById('ef_lng');
+    if (efLatEl && efLatEl.value) r.lat = parseFloat(efLatEl.value);
+    if (efLngEl && efLngEl.value) r.lng = parseFloat(efLngEl.value);
     r.date    = document.getElementById('ef_date').value;
     r.r1      = document.getElementById('ef_r1').value;
     r.r2      = document.getElementById('ef_r2').value;
@@ -4221,7 +4285,7 @@ let lastSheetSyncAt = 0;
 async function fetchMonitorRecordsDirectly() {
   var result = await _supabase
     .from('monitoring_records')
-    .select('id, created_at, place_name, address, monitored_at, r_braille, r_ramp, r_toilet, r_signage, action_required, comment, extra_notes, recorder, status, team_year, team_name, team_members')
+    .select('id, created_at, place_name, address, lat, lng, monitored_at, r_braille, r_ramp, r_toilet, r_signage, action_required, comment, extra_notes, recorder, status, team_year, team_name, team_members')
     .order('created_at', { ascending: false });
   if (result.error) throw result.error;
   return (result.data || []).map(function(r) {
@@ -4231,6 +4295,8 @@ async function fetchMonitorRecordsDirectly() {
       type: 'monitor',
       name: r.place_name || '',
       addr: r.address || '',
+      lat: (typeof r.lat === 'number' ? r.lat : (r.lat ? parseFloat(r.lat) : null)),
+      lng: (typeof r.lng === 'number' ? r.lng : (r.lng ? parseFloat(r.lng) : null)),
       items: r.extra_notes || '',
       monitored_at: r.monitored_at || '',
       r_braille: r.r_braille || '',
@@ -4288,7 +4354,7 @@ async function syncRecordsFromSupabase(force) {
     console.log('[조회] 공개 데이터 조회');
     ({ data, error } = await _supabase
       .from('public_map_records')
-      .select('id, created_at, type, name, addr, items, action_required, action')
+      .select('id, created_at, type, name, addr, lat, lng, items, action_required, action')
       .order('created_at', { ascending: false }));
     if (error) {
       console.error('[조회] RPC error:', error.code, error.message, error.details, error.hint);
@@ -4329,6 +4395,8 @@ async function syncRecordsFromSupabase(force) {
       place_name:      name,
       addr:            addr,
       address:         addr,
+      lat:             (typeof r.lat === 'number' ? r.lat : (r.lat ? parseFloat(r.lat) : null)),
+      lng:             (typeof r.lng === 'number' ? r.lng : (r.lng ? parseFloat(r.lng) : null)),
       items:           firstNonEmpty(r.items, r.support_items, r.good_points, extraNotes),
       action:          normalizedAction,
       action_required: firstNonEmpty(r.action_required, r.actionRequired, r.action_required_text, normalizedAction),
@@ -4725,9 +4793,8 @@ function renderMap() {
       });
     }
 
-    geocoder.addressSearch(rec.addr, function(result, status) {
-      if (status !== kakao.maps.services.Status.OK) return;
-      const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+    // 마커/팝업/클릭 이벤트를 만드는 공통 로직 (좌표를 직접 가진 경우와, 주소만 있어 지오코딩이 필요한 경우 모두에서 재사용)
+    function placeMarkerAt(coords) {
       const marker = new kakao.maps.Marker({
         map: mapInstance,
         position: coords,
@@ -4761,7 +4828,19 @@ function renderMap() {
         info.open(mapInstance, marker);
         currentInfoWindow = info;
       });
-    });
+    }
+
+    // 등록 시점에 저장해 둔 좌표(lat/lng)가 있으면 그 값을 그대로 사용합니다.
+    // 매번 주소를 다시 지오코딩(추정)하지 않아 더 정확하고 빠릅니다.
+    if (typeof rec.lat === 'number' && typeof rec.lng === 'number' && !isNaN(rec.lat) && !isNaN(rec.lng)) {
+      placeMarkerAt(new kakao.maps.LatLng(rec.lat, rec.lng));
+    } else {
+      // 좌표가 없는 옛 기록은 주소를 지오코딩해서 위치를 추정합니다. (하위 호환)
+      geocoder.addressSearch(rec.addr, function(result, status) {
+        if (status !== kakao.maps.services.Status.OK) return;
+        placeMarkerAt(new kakao.maps.LatLng(result[0].y, result[0].x));
+      });
+    }
   });
 }
 // ── 업데이트 확인 중에는 Service Worker 캐시를 비활성화 ─────────────
