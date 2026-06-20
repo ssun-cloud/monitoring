@@ -4837,7 +4837,7 @@ function renderMap() {
       // 2) 좌표만 있으면 그 위치에 이름이 붙은 핀만 표시(상세정보는 없지만 위치는 정확)
       // 3) 둘 다 없는 옛 기록은 이름+주소 텍스트 검색으로 대체(부정확할 수 있음)
       const kakaoSearchUrl = rec.place_id
-        ? 'https://place.map.kakao.com/' + encodeURIComponent(rec.place_id)
+        ? 'https://map.kakao.com/?itemId=' + encodeURIComponent(rec.place_id) + '&q=' + encodeURIComponent(rec.name || '장소')
         : (typeof coords.getLat === 'function')
           ? 'https://map.kakao.com/link/map/' + encodeURIComponent(rec.name || '장소') + ',' + coords.getLat() + ',' + coords.getLng()
           : (rec.addr ? 'https://map.kakao.com/link/search/' + encodeURIComponent((rec.name || '') + ' ' + rec.addr) : '');
