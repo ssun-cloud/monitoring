@@ -1441,6 +1441,21 @@ function setRating(fieldId, groupId, btn, level) {
   btn.setAttribute('aria-checked', 'true');
   document.getElementById(fieldId).value = level === 'good' ? '좋음' : level === 'fair' ? '보통' : '미흡';
 }
+
+document.querySelectorAll('.rating-group').forEach(function(group) {
+  group.addEventListener('keydown', function(e) {
+    if (!['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'].includes(e.key)) return;
+    var buttons = Array.from(group.querySelectorAll('.rating-btn'));
+    var currentIndex = buttons.indexOf(e.target);
+    if (currentIndex === -1) return;
+    e.preventDefault();
+    var direction = (e.key === 'ArrowRight' || e.key === 'ArrowDown') ? 1 : -1;
+    var nextIndex = (currentIndex + direction + buttons.length) % buttons.length;
+    buttons[nextIndex].focus();
+    buttons[nextIndex].click();
+  });
+});
+
 function setMonitorVisitType(value) {
   var messages = {
     '기존 보급처 확인': '기존에 설치된 경사로, 점자메뉴판, QR 메뉴가 잘 관리되고 있는지 확인해주세요.',
@@ -2705,9 +2720,29 @@ document.getElementById('place-search-modal').addEventListener('click', function
 
 document.addEventListener('keydown', function(e) {
   var placeModal = document.getElementById('place-search-modal');
-  if (placeModal && placeModal.style.display !== 'none' && e.key === 'Escape') {
+  if (!placeModal || placeModal.style.display === 'none') return;
+
+  if (e.key === 'Escape') {
     e.preventDefault();
     closePlaceSearch();
+    return;
+  }
+
+  if (e.key === 'Tab') {
+    var focusable = Array.from(placeModal.querySelectorAll('button, input, [tabindex]:not([tabindex="-1"])'))
+      .filter(function(el) {
+        return !el.disabled && el.offsetParent !== null;
+      });
+    if (!focusable.length) return;
+    var first = focusable[0];
+    var last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
   }
 });
 
@@ -3128,8 +3163,8 @@ function renderEditForm(r) {
   if (r.type === 'apply') {
     const editAction = getRecordAction(r) || '신청 접수';
     body.innerHTML = `
-      <div class="field"><label class="field-label">상호명</label><input type="text" id="ef_name" value="${r.name || ''}" /></div>
-      <div class="field"><label class="field-label">주소</label>
+      <div class="field"><label class="field-label" for="ef_name">상호명</label><input type="text" id="ef_name" value="${r.name || ''}" /></div>
+      <div class="field"><label class="field-label" for="ef_addr">주소</label>
         <div style="display:flex;gap:8px">
           <input type="text" id="ef_addr" value="${r.addr || ''}" placeholder="주소를 확인해서 입력해 주세요" style="flex:1" />
           <button type="button" onclick="openPlaceSearch('edit')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif">🔍 찾기</button>
@@ -3138,10 +3173,10 @@ function renderEditForm(r) {
         <input type="hidden" id="ef_lng" value="${r.lng || ''}" />
         <input type="hidden" id="ef_place_id" value="${r.place_id || ''}" />
       </div>
-      <div class="field"><label class="field-label">신청 항목</label><input type="text" id="ef_items" value="${r.items || ''}" /></div>
-      <div class="field"><label class="field-label">연락처</label><input type="tel" id="ef_phone" value="${r.phone || ''}" /></div>
-      <div class="field"><label class="field-label">요청 메모</label><textarea id="ef_memo">${r.memo || ''}</textarea></div>
-      <div class="field"><label class="field-label">진행 상태</label>
+      <div class="field"><label class="field-label" for="ef_items">신청 항목</label><input type="text" id="ef_items" value="${r.items || ''}" /></div>
+      <div class="field"><label class="field-label" for="ef_phone">연락처</label><input type="tel" id="ef_phone" value="${r.phone || ''}" /></div>
+      <div class="field"><label class="field-label" for="ef_memo">요청 메모</label><textarea id="ef_memo">${r.memo || ''}</textarea></div>
+      <div class="field"><label class="field-label" for="ef_status">진행 상태</label>
         <select id="ef_status" aria-label="신청 진행 상태">
           <option value="신청 접수" ${editAction==='신청 접수'?'selected':''}>신청 접수</option>
           <option value="확인 중" ${editAction==='확인 중'?'selected':''}>확인 중</option>
@@ -3153,8 +3188,8 @@ function renderEditForm(r) {
   } else if (r.type === 'recommend') {
     const editAction = getRecordAction(r) || '추천';
     body.innerHTML = `
-      <div class="field"><label class="field-label">상호명</label><input type="text" id="ef_name" value="${r.name || ''}" /></div>
-      <div class="field"><label class="field-label">주소</label>
+      <div class="field"><label class="field-label" for="ef_name">상호명</label><input type="text" id="ef_name" value="${r.name || ''}" /></div>
+      <div class="field"><label class="field-label" for="ef_addr">주소</label>
         <div style="display:flex;gap:8px">
           <input type="text" id="ef_addr" value="${r.addr || ''}" placeholder="주소를 확인해서 입력해 주세요" style="flex:1" />
           <button type="button" onclick="openPlaceSearch('edit')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif">🔍 찾기</button>
@@ -3163,10 +3198,10 @@ function renderEditForm(r) {
         <input type="hidden" id="ef_lng" value="${r.lng || ''}" />
         <input type="hidden" id="ef_place_id" value="${r.place_id || ''}" />
       </div>
-      <div class="field"><label class="field-label">좋은 점</label><input type="text" id="ef_items" value="${r.items || ''}" /></div>
-      <div class="field"><label class="field-label">연락처</label><input type="tel" id="ef_phone" value="${r.phone || ''}" /></div>
-      <div class="field"><label class="field-label">한줄소개</label><textarea id="ef_memo">${r.intro || ''}</textarea></div>
-      <div class="field"><label class="field-label">진행 상태</label>
+      <div class="field"><label class="field-label" for="ef_items">좋은 점</label><input type="text" id="ef_items" value="${r.items || ''}" /></div>
+      <div class="field"><label class="field-label" for="ef_phone">연락처</label><input type="tel" id="ef_phone" value="${r.phone || ''}" /></div>
+      <div class="field"><label class="field-label" for="ef_memo">한줄소개</label><textarea id="ef_memo">${r.intro || ''}</textarea></div>
+      <div class="field"><label class="field-label" for="ef_status">진행 상태</label>
         <select id="ef_status" aria-label="추천 진행 상태">
           <option value="추천" ${editAction==='추천'?'selected':''}>추천 접수</option>
           <option value="확인 중" ${editAction==='확인 중'?'selected':''}>확인 중</option>
@@ -3180,8 +3215,8 @@ function renderEditForm(r) {
       `<option value="${v}" ${val===v?'selected':''}>${v}</option>`).join('');
     const editAction = getRecordAction(r);
     body.innerHTML = `
-      <div class="field"><label class="field-label">장소명</label><input type="text" id="ef_name" value="${r.name || ''}" /></div>
-      <div class="field"><label class="field-label">주소</label>
+      <div class="field"><label class="field-label" for="ef_name">장소명</label><input type="text" id="ef_name" value="${r.name || ''}" /></div>
+      <div class="field"><label class="field-label" for="ef_addr">주소</label>
         <div style="display:flex;gap:8px">
           <input type="text" id="ef_addr" value="${r.addr || ''}" style="flex:1" />
           <button type="button" onclick="openPlaceSearch('edit')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif">🔍 찾기</button>
@@ -3190,20 +3225,20 @@ function renderEditForm(r) {
         <input type="hidden" id="ef_lng" value="${r.lng || ''}" />
         <input type="hidden" id="ef_place_id" value="${r.place_id || ''}" />
       </div>
-      <div class="field"><label class="field-label">점검 날짜</label><input type="date" id="ef_date" value="${r.date || ''}" /></div>
-      <div class="field"><label class="field-label">경사로</label><select id="ef_r2" aria-label="경사로 평가">${ratingOptions('r2',r.r2)}</select></div>
-      <div class="field"><label class="field-label">안내판</label><select id="ef_r4" aria-label="안내판 평가">${ratingOptions('r4',r.r4)}</select></div>
-      <div class="field"><label class="field-label">점자메뉴판</label><select id="ef_r1" aria-label="점자메뉴판 평가">${ratingOptions('r1',r.r1)}</select></div>
-      <div class="field"><label class="field-label">화장실</label><select id="ef_r3" aria-label="화장실 평가">${ratingOptions('r3',r.r3)}</select></div>
-      <div class="field"><label class="field-label">조치 여부</label>
+      <div class="field"><label class="field-label" for="ef_date">점검 날짜</label><input type="date" id="ef_date" value="${r.date || ''}" /></div>
+      <div class="field"><label class="field-label" for="ef_r2">경사로</label><select id="ef_r2" aria-label="경사로 평가">${ratingOptions('r2',r.r2)}</select></div>
+      <div class="field"><label class="field-label" for="ef_r4">안내판</label><select id="ef_r4" aria-label="안내판 평가">${ratingOptions('r4',r.r4)}</select></div>
+      <div class="field"><label class="field-label" for="ef_r1">점자메뉴판</label><select id="ef_r1" aria-label="점자메뉴판 평가">${ratingOptions('r1',r.r1)}</select></div>
+      <div class="field"><label class="field-label" for="ef_r3">화장실</label><select id="ef_r3" aria-label="화장실 평가">${ratingOptions('r3',r.r3)}</select></div>
+      <div class="field"><label class="field-label" for="ef_action">조치 여부</label>
         <select id="ef_action" aria-label="조치 필요 여부">
           <option value="지원 검토 필요" ${editAction==='지원 검토 필요'?'selected':''}>지원 검토 필요</option>
           <option value="확인 완료" ${editAction==='확인 완료'?'selected':''}>확인 완료</option>
           <option value="재방문 필요" ${editAction==='재방문 필요'?'selected':''}>재방문 필요</option>
         </select>
       </div>
-      <div class="field"><label class="field-label">방문 목적별 추가 내용</label><textarea id="ef_extras">${r.extras || ''}</textarea></div>
-      <div class="field"><label class="field-label">종합 의견</label><textarea id="ef_comment">${r.comment || ''}</textarea></div>
+      <div class="field"><label class="field-label" for="ef_extras">방문 목적별 추가 내용</label><textarea id="ef_extras">${r.extras || ''}</textarea></div>
+      <div class="field"><label class="field-label" for="ef_comment">종합 의견</label><textarea id="ef_comment">${r.comment || ''}</textarea></div>
       <input type="hidden" id="ef_author" value="${r.author || r.recorder || r.team_members || r.team_name || ''}" />
     `;
   }
@@ -3261,12 +3296,12 @@ async function updateActivityJournalInSupabase(journal) {
 function renderJournalEditForm(journal) {
   const body = document.getElementById('edit-form-body');
   body.innerHTML = `
-    <div class="field"><label class="field-label">활동 날짜</label><input type="date" id="jf_date" value="${journal.date || ''}" /></div>
-    <div class="field"><label class="field-label">활동 시간</label><input type="text" id="jf_time" value="${journal.time || ''}" placeholder="예) 14:00~16:00" /></div>
-    <div class="field"><label class="field-label">활동 팀</label><input type="text" id="jf_team" value="${journal.team || ''}" /></div>
-    <div class="field"><label class="field-label">팀원</label><input type="text" id="jf_author" value="${journal.author || ''}" /></div>
-    <div class="field"><label class="field-label">방문 상점</label><textarea id="jf_stores" style="min-height:72px">${journal.stores || ''}</textarea></div>
-    <div class="field"><label class="field-label">활동 내용</label><textarea id="jf_memo" style="min-height:120px">${journal.memo || ''}</textarea></div>
+    <div class="field"><label class="field-label" for="jf_date">활동 날짜</label><input type="date" id="jf_date" value="${journal.date || ''}" /></div>
+    <div class="field"><label class="field-label" for="jf_time">활동 시간</label><input type="text" id="jf_time" value="${journal.time || ''}" placeholder="예) 14:00~16:00" /></div>
+    <div class="field"><label class="field-label" for="jf_team">활동 팀</label><input type="text" id="jf_team" value="${journal.team || ''}" /></div>
+    <div class="field"><label class="field-label" for="jf_author">팀원</label><input type="text" id="jf_author" value="${journal.author || ''}" /></div>
+    <div class="field"><label class="field-label" for="jf_stores">방문 상점</label><textarea id="jf_stores" style="min-height:72px">${journal.stores || ''}</textarea></div>
+    <div class="field"><label class="field-label" for="jf_memo">활동 내용</label><textarea id="jf_memo" style="min-height:120px">${journal.memo || ''}</textarea></div>
     <p style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-top:8px">
       같은 날짜·같은 팀으로 묶인 일지가 여러 개라면, 이 내용이 묶인 일지 전체에 반영돼요.
     </p>
