@@ -3058,7 +3058,7 @@ function toggleDetail(detailId, card) {
 async function fetchRecordPhotoRows(recordId) {
   var pin = managerUnlocked ? managerSessionPin : monitorSessionPin;
   if (!recordId || !pin) return [];
-  var result = await _supabase.rpc('get_record_photos', {
+  var result = await _supabase.rpc('get_record_photos_secure', {
     pin_input: pin,
     p_record_id: recordId
   });
