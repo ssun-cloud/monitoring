@@ -3124,7 +3124,7 @@ async function loadPhotosByRecordId(recordId, container) {
 
   } catch(e) {
     console.error('[사진보기] 오류:', e.message);
-    container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">사진 로드 중 오류가 발생했어요.</div>';
+    container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">사진 로드 중 오류가 발생했어요.<br><span style="font-size:11px">(' + escapeHtml(e.message || 'unknown error') + ')</span></div>';
   }
 }
 // ──────────────────────────────────────────────────────
