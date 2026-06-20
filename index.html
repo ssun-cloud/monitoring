@@ -4804,9 +4804,11 @@ function renderMap() {
 
       const popupTypeLabel = rec.type === 'apply' ? '신청' : rec.type === 'recommend' ? '추천' : typeLabel;
       const popupStatus = rec.action || (!isVerified(rec) ? '미검증' : '');
-      const kakaoSearchUrl = rec.addr
-        ? 'https://map.kakao.com/link/search/' + encodeURIComponent((rec.name || '') + ' ' + rec.addr)
-        : '';
+      // 정확한 좌표가 있으면 좌표+이름으로 바로 그 지점을 보여주고(검색 단계 없이 정확),
+      // 좌표가 없는 옛 기록은 예전처럼 이름+주소 텍스트 검색으로 대체합니다.
+      const kakaoSearchUrl = (typeof coords.getLat === 'function')
+        ? 'https://map.kakao.com/link/map/' + encodeURIComponent(rec.name || '장소') + ',' + coords.getLat() + ',' + coords.getLng()
+        : (rec.addr ? 'https://map.kakao.com/link/search/' + encodeURIComponent((rec.name || '') + ' ' + rec.addr) : '');
       const infoHtml = '<div style="padding:10px 12px;font-size:13px;font-family:Noto Sans KR,sans-serif;min-width:150px;line-height:1.5">'
         + '<strong>'+rec.name+'</strong><br>'
         + '<span style="color:'+markerColor+';font-size:12px;font-weight:600">기록 유형: '+popupTypeLabel+'</span>'
