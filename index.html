@@ -1684,13 +1684,6 @@ async function submitApply() {
   const items = [braille && '점자메뉴판', qr && 'QR 텍스트 메뉴', ramp && '경사로', sign && '안내 스티커·도움벨', otherLabel].filter(Boolean).join(', ');
   const ts = new Date().toLocaleString('ko-KR');
   setLoading('apply-btn', true, '신청 제출하기');
-  // ── [GAS 백업] 기존 Google Apps Script 전송 코드 ──────
-  // try {
-  //   await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors',
-  //     body: JSON.stringify({type:'apply', name, addr, items, applyname, phone, memo, privacy: 'Y', timestamp: ts}),
-  //     headers:{'Content-Type':'application/json'} });
-  // } catch(e) {}
-  // ──────────────────────────────────────────────────────
 
   // ── Supabase insert (applications 테이블) ─────────────
   try {
@@ -1907,18 +1900,6 @@ async function submitMonitor() {
 
   setLoading('monitor-btn', true, '기록 제출하기');
 
-  // ── [GAS 백업] 기존 시트 저장 코드 ──────────────────
-  // try {
-  //   await postSheetData({ type: 'monitor', monitorPin: monitorSessionPin, managerPin: managerSessionPin,
-  //     place, addr, date, r1, r2, r3, r4, action, comment, author, extras, photos: [], timestamp: ts });
-  // } catch(e) {
-  //   console.warn('시트 저장 오류:', e);
-  //   showToast('monitor-toast', '시트 저장에 실패했어요.', 'error');
-  //   setLoading('monitor-btn', false, '기록 제출하기');
-  //   return;
-  // }
-  // ──────────────────────────────────────────────────────
-
   // ── Supabase insert (monitoring_records 테이블) ───────
   const monitorPayload = {
     id:              recordId,
@@ -2015,15 +1996,6 @@ async function submitMonitor() {
   document.getElementById('m_date').valueAsDate = new Date();
 }
 
-// ── [GAS 백업] 기존 GAS 사진 업로드 (주석 처리) ─────────
-// // ── [GAS 백업] 기존 GAS Drive 업로드 함수 ───────────────
-// async function uploadPhotosSequentially(files, place, date, timestamp) {
-//   for each file: resizePhoto → base64 → fetch(SCRIPT_URL, uploadPhoto)
-//   → GAS → Google Drive 저장 → URL 반환 → addPhotoLink
-// }
-// ──────────────────────────────────────────────────────
-// ──────────────────────────────────────────────────────
-
 // ── Supabase Storage 사진 업로드 ──────────────────────
 async function uploadPhotosToSupabase(recordId, files, timestamp) {
   var total    = files.length;
@@ -2112,10 +2084,6 @@ function resizePhoto(file, maxSize, quality) {
     img.src = url;
   });
 }
-
-// ── [GAS 백업] uploadPhotosSequentially (두 번째 사본) ──
-// async function uploadPhotosSequentially(files, place, date, timestamp) { ... }
-// ──────────────────────────────────────────────────────
 
 // ── 활동 일지 ──────────────────────────────────────
 function getJournals() { return JSON.parse(localStorage.getItem('journals') || '[]'); }
@@ -2248,13 +2216,6 @@ async function submitJournal() {
   var journalId = crypto.randomUUID();
   setLoading('journal-btn', true, '일지 제출하기');
 
-  // ── [GAS 백업] 기존 Google Apps Script 전송 코드 ──────
-  // fetch(SCRIPT_URL, { method:'POST', mode:'no-cors',
-  //   body: JSON.stringify({type:'journal', monitorPin:monitorSessionPin, managerPin:managerSessionPin,
-  //     date, time, team:teamName, author, stores:storeList, memo, timestamp:ts}),
-  //   headers:{'Content-Type':'application/json'} }).catch(function(){});
-  // ──────────────────────────────────────────────────────
-
   // ── Supabase insert (activity_journals 테이블) ─────────
   const payload = {
     id:            journalId,
@@ -2344,12 +2305,6 @@ async function submitRecommend() {
   var ts = new Date().toLocaleString('ko-KR');
   setLoading('recommend-btn', true, '추천 제출하기');
 
-  // ── [GAS 백업] 기존 Google Apps Script 전송 코드 ──────
-  // fetch(SCRIPT_URL, { method:'POST', mode:'no-cors',
-  //   body: JSON.stringify({type:'recommend', name, addr, items, recommender:author, phone:phone.trim(), memo:intro.trim(), timestamp:ts}),
-  //   headers:{'Content-Type':'application/json'} }).catch(function(){});
-  // ──────────────────────────────────────────────────────
-
   // ── Supabase insert (recommendations 테이블) ──────────
   const payload = {
     store_name:  name,
@@ -2395,24 +2350,6 @@ async function submitRecommend() {
 }
 
 // ── 기록 상태 변경 ───────────────────────────────────
-
-// ── [GAS 백업] 기존 Google Apps Script 상태 변경 코드 ──
-// async function updateRecordStatus(timestamp, type, status) {
-//   var records = getRecords();
-//   records = records.map(function(r) {
-//     if (String(r.timestamp) === String(timestamp)) r.action = status;
-//     return r;
-//   });
-//   localStorage.setItem('records', JSON.stringify(records));
-//   try {
-//     await fetch(SCRIPT_URL, {
-//       method: 'POST', mode: 'no-cors',
-//       body: JSON.stringify({ type: 'updateStatus', managerPin: managerSessionPin, timestamp: timestamp, recordType: type, status: status }),
-//       headers: { 'Content-Type': 'application/json' }
-//     });
-//   } catch(e) {}
-// }
-// ──────────────────────────────────────────────────────
 
 // ── Supabase RPC 상태 변경 ────────────────────────────
 async function updateRecordStatus(timestamp, type, status) {
@@ -4348,39 +4285,7 @@ function clearAllData() {
 
 let lastSheetSyncAt = 0;
 
-// ── [GAS 백업] 기존 Google Apps Script 조회 함수 ──────
-// async function syncRecordsFromSheet(force) {
-//   const now = Date.now();
-//   if (!force && now - lastSheetSyncAt < 30000) return getRecords();
-//   if (!managerUnlocked || !managerSessionPin) throw new Error('manager-auth-required');
-//   const authQuery = '&managerPin=' + encodeURIComponent(managerSessionPin);
-//   const [applyRes, monitorRes, recRes] = await Promise.all([
-//     fetch(SCRIPT_URL + '?type=apply' + authQuery, { cache: 'no-store' }),
-//     fetch(SCRIPT_URL + '?type=monitor' + authQuery, { cache: 'no-store' }),
-//     fetch(SCRIPT_URL + '?type=recommend' + authQuery, { cache: 'no-store' }).catch(() => ({json:()=>({result:'ok',records:[]})}))
-//   ]);
-//   const [applyData, monitorData, recData] = await Promise.all([applyRes.json(), monitorRes.json(), recRes.json()]);
-//   if (applyData.result !== 'ok' || monitorData.result !== 'ok') throw new Error('sheet-load-failed');
-//   const sheetRecords = [...applyData.records, ...monitorData.records, ...(recData.records||[])];
-//   const merged = [...sheetRecords, ...getRecords()];
-//   const byKey = new Map();
-//   merged.forEach(function(r) {
-//     const key = String(r.timestamp||'')+'|'+String(r.type||'')+'|'+String(r.name||r.place||'')+'|'+String(r.addr||'');
-//     if (!byKey.has(key)) byKey.set(key, r);
-//   });
-//   const all = Array.from(byKey.values());
-//   all.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-//   localStorage.setItem('records', JSON.stringify(all));
-//   lastSheetSyncAt = now;
-//   return all;
-// }
-// ──────────────────────────────────────────────────────
-
 // ── Supabase 조회 (관리자 / 모니터링단 / 공개 분기) ──
-async function fetchMonitorRecordsDirectly() {
-  throw new Error('direct-monitor-query-disabled');
-}
-
 async function syncRecordsFromSupabase(force) {
   const now = Date.now();
   if (!force && now - lastSheetSyncAt < 30000) return getRecords();
@@ -4394,12 +4299,8 @@ async function syncRecordsFromSupabase(force) {
       .rpc('get_manager_detail_records', { pin_input: managerSessionPin }));
     if (error) {
       console.error('[조회] RPC error:', error.code, error.message, error.details, error.hint);
-      try {
-        data = await fetchMonitorRecordsDirectly();
-      } catch(fallbackError) {
-        showToast('settings-toast', '⚠️ 관리자 데이터 불러오기 오류: ' + error.message, 'error');
-        return getRecords(); // 기존 데이터 유지, 덮어쓰지 않음
-      }
+      showToast('settings-toast', '⚠️ 관리자 데이터 불러오기 오류: ' + error.message, 'error');
+      return getRecords(); // 기존 데이터 유지, 덮어쓰지 않음
     }
   } else if (monitorUnlocked && monitorSessionPin) {
     // 모니터링단 인증: 상세 데이터 (개인정보 제외)
@@ -4408,12 +4309,8 @@ async function syncRecordsFromSupabase(force) {
       .rpc('get_monitor_detail_records', { pin_input: monitorSessionPin }));
     if (error) {
       console.error('[조회] RPC error:', error.code, error.message, error.details, error.hint);
-      try {
-        data = await fetchMonitorRecordsDirectly();
-      } catch(fallbackError) {
-        showToast('settings-toast', '⚠️ 데이터 불러오기 오류: ' + error.message, 'error');
-        return getRecords();
-      }
+      showToast('settings-toast', '⚠️ 데이터 불러오기 오류: ' + error.message, 'error');
+      return getRecords();
     }
   } else {
     // 공개: public_map_records
@@ -4496,25 +4393,6 @@ async function syncRecordsFromSupabase(force) {
     };
   });
 
-  // 관리자/모니터링단 조회에서 모니터링 기록이 누락되면 직접 조회를 보조로 한 번 더 시도합니다.
-  // RPC 컬럼 변경으로 프론트 매핑이 흔들리는 상황을 막기 위한 안전장치입니다.
-  if ((managerUnlocked || monitorUnlocked) && !records.some(function(r) { return typeMatches(r, 'monitor'); })) {
-    try {
-      console.warn('[조회] 상세 RPC 결과에 모니터링 기록이 없어 직접 조회를 보조로 시도합니다.');
-      var directMonitors = await fetchMonitorRecordsDirectly();
-      if (directMonitors && directMonitors.length) {
-        var seen = {};
-        records.forEach(function(r) { if (r.id) seen[String(r.id)] = true; });
-        directMonitors.forEach(function(r) {
-          if (!r.id || !seen[String(r.id)]) records.push(r);
-        });
-        console.log('[조회] 보조 직접 조회로 모니터링 ' + directMonitors.length + '건 확인');
-      }
-    } catch(fallbackError) {
-      console.warn('[조회] 보조 직접 조회 실패:', fallbackError.message || fallbackError);
-    }
-  }
-
   localStorage.setItem('records', JSON.stringify(records));
   lastSheetSyncAt = now;
   console.log('[조회] ✅ ' + records.length + '건 저장 완료 (관리자: ' + (managerUnlocked ? 'Y' : 'N') + ' / 모니터링단: ' + (monitorUnlocked ? 'Y' : 'N') + ')');
@@ -4529,15 +4407,6 @@ async function loadFromSheet() {
   btn.disabled = true;
   btn.textContent = '불러오는 중...';
   try {
-    // ── [GAS 백업] 일지 불러오기 ──────────────────────
-    // const jRes = await fetch(SCRIPT_URL + '?type=journal&managerPin=' + encodeURIComponent(managerSessionPin));
-    // const jData = await jRes.json();
-    // if (jData.result === 'ok' && jData.records) {
-    //   jData.records.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
-    //   localStorage.setItem('journals', JSON.stringify(jData.records));
-    // }
-    // ──────────────────────────────────────────────────
-
     const all = await syncRecordsFromSupabase(true);
 
     // 관리자 인증 시에만 활동일지 불러오기
@@ -4596,6 +4465,7 @@ async function loadFromSheet() {
 // ── 지도 ─────────────────────────────────────────
 let mapInstance = null;
 let mapMarkers = [];
+let mapRenderSeq = 0;
 // 지도 유형/상태 필터: 빈 문자열이면 "전체", 값이 있으면 그 한 가지만 선택된 상태입니다.
 let mapTypeFilter = '';
 let mapStatusFilter = '';
@@ -4744,6 +4614,7 @@ function mapRecordExtraHtml(rec) {
 }
 
 function renderMap() {
+  const renderSeq = ++mapRenderSeq;
   // 비로그인 공개 사용자에게는 미검증 항목 자체가 노출되지 않으므로, 해당 필터 버튼은 숨기고 선택도 해제합니다.
   var unverifiedBtn = document.querySelector('.map-filter-btn[data-filter-value="unverified"]');
   if (unverifiedBtn) {
@@ -4910,6 +4781,7 @@ function renderMap() {
     } else {
       // 좌표가 없는 옛 기록은 주소를 지오코딩해서 위치를 추정합니다. (하위 호환)
       geocoder.addressSearch(rec.addr, function(result, status) {
+        if (renderSeq !== mapRenderSeq) return;
         if (status !== kakao.maps.services.Status.OK) return;
         placeMarkerAt(new kakao.maps.LatLng(result[0].y, result[0].x));
       });
