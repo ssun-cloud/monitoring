@@ -4879,19 +4879,6 @@ window.kakaoMapReady = false;
   document.head.appendChild(s);
 })();
 
-// 활동일지 수정 버튼 이벤트
-if (!window.__journalEditHandlerAttached) {
-  window.__journalEditHandlerAttached = true;
-  document.addEventListener('click', function(e) {
-    var editBtn = e.target.closest('.journal-edit-btn');
-    if (editBtn) {
-      e.preventDefault();
-      e.stopPropagation();
-      openJournalEditModal(Number(editBtn.dataset.journalIndex));
-    }
-  });
-}
-
 </script>
 </body>
 </html>
