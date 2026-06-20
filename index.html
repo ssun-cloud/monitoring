@@ -3055,6 +3055,17 @@ function toggleDetail(detailId, card) {
 }
 
 // ── 사진 보기: signed URL 생성 ──────────────────────
+async function fetchRecordPhotoRows(recordId) {
+  var pin = managerUnlocked ? managerSessionPin : monitorSessionPin;
+  if (!recordId || !pin) return [];
+  var result = await _supabase.rpc('get_record_photos', {
+    pin_input: pin,
+    p_record_id: recordId
+  });
+  if (result.error) throw result.error;
+  return result.data || [];
+}
+
 async function loadPhotosByRecordId(recordId, container) {
   // 공개 상태에서는 절대 실행 안 함
   if (!monitorUnlocked && !managerUnlocked) {
@@ -3065,18 +3076,8 @@ async function loadPhotosByRecordId(recordId, container) {
   console.log('[권한] mode=' + (managerUnlocked ? 'manager' : 'monitor') + ' - 사진 조회 허용');
 
   try {
-    // record_photos에서 해당 recordId의 monitor 사진 경로 조회
-    const { data: photos, error: dbError } = await _supabase
-      .from('record_photos')
-      .select('storage_path, file_name')
-      .eq('record_type', 'monitor')
-      .eq('record_id', recordId);
-
-    if (dbError) {
-      console.error('[사진보기] record_photos 조회 오류:', dbError.message);
-      container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">사진을 불러올 수 없어요.</div>';
-      return;
-    }
+    // record_photos 직접 SELECT 대신 PIN 검증 RPC로 사진 경로 조회
+    const photos = await fetchRecordPhotoRows(recordId);
 
     if (!photos || photos.length === 0) {
       container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">등록된 사진이 없어요.</div>';
@@ -3758,15 +3759,11 @@ function renderSettingsJournalPrints() {
 async function fetchPrintPhotos(recordId) {
   if (!recordId || (!managerUnlocked && !monitorUnlocked)) return [];
   try {
-    var result = await _supabase
-      .from('record_photos')
-      .select('storage_path, file_name')
-      .eq('record_type', 'monitor')
-      .eq('record_id', recordId);
-    if (result.error || !result.data || !result.data.length) return [];
+    var rows = await fetchRecordPhotoRows(recordId);
+    if (!rows || !rows.length) return [];
     var photos = [];
-    for (var i = 0; i < result.data.length; i++) {
-      var p = result.data[i];
+    for (var i = 0; i < rows.length; i++) {
+      var p = rows[i];
       var signed = await _supabase.storage.from('monitoring-photos').createSignedUrl(p.storage_path, 600);
       if (!signed.error && signed.data && signed.data.signedUrl) {
         photos.push({ url: signed.data.signedUrl, name: p.file_name || p.storage_path });
