@@ -1270,6 +1270,23 @@ function clearPersistedManagerAuth() {
   } catch(e) {}
   managerUnlocked = false;
   managerSessionPin = '';
+  // 관리자 인증으로 받아온 개인정보(신청자명·연락처·메모 등)는
+  // localStorage에 평문으로 남아있을 수 있으므로, 로그아웃/새로고침 시점에
+  // 해당 필드만 제거합니다. (지도·목록 표시에 쓰는 다른 필드는 그대로 유지)
+  clearCachedPersonalInfo();
+}
+
+function clearCachedPersonalInfo() {
+  try {
+    var records = JSON.parse(localStorage.getItem('records') || '[]');
+    var changed = false;
+    records.forEach(function(r) {
+      ['applicant', 'phone', 'memo', 'intro'].forEach(function(field) {
+        if (r[field]) { r[field] = ''; changed = true; }
+      });
+    });
+    if (changed) localStorage.setItem('records', JSON.stringify(records));
+  } catch(e) {}
 }
 
 function requirePin(el) {
