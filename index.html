@@ -394,24 +394,24 @@
 
 <a href="#apply" class="sr-only" style="position:absolute;left:-9999px;top:0;background:var(--teal);color:white;padding:8px 16px;z-index:9999;border-radius:4px" onfocus="this.style.left='0'" onblur="this.style.left='-9999px'">본문으로 바로가기</a>
 <header class="app-header">
-  <h1><span aria-hidden="true">🌿</span> 열린 마을 만들기</h1>
+  <h1>🌿 열린 마을 만들기</h1>
   <p>누구나 편하게 오갈 수 있는 마을을 함께 만들어요</p>
-  <a href="tel:0263957051" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--teal);text-decoration:none;margin-top:4px"><span aria-hidden="true">📞</span> 02-6395-7051 · 평일 09:00~18:00</a>
+  <a href="tel:0263957051" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--teal);text-decoration:none;margin-top:4px">📞 02-6395-7051 · 평일 09:00~18:00</a>
 </header>
 
 <nav class="tabs" role="tablist" aria-label="메뉴">
-  <button class="tab active" role="tab" aria-selected="true" onclick="switchTab('home',    this)"><span aria-hidden="true">🏠</span> 홈</button>
-  <button class="tab" role="tab" aria-selected="false" onclick="switchTab('apply',   this)"><span aria-hidden="true">📋</span> 신청·추천</button>
-  <button class="tab" role="tab" aria-selected="false" onclick="requirePin(this)"><span aria-hidden="true">🔍</span> 모니터링</button>
-  <button class="tab" role="tab" aria-selected="false" onclick="switchTab('map',     this)"><span aria-hidden="true">🗺️</span> 지도</button>
-  <button class="tab" role="tab" aria-selected="false" onclick="switchTab('settings',this)"><span aria-hidden="true">⚙️</span> 설정</button>
+  <button class="tab active" role="tab" aria-selected="true" onclick="switchTab('home',    this)">🏠 홈</button>
+  <button class="tab" role="tab" aria-selected="false" onclick="switchTab('apply',   this)">📋 신청·추천</button>
+  <button class="tab" role="tab" aria-selected="false" onclick="requirePin(this)">🔍 모니터링</button>
+  <button class="tab" role="tab" aria-selected="false" onclick="switchTab('map',     this)">🗺️ 지도</button>
+  <button class="tab" role="tab" aria-selected="false" onclick="switchTab('settings',this)">⚙️ 설정</button>
 </nav>
 
 <!-- 홈 대시보드 -->
 <div id="home" class="section active" role="tabpanel" aria-label="홈 대시보드">
 
   <div class="card" style="background:linear-gradient(135deg,var(--teal-light) 0%,#fff 100%);border-color:var(--teal-mid)">
-    <div style="font-size:18px;font-weight:700;color:var(--teal);margin-bottom:8px">열린 마을 만들기 <span aria-hidden="true">🌿</span></div>
+    <div style="font-size:18px;font-weight:700;color:var(--teal);margin-bottom:8px">열린 마을 만들기 🌿</div>
     <div style="font-size:14px;color:#1a5c4a;line-height:1.8">
       누구든 편하게 드나들 수 있는 가게를 함께 찾고, 만들어가요.<br>
       좋은 가게는 추천하고, 필요한 곳은 신청해주세요.<br>
@@ -480,7 +480,7 @@
       <label class="field-label" for="a_addr">주소<span class="opt">(선택)</span></label>
       <div style="display:flex;gap:8px">
         <input type="text" id="a_addr" placeholder="상호명 검색으로 자동 입력돼요" aria-label="주소" style="flex:1" />
-        <button type="button" onclick="openPlaceSearch('apply')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="상호명으로 검색해서 주소 자동으로 채우기"><span aria-hidden="true">🔍</span> 찾기</button>
+        <button type="button" onclick="openPlaceSearch('apply')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="지도에서 장소 찾기">🔍 찾기</button>
       </div>
       <input type="hidden" id="a_lat" />
       <input type="hidden" id="a_lng" />
@@ -576,7 +576,7 @@
         <label class="field-label" for="r_addr">주소<span class="opt">(선택)</span></label>
         <div style="display:flex;gap:8px">
           <input type="text" id="r_addr" placeholder="상호명 검색으로 자동 입력돼요" aria-label="추천 상점 주소" style="flex:1" />
-          <button type="button" onclick="openPlaceSearch('recommend')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="상호명으로 검색해서 주소 자동으로 채우기"><span aria-hidden="true">🔍</span> 찾기</button>
+          <button type="button" onclick="openPlaceSearch('recommend')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="지도에서 장소 찾기">🔍 찾기</button>
         </div>
         <input type="hidden" id="r_lat" />
         <input type="hidden" id="r_lng" />
@@ -636,7 +636,7 @@
       <label class="field-label" for="m_addr">주소<span class="req">*</span></label>
       <div style="display:flex;gap:8px">
         <input type="text" id="m_addr" placeholder="상호명 검색으로 자동 입력돼요" aria-label="모니터링 주소" style="flex:1" />
-        <button type="button" onclick="openPlaceSearch('monitor')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="상호명으로 검색해서 주소 자동으로 채우기"><span aria-hidden="true">🔍</span> 찾기</button>
+        <button type="button" onclick="openPlaceSearch('monitor')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="지도에서 장소 찾기">🔍 찾기</button>
       </div>
       <input type="hidden" id="m_lat" />
       <input type="hidden" id="m_lng" />
@@ -644,7 +644,7 @@
     </div>
     <div class="field">
       <label class="field-label" for="m_date">모니터링 날짜<span class="req">*</span></label>
-      <input type="text" inputmode="numeric" id="m_date" placeholder="예) 2026-06-24" aria-label="모니터링 날짜, 연도-월-일 순서로 숫자만 입력하면 자동으로 하이픈이 붙어요" />
+      <input type="date" id="m_date" aria-label="모니터링 날짜" />
     </div>
     <div class="field">
       <label class="field-label" for="m_team">활동 팀<span class="req">*</span></label>
@@ -673,9 +673,9 @@
       <label class="field-label">출입구 및 경사로 접근성</label>
       <div id="r2-criteria" style="font-size:11px;color:var(--text-muted);margin-bottom:6px">좋음: 문턱이 없거나 경사로가 있어 휠체어·유모차가 혼자 들어갈 수 있어요 · 보통: 도움을 받으면 들어갈 수 있어요 · 미흡: 턱이 높아 들어가기 어려워요</div>
       <div class="rating-group" id="rg_r2" role="radiogroup" aria-label="출입구 및 경사로 접근성 평가" aria-describedby="r2-criteria">
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r2','rg_r2',this,'good')"><span aria-hidden="true">👍</span> 좋음</button>
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r2','rg_r2',this,'fair')"><span aria-hidden="true">😐</span> 보통</button>
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r2','rg_r2',this,'poor')"><span aria-hidden="true">👎</span> 미흡</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r2','rg_r2',this,'good')">👍 좋음</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r2','rg_r2',this,'fair')">😐 보통</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r2','rg_r2',this,'poor')">👎 미흡</button>
       </div>
       <input type="hidden" id="m_r2" />
     </div>
@@ -683,9 +683,9 @@
       <label class="field-label">실내 이동 및 이용 편의</label>
       <div id="r4-criteria" style="font-size:11px;color:var(--text-muted);margin-bottom:6px">좋음: 테이블 사이가 넓어 이동이 자유롭고 안내판도 알아보기 쉬워요 · 보통: 일부 좁은 구간이 있어요 · 미흡: 통로가 좁아 이동이 어려워요</div>
       <div class="rating-group" id="rg_r4" role="radiogroup" aria-label="실내 이동 및 이용 편의 평가" aria-describedby="r4-criteria">
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'good')"><span aria-hidden="true">👍</span> 좋음</button>
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'fair')"><span aria-hidden="true">😐</span> 보통</button>
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'poor')"><span aria-hidden="true">👎</span> 미흡</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'good')">👍 좋음</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'fair')">😐 보통</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'poor')">👎 미흡</button>
       </div>
       <input type="hidden" id="m_r4" />
     </div>
@@ -693,9 +693,9 @@
       <label class="field-label">점자메뉴판·QR 메뉴 이용</label>
       <div id="r1-criteria" style="font-size:11px;color:var(--text-muted);margin-bottom:6px">좋음: 점자·음성·QR 등으로 메뉴를 스스로 확인할 수 있어요 · 보통: 직원 설명이 있으면 확인 가능해요 · 미흡: 메뉴 확인 방법이 없어요</div>
       <div class="rating-group" id="rg_r1" role="radiogroup" aria-label="점자메뉴판·QR 메뉴 이용 평가" aria-describedby="r1-criteria">
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'good')"><span aria-hidden="true">👍</span> 좋음</button>
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'fair')"><span aria-hidden="true">😐</span> 보통</button>
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'poor')"><span aria-hidden="true">👎</span> 미흡</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'good')">👍 좋음</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'fair')">😐 보통</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'poor')">👎 미흡</button>
       </div>
       <input type="hidden" id="m_r1" />
     </div>
@@ -703,9 +703,9 @@
       <label class="field-label">화장실 접근성</label>
       <div id="r3-criteria" style="font-size:11px;color:var(--text-muted);margin-bottom:6px">좋음: 휠체어로 진입해 혼자 이용할 수 있어요 · 보통: 공간이 좁거나 손잡이가 부족해 불편함이 있어요 · 미흡: 휠체어 진입이 어렵거나 화장실이 없어요</div>
       <div class="rating-group" id="rg_r3" role="radiogroup" aria-label="화장실 접근성 평가" aria-describedby="r3-criteria">
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r3','rg_r3',this,'good')"><span aria-hidden="true">👍</span> 좋음</button>
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r3','rg_r3',this,'fair')"><span aria-hidden="true">😐</span> 보통</button>
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r3','rg_r3',this,'poor')"><span aria-hidden="true">👎</span> 미흡</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r3','rg_r3',this,'good')">👍 좋음</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r3','rg_r3',this,'fair')">😐 보통</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r3','rg_r3',this,'poor')">👎 미흡</button>
       </div>
       <input type="hidden" id="m_r3" />
     </div>
@@ -848,9 +848,9 @@
     <div class="field">
       <label class="field-label">최종 판단</label>
       <div class="pill-group">
-        <button class="pill" id="pill_yes"    onclick="selectPill('yes')"><span aria-hidden="true">🚨</span> 지원 검토 필요</button>
-        <button class="pill" id="pill_no"     onclick="selectPill('no')"><span aria-hidden="true">✅</span> 확인 완료</button>
-        <button class="pill" id="pill_follow" onclick="selectPill('follow')"><span aria-hidden="true">🕐</span> 재방문 필요</button>
+        <button class="pill" id="pill_yes"    onclick="selectPill('yes')">🚨 지원 검토 필요</button>
+        <button class="pill" id="pill_no"     onclick="selectPill('no')">✅ 확인 완료</button>
+        <button class="pill" id="pill_follow" onclick="selectPill('follow')">🕐 재방문 필요</button>
       </div>
       <input type="hidden" id="m_action" />
     </div>
@@ -872,7 +872,7 @@
       <div class="card-title">활동 기본 정보</div>
       <div class="field">
         <label class="field-label" for="j_date">활동 날짜<span class="req">*</span></label>
-        <input type="text" inputmode="numeric" id="j_date" placeholder="예) 2026-06-24" aria-label="활동 날짜, 연도-월-일 순서로 숫자만 입력하면 자동으로 하이픈이 붙어요" onchange="loadJournalStores()" />
+        <input type="date" id="j_date" aria-label="활동 날짜" onchange="loadJournalStores()" />
       </div>
       <div class="field">
         <label class="field-label" for="j_time">활동 시간<span class="req">*</span></label>
@@ -1636,28 +1636,6 @@ function showToast(id, msg, type) {
   const el = document.getElementById(id); el.textContent = msg; el.className = 'toast ' + type;
   setTimeout(() => { el.className = 'toast'; }, 5000);
 }
-
-// ── 날짜 텍스트 입력 보조 (VoiceOver 호환을 위해 type=date 대신 사용) ──
-function todayDateStr() {
-  var d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-}
-function isValidDateStr(s) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
-  var d = new Date(s + 'T00:00:00');
-  return !isNaN(d.getTime()) && s === (d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'));
-}
-function setupDateTextInput(id) {
-  var el = document.getElementById(id);
-  if (!el) return;
-  el.addEventListener('input', function() {
-    var digits = el.value.replace(/\D/g, '').slice(0, 8);
-    var out = digits;
-    if (digits.length > 4) out = digits.slice(0,4) + '-' + digits.slice(4);
-    if (digits.length > 6) out = digits.slice(0,4) + '-' + digits.slice(4,6) + '-' + digits.slice(6);
-    el.value = out;
-  });
-}
 function setLoading(btnId, loading, label) {
   const btn = document.getElementById(btnId);
   btn.disabled = loading;
@@ -1923,7 +1901,6 @@ async function submitMonitor() {
   if (!place) { showToast('monitor-toast','장소명을 입력해 주세요.','error'); return; }
   if (!addr)  { showToast('monitor-toast','주소를 입력해 주세요.','error'); return; }
   if (!date)  { showToast('monitor-toast','날짜를 선택해 주세요.','error'); return; }
-  if (!isValidDateStr(date)) { showToast('monitor-toast','날짜 형식이 올바르지 않아요. 예) 2026-06-24','error'); return; }
   if (!teamName) { showToast('monitor-toast','활동 팀을 선택해 주세요.','error'); return; }
   if (!visitType) { showToast('monitor-toast','방문 목적을 선택해 주세요.','error'); return; }
   if (!comment) { showToast('monitor-toast','종합 의견을 입력해 주세요.','error'); return; }
@@ -1967,14 +1944,14 @@ async function submitMonitor() {
     const { error } = await _supabase.from('monitoring_records').insert([monitorPayload]);
     if (error) {
       console.error('[모니터링] Supabase insert 오류:', error.code, error.message);
-      showToast('monitor-toast', '기록 저장에 실패했어요. 다시 시도해 주세요.', 'error');
+      showToast('monitor-toast', '⚠️ 기록 저장에 실패했어요. 다시 시도해 주세요.', 'error');
       setLoading('monitor-btn', false, '기록 제출하기');
       return;
     }
     console.log('[모니터링] ✅ insert 성공 - recordId:', recordId);
   } catch(e) {
     console.error('[모니터링] 연결 오류:', e.message);
-    showToast('monitor-toast', '연결 오류가 발생했어요.', 'error');
+    showToast('monitor-toast', '⚠️ 연결 오류가 발생했어요.', 'error');
     setLoading('monitor-btn', false, '기록 제출하기');
     return;
   }
@@ -1991,11 +1968,11 @@ async function submitMonitor() {
 
   // 사진이 있으면 Supabase Storage에 업로드
   if (selectedPhotos.length > 0) {
-    showToast('monitor-toast', '기록 저장됨! 사진 업로드 중...', 'success');
+    showToast('monitor-toast', '✅ 기록 저장됨! 사진 업로드 중...', 'success');
     showRecentEditButton('monitor-toast', 'monitor', recordId);
     uploadPhotosToSupabase(recordId, selectedPhotos, ts);
   } else {
-    showToast('monitor-toast', '기록이 저장되었습니다!', 'success');
+    showToast('monitor-toast', '✅ 기록이 저장되었습니다!', 'success');
     showRecentEditButton('monitor-toast', 'monitor', recordId);
   }
 
@@ -2033,7 +2010,7 @@ async function submitMonitor() {
   var dropP = document.querySelector('.photo-drop p');
   if (dropP) dropP.textContent = '탭해서 사진 추가하기';
   document.getElementById('m_photos').value = '';
-  document.getElementById('m_date').value = todayDateStr();
+  document.getElementById('m_date').valueAsDate = new Date();
 }
 
 // ── Supabase Storage 사진 업로드 ──────────────────────
@@ -2043,7 +2020,7 @@ async function uploadPhotosToSupabase(recordId, files, timestamp) {
   var failed   = 0;
 
   for (var i = 0; i < files.length; i++) {
-    showToast('monitor-toast', '사진 업로드 중... (' + (i + 1) + '/' + total + ')', 'success');
+    showToast('monitor-toast', '📷 사진 업로드 중... (' + (i + 1) + '/' + total + ')', 'success');
     try {
       // 리사이즈 (Blob)
       var blob = await resizePhoto(files[i], 500, 0.65);
@@ -2089,11 +2066,11 @@ async function uploadPhotosToSupabase(recordId, files, timestamp) {
   }
 
   if (failed === 0) {
-    showToast('monitor-toast', '기록과 사진 ' + total + '장이 모두 저장되었습니다!', 'success');
+    showToast('monitor-toast', '✅ 기록과 사진 ' + total + '장이 모두 저장되었습니다!', 'success');
   } else if (uploaded > 0) {
-    showToast('monitor-toast', uploaded + '장 성공, ' + failed + '장 실패했어요.', 'error');
+    showToast('monitor-toast', '⚠️ ' + uploaded + '장 성공, ' + failed + '장 실패했어요.', 'error');
   } else {
-    showToast('monitor-toast', '기록은 저장되었으나 사진 업로드에 실패했습니다.', 'error');
+    showToast('monitor-toast', '⚠️ 기록은 저장되었으나 사진 업로드에 실패했습니다.', 'error');
   }
   setLoading('monitor-btn', false, '기록 제출하기');
 }
@@ -2146,7 +2123,7 @@ async function initJournal() {
   // 날짜/시간 자동 설정
   var dateEl = document.getElementById('j_date');
   var timeEl = document.getElementById('j_time');
-  if (dateEl && !dateEl.value) dateEl.value = todayDateStr();
+  if (dateEl && !dateEl.value) dateEl.valueAsDate = new Date();
   if (timeEl && !timeEl.value) {
     var now = new Date();
     timeEl.value = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
@@ -2227,7 +2204,6 @@ async function submitJournal() {
   var memo = memoEl ? memoEl.value.trim() : '';
   var extra = extraEl ? extraEl.value.trim() : '';
   if (!date) { showToast('journal-toast','활동 날짜를 선택해 주세요.','error'); return; }
-  if (!isValidDateStr(date)) { showToast('journal-toast','날짜 형식이 올바르지 않아요. 예) 2026-06-24','error'); return; }
   if (!time) { showToast('journal-toast','활동 시간을 입력해 주세요.','error'); return; }
   if (!teamName) { showToast('journal-toast','활동 팀을 선택해 주세요.','error'); return; }
   if (!memo) { showToast('journal-toast','활동 내용을 입력해 주세요.','error'); return; }
@@ -2278,7 +2254,7 @@ async function submitJournal() {
 
   if (error) {
     console.error('[활동일지] 오류 상세 - code:', error.code, '/ message:', error.message, '/ details:', error.details, '/ hint:', error.hint);
-    showToast('journal-toast', '저장 중 오류가 발생했어요. 다시 시도해 주세요.', 'error');
+    showToast('journal-toast', '⚠️ 저장 중 오류가 발생했어요. 다시 시도해 주세요.', 'error');
     setLoading('journal-btn', false, '일지 제출하기');
     return;
   }
@@ -2290,7 +2266,7 @@ async function submitJournal() {
   localStorage.setItem('journals', JSON.stringify(journals));
   // 메일 알림 (실패해도 저장 성공 유지)
   sendMailNotify('journal', { date, time, team: teamName, stores: storeList, timestamp: ts });
-  showToast('journal-toast','활동일지가 저장되었습니다.','success');
+  showToast('journal-toast','✅ 활동일지가 저장되었습니다.','success');
   showRecentEditButton('journal-toast', 'journal', journalId);
   if (memoEl) memoEl.value = '';
   if (extraEl) extraEl.value = '';
@@ -2309,11 +2285,11 @@ function renderJournalList() {
   el.innerHTML = journals.map(function(j) {
     return '<div class="journal-item">'
       + '<div class="journal-item-header">'
-      + '<span class="journal-item-date"><span aria-hidden="true">📅</span> ' + (j.date||'') + (j.time?' '+j.time:'') + '</span>'
-      + '<span class="journal-item-team"><span aria-hidden="true">👥</span> ' + (j.team||'') + (j.author?' ('+j.author+')':'') + '</span>'
+      + '<span class="journal-item-date">📅 ' + (j.date||'') + (j.time?' '+j.time:'') + '</span>'
+      + '<span class="journal-item-team">👥 ' + (j.team||'') + (j.author?' ('+j.author+')':'') + '</span>'
       + '</div>'
-      + '<div class="journal-item-stores"><span aria-hidden="true">🏪</span> ' + (j.stores||'상점 정보 없음') + '</div>'
-      + (j.memo ? '<div class="journal-item-memo"><span aria-hidden="true">💬</span> ' + j.memo + '</div>' : '')
+      + '<div class="journal-item-stores">🏪 ' + (j.stores||'상점 정보 없음') + '</div>'
+      + (j.memo ? '<div class="journal-item-memo">💬 ' + j.memo + '</div>' : '')
       + '</div>';
   }).join('');
 }
@@ -2512,7 +2488,8 @@ function renderHomeMap(records) {
     level: 6
   });
   const geocoder = new kakao.maps.services.Geocoder();
-  mapRecords.forEach(rec => {
+  // 같은 장소에 신청/추천과 모니터링 기록이 함께 있어도 마커 1개로 보이도록 그룹핑
+  groupRecordsByPlace(mapRecords).forEach(rec => {
     const color = getMarkerColor(rec);
     if (typeof rec.lat === 'number' && typeof rec.lng === 'number' && !isNaN(rec.lat) && !isNaN(rec.lng)) {
       new kakao.maps.Marker({
@@ -3146,7 +3123,7 @@ function renderEditForm(r) {
       <div class="field"><label class="field-label" for="ef_addr">주소</label>
         <div style="display:flex;gap:8px">
           <input type="text" id="ef_addr" value="${r.addr || ''}" placeholder="주소를 확인해서 입력해 주세요" style="flex:1" />
-          <button type="button" onclick="openPlaceSearch('edit')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="상호명으로 검색해서 주소 자동으로 채우기"><span aria-hidden="true">🔍</span> 찾기</button>
+          <button type="button" onclick="openPlaceSearch('edit')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif">🔍 찾기</button>
         </div>
         <input type="hidden" id="ef_lat" value="${r.lat || ''}" />
         <input type="hidden" id="ef_lng" value="${r.lng || ''}" />
@@ -3171,7 +3148,7 @@ function renderEditForm(r) {
       <div class="field"><label class="field-label" for="ef_addr">주소</label>
         <div style="display:flex;gap:8px">
           <input type="text" id="ef_addr" value="${r.addr || ''}" placeholder="주소를 확인해서 입력해 주세요" style="flex:1" />
-          <button type="button" onclick="openPlaceSearch('edit')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="상호명으로 검색해서 주소 자동으로 채우기"><span aria-hidden="true">🔍</span> 찾기</button>
+          <button type="button" onclick="openPlaceSearch('edit')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif">🔍 찾기</button>
         </div>
         <input type="hidden" id="ef_lat" value="${r.lat || ''}" />
         <input type="hidden" id="ef_lng" value="${r.lng || ''}" />
@@ -3198,7 +3175,7 @@ function renderEditForm(r) {
       <div class="field"><label class="field-label" for="ef_addr">주소</label>
         <div style="display:flex;gap:8px">
           <input type="text" id="ef_addr" value="${r.addr || ''}" style="flex:1" />
-          <button type="button" onclick="openPlaceSearch('edit')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="상호명으로 검색해서 주소 자동으로 채우기"><span aria-hidden="true">🔍</span> 찾기</button>
+          <button type="button" onclick="openPlaceSearch('edit')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif">🔍 찾기</button>
         </div>
         <input type="hidden" id="ef_lat" value="${r.lat || ''}" />
         <input type="hidden" id="ef_lng" value="${r.lng || ''}" />
@@ -4190,6 +4167,14 @@ function renderSettingsRecords() {
   var typeFilter = (document.getElementById('rec-filter-type')||{}).value || '';
   var actionFilter = (document.getElementById('rec-filter-action')||{}).value || '';
   var allRecords = getRecords();
+  // place_id가 같은 기록끼리 묶어둡니다. (신청/추천 → 모니터링으로 이어진 같은 장소를 찾기 위함)
+  var byPlaceId = {};
+  allRecords.forEach(function(rr) {
+    if (rr.place_id) {
+      if (!byPlaceId[rr.place_id]) byPlaceId[rr.place_id] = [];
+      byPlaceId[rr.place_id].push(rr);
+    }
+  });
   var records = allRecords.map(function(r, idx) {
     var copy = Object.assign({}, r);
     copy.__recordIndex = idx;
@@ -4241,6 +4226,43 @@ function renderSettingsRecords() {
       + (currentAction ? '<div style="font-size:12px;margin-bottom:8px;color:var(--text)">현재 상태: ' + currentAction + '</div>' : '')
       + (settingsSummaryText ? '<div style="font-size:12px;margin-bottom:8px;color:var(--text)">' + settingsSummaryText + '</div>' : '');
     div.innerHTML = header;
+
+    // ── 같은 장소(place_id)에 다른 기록이 더 있으면 관리자에게 알려주고, 바로 확인할 수 있게 안내 ──
+    if (managerUnlocked && r.place_id && byPlaceId[r.place_id] && byPlaceId[r.place_id].length > 1) {
+      var linkedTypeLabelMap = {apply:'보급 신청', recommend:'상점 추천', monitor:'모니터링'};
+      var linkedRecords = byPlaceId[r.place_id].filter(function(x) { return String(x.id) !== String(r.id); });
+      if (linkedRecords.length > 0) {
+        var linkNote = document.createElement('div');
+        linkNote.style.cssText = 'margin-top:6px;padding:8px 10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:12px;color:#1d4ed8';
+        var linkLabels = linkedRecords.map(function(x) { return linkedTypeLabelMap[getRecordType(x)] || x.type; }).join(', ');
+        linkNote.textContent = '🔗 같은 장소의 다른 기록이 있어요 (' + linkLabels + ', 총 ' + linkedRecords.length + '건) — 상태를 같이 맞춰주면 지도에 중복 없이 표시돼요.';
+        div.appendChild(linkNote);
+
+        linkedRecords.forEach(function(linked) {
+          var linkBtn = document.createElement('button');
+          linkBtn.type = 'button';
+          linkBtn.className = 'sec-btn';
+          linkBtn.style.cssText = 'width:100%;margin-top:6px;font-size:12px;padding:6px 8px';
+          var linkedLabel = linkedTypeLabelMap[getRecordType(linked)] || linked.type;
+          linkBtn.textContent = '🔗 ' + linkedLabel + ' 기록 확인하기 (' + (linked.name || '') + ')';
+          linkBtn.setAttribute('aria-label', name + '와 연결된 ' + linkedLabel + ' 기록 확인하기');
+          linkBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var recordsNow = getRecords();
+            var idx = recordsNow.findIndex(function(x) { return String(x.id) === String(linked.id); });
+            if (idx < 0) { showToast('settings-toast', '⚠️ 연결된 기록을 다시 불러오지 못했어요. 새로고침 후 시도해 주세요.', 'error'); return; }
+            editingRecordIdx = idx;
+            editingMode = 'record';
+            editingJournalSourceIndexes = [];
+            editingJournalGroup = null;
+            renderEditForm(recordsNow[idx]);
+            document.getElementById('edit-modal').classList.add('show');
+          });
+          div.appendChild(linkBtn);
+        });
+      }
+    }
+
     // 상태 변경 드롭다운은 혼동을 줄이기 위해 제거했습니다.
     // 상태 변경은 아래 체크리스트 수정 버튼에서 진행합니다.
     if (managerUnlocked && (typeMatches(r, 'monitor') || typeMatches(r, 'apply') || typeMatches(r, 'recommend')) && r.id) {
@@ -4615,6 +4637,49 @@ function getRecordTypeMeta(rec) {
   return { label: rec.type || '기록', tagClass: 'tag' };
 }
 
+// ── 같은 장소(place_id) 기록을 지도에서 마커 1개로 합치기 ──────────────
+// 신청/추천 기록과, 같은 장소를 모니터링단이 방문해 남긴 기록이 둘 다 공개 상태가 되면
+// place_id가 같으므로 한 그룹으로 묶어 마커 중복을 막습니다.
+// place_id가 없는 옛 기록은 그룹핑 대상에서 제외하고 기존처럼 각자 표시합니다.
+function recordSortKey(r) {
+  const raw = r.date || r.monitored_at || r.timestamp || r.created_at || '';
+  const t = Date.parse(raw);
+  return isNaN(t) ? 0 : t;
+}
+
+function groupRecordsByPlace(records) {
+  const byPlace = {};
+  const withoutPlaceId = [];
+  records.forEach(function(r) {
+    if (r.place_id) {
+      if (!byPlace[r.place_id]) byPlace[r.place_id] = [];
+      byPlace[r.place_id].push(r);
+    } else {
+      withoutPlaceId.push(r);
+    }
+  });
+
+  const result = [];
+  Object.keys(byPlace).forEach(function(pid) {
+    const group = byPlace[pid];
+    if (group.length === 1) { result.push(group[0]); return; }
+
+    // 대표 기록 선정: 모니터링 기록이 있으면 모니터링 기록 중 가장 최근 것을, 없으면 전체 중 가장 최근 것을 사용
+    const monitorRecs = group.filter(function(r) { return r.type === 'monitor'; });
+    const pool = monitorRecs.length ? monitorRecs : group;
+    let rep = pool[0];
+    pool.forEach(function(r) { if (recordSortKey(r) > recordSortKey(rep)) rep = r; });
+
+    const types = [];
+    group.forEach(function(r) { if (types.indexOf(r.type) === -1) types.push(r.type); });
+    // 원본 객체를 건드리지 않도록 복사본에 그룹 정보만 덧붙입니다.
+    rep = Object.assign({}, rep, { _groupTypes: types, _groupCount: group.length });
+    result.push(rep);
+  });
+
+  return result.concat(withoutPlaceId);
+}
+
 function mapRecordExtraHtml(rec) {
   // 지도 목록은 기본적으로 짧게 보이게 하고, 필요한 경우에만 상세를 펼침
   if (!monitorUnlocked && !managerUnlocked) return '';
@@ -4678,6 +4743,9 @@ function renderMap() {
     if (searchKeyword && !(r.name || '').toLowerCase().includes(searchKeyword)) return false;
     return true;
   });
+  // 같은 장소(place_id)에 신청/추천과 모니터링 기록이 함께 공개 상태가 되어도
+  // 마커가 중복으로 찍히지 않도록 그룹핑한 결과를 표시용으로 사용합니다.
+  const displayRecords = groupRecordsByPlace(mapRecords);
   const container = document.getElementById('kakao-map');
   const listEl = document.getElementById('map-list');
 
@@ -4707,14 +4775,14 @@ function renderMap() {
   listEl.innerHTML = '';
   const recordListEl = listEl;
 
-  if (mapRecords.length === 0) {
+  if (displayRecords.length === 0) {
     recordListEl.innerHTML = '<div class="empty-state"><div class="empty-icon" aria-hidden="true">📍</div>아직 기록이 없어요</div>';
     return;
   }
 
   const geocoder = new kakao.maps.services.Geocoder();
 
-  mapRecords.forEach(function(rec, idx) {
+  displayRecords.forEach(function(rec, idx) {
     const markerColor = getMarkerColor(rec);
     const typeMeta = getRecordTypeMeta(rec);
     const typeLabel = typeMeta.label;
@@ -4735,6 +4803,14 @@ function renderMap() {
       : rec.items;
     item.setAttribute('aria-label', rec.name + ', ' + rec.addr + ', ' + typeLabel + (actionLabel ? ', ' + actionLabel : '') + (mapSummaryText ? ', ' + mapSummaryText : '') + '. 지도에서 위치 보기');
     const verifiedBadge = isVerified(rec) ? '' : '<span style="font-size:10px;color:#9ca3af;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px;padding:1px 6px;margin-left:4px">미검증</span>';
+    // 신청/추천 + 모니터링이 같은 장소(place_id)로 묶인 경우, 다른 경로로도 기록이 있다는 걸 알려줍니다.
+    const groupTypeLabelMap = { apply: '보급 신청', recommend: '상점 추천', monitor: '모니터링' };
+    const groupNoteText = (rec._groupTypes && rec._groupTypes.length > 1)
+      ? '🔗 ' + rec._groupTypes.map(function(t) { return groupTypeLabelMap[t] || t; }).join(' · ') + '로 같이 기록된 곳이에요'
+      : '';
+    const groupNoteHtml = groupNoteText
+      ? '<div style="font-size:11px;color:#6b7280;margin-top:4px">' + groupNoteText + '</div>'
+      : '';
     const extraHtml = mapRecordExtraHtml(rec);
     item.innerHTML = '<div class="rec-top" style="justify-content:flex-start;gap:6px">'
       + '<span style="width:10px;height:10px;border-radius:50%;background:'+markerColor+';display:inline-block;flex-shrink:0" aria-hidden="true"></span>'
@@ -4746,6 +4822,7 @@ function renderMap() {
       + (actionLabel ? '<span class="'+actionTagStyle+'">'+actionLabel+'</span>' : '')
       + (mapSummaryText ? '<span class="tag" style="background:#f0fdf4;color:#166534">'+mapSummaryText+'</span>' : '')
       + '</div>'
+      + groupNoteHtml
       + extraHtml;
     // 키보드 Enter로도 클릭 가능하게
     item.addEventListener('keydown', function(e) {
@@ -4796,6 +4873,7 @@ function renderMap() {
         + '<strong>'+rec.name+'</strong><br>'
         + '<span style="color:'+markerColor+';font-size:12px;font-weight:600">기록 유형: '+popupTypeLabel+'</span>'
         + (popupStatus ? '<br><span style="color:#6b7280;font-size:12px">상태: '+popupStatus+'</span>' : '')
+        + (groupNoteText ? '<br><span style="color:#6b7280;font-size:11px">'+groupNoteText+'</span>' : '')
         + (kakaoSearchUrl ? '<br><a href="'+kakaoSearchUrl+'" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;padding:5px 8px;border-radius:6px;background:#1a8c6e;color:white;text-decoration:none;font-size:12px;font-weight:700">지도에서 보기</a>' : '')
         + '</div>';
       const info = new kakao.maps.InfoWindow({ content: infoHtml });
@@ -4842,9 +4920,7 @@ if ('serviceWorker' in navigator) {
 
 // 샘플 데이터 없음 (실제 운영용)
 
-document.getElementById('m_date').value = todayDateStr();
-setupDateTextInput('m_date');
-setupDateTextInput('j_date');
+document.getElementById('m_date').valueAsDate = new Date();
 // 1) 과거 버전에서 남아있을 수 있는 담당자 관련 저장값(레거시 키)을 정리합니다.
 clearPersistedManagerAuth();
 // 2) 모니터링단 세션은 sessionStorage에서 복원하고, 담당자는 항상 잠금 상태로 시작합니다.
