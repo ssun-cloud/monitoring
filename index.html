@@ -346,11 +346,12 @@
 
 </head>
 <body>
+<div id="sr-announcer" aria-live="polite" role="status" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap"></div>
 
 <!-- 비밀번호 잠금 -->
 <div class="lock-screen" id="lock-screen" role="dialog" aria-modal="true" aria-labelledby="lock-title" aria-describedby="lock-sub">
   <div class="lock-card" id="lock-card" tabindex="-1">
-    <div class="lock-icon">🔒</div>
+    <div class="lock-icon" aria-hidden="true">🔒</div>
     <div class="lock-title" id="lock-title">모니터링단 전용</div>
     <div class="lock-sub" id="lock-sub">4자리 비밀번호를 입력해 주세요</div>
     <div class="pin-dots">
@@ -394,24 +395,24 @@
 
 <a href="#apply" class="sr-only" style="position:absolute;left:-9999px;top:0;background:var(--teal);color:white;padding:8px 16px;z-index:9999;border-radius:4px" onfocus="this.style.left='0'" onblur="this.style.left='-9999px'">본문으로 바로가기</a>
 <header class="app-header">
-  <h1>🌿 열린 마을 만들기</h1>
+  <h1><span aria-hidden="true">🌿</span> 열린 마을 만들기</h1>
   <p>누구나 편하게 오갈 수 있는 마을을 함께 만들어요</p>
-  <a href="tel:0263957051" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--teal);text-decoration:none;margin-top:4px">📞 02-6395-7051 · 평일 09:00~18:00</a>
+  <a href="tel:0263957051" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--teal);text-decoration:none;margin-top:4px"><span aria-hidden="true">📞</span> 02-6395-7051 · 평일 09:00~18:00</a>
 </header>
 
 <nav class="tabs" role="tablist" aria-label="메뉴">
-  <button class="tab active" role="tab" aria-selected="true" onclick="switchTab('home',    this)">🏠 홈</button>
-  <button class="tab" role="tab" aria-selected="false" onclick="switchTab('apply',   this)">📋 신청·추천</button>
-  <button class="tab" role="tab" aria-selected="false" onclick="requirePin(this)">🔍 모니터링</button>
-  <button class="tab" role="tab" aria-selected="false" onclick="switchTab('map',     this)">🗺️ 지도</button>
-  <button class="tab" role="tab" aria-selected="false" onclick="switchTab('settings',this)">⚙️ 설정</button>
+  <button class="tab active" role="tab" aria-selected="true" onclick="switchTab('home',    this)"><span aria-hidden="true">🏠</span> 홈</button>
+  <button class="tab" role="tab" aria-selected="false" onclick="switchTab('apply',   this)"><span aria-hidden="true">📋</span> 신청·추천</button>
+  <button class="tab" role="tab" aria-selected="false" onclick="requirePin(this)"><span aria-hidden="true">🔍</span> 모니터링</button>
+  <button class="tab" role="tab" aria-selected="false" onclick="switchTab('map',     this)"><span aria-hidden="true">🗺️</span> 지도</button>
+  <button class="tab" role="tab" aria-selected="false" onclick="switchTab('settings',this)"><span aria-hidden="true">⚙️</span> 설정</button>
 </nav>
 
 <!-- 홈 대시보드 -->
 <div id="home" class="section active" role="tabpanel" aria-label="홈 대시보드">
 
   <div class="card" style="background:linear-gradient(135deg,var(--teal-light) 0%,#fff 100%);border-color:var(--teal-mid)">
-    <div style="font-size:18px;font-weight:700;color:var(--teal);margin-bottom:8px">열린 마을 만들기 🌿</div>
+    <div style="font-size:18px;font-weight:700;color:var(--teal);margin-bottom:8px">열린 마을 만들기 <span aria-hidden="true">🌿</span></div>
     <div style="font-size:14px;color:#1a5c4a;line-height:1.8">
       누구든 편하게 드나들 수 있는 가게를 함께 찾고, 만들어가요.<br>
       좋은 가게는 추천하고, 필요한 곳은 신청해주세요.<br>
@@ -461,8 +462,8 @@
 <!-- 신청·추천 -->
 <div id="apply" class="section" role="tabpanel" aria-label="신청 및 추천">
   <div class="subtab-bar" role="tablist">
-    <button id="apply-subtab-apply" class="subtab on-check" role="tab" aria-selected="true" onclick="switchApplyTab('apply')">📬 보급 신청</button>
-    <button id="apply-subtab-rec" class="subtab" role="tab" aria-selected="false" onclick="switchApplyTab('recommend')">🌟 상점 추천</button>
+    <button id="apply-subtab-apply" class="subtab on-check" role="tab" aria-selected="true" onclick="switchApplyTab('apply')"><span aria-hidden="true">📬</span> 보급 신청</button>
+    <button id="apply-subtab-rec" class="subtab" role="tab" aria-selected="false" onclick="switchApplyTab('recommend')"><span aria-hidden="true">🌟</span> 상점 추천</button>
   </div>
   <div id="apply-form-apply">
   <div class="notice">
@@ -480,7 +481,7 @@
       <label class="field-label" for="a_addr">주소<span class="opt">(선택)</span></label>
       <div style="display:flex;gap:8px">
         <input type="text" id="a_addr" placeholder="상호명 검색으로 자동 입력돼요" aria-label="주소" style="flex:1" />
-        <button type="button" onclick="openPlaceSearch('apply')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="지도에서 장소 찾기">🔍 찾기</button>
+        <button type="button" onclick="openPlaceSearch('apply')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="지도에서 장소 찾기"><span aria-hidden="true">🔍</span> 찾기</button>
       </div>
       <input type="hidden" id="a_lat" />
       <input type="hidden" id="a_lng" />
@@ -493,35 +494,35 @@
       <label class="check-item">
         <input type="checkbox" id="a_braille"  aria-label="점자메뉴판 신청"/>
         <div class="item-info">
-          <div class="item-name">📖 점자메뉴판</div>
+          <div class="item-name"><span aria-hidden="true">📖</span> 점자메뉴판</div>
           <div class="item-desc">시각장애인을 위한 음식·메뉴 안내용 점자 메뉴판</div>
         </div>
       </label>
       <label class="check-item">
         <input type="checkbox" id="a_qr"  aria-label="QR 텍스트 메뉴 신청"/>
         <div class="item-info">
-          <div class="item-name">🔗 QR 텍스트 메뉴</div>
+          <div class="item-name"><span aria-hidden="true">🔗</span> QR 텍스트 메뉴</div>
           <div class="item-desc">휴대폰으로 메뉴를 텍스트로 확인할 수 있는 QR 메뉴</div>
         </div>
       </label>
       <label class="check-item">
         <input type="checkbox" id="a_ramp"  aria-label="경사로 신청"/>
         <div class="item-info">
-          <div class="item-name">♿ 경사로</div>
+          <div class="item-name"><span aria-hidden="true">♿</span> 경사로</div>
           <div class="item-desc">휠체어·유모차 이용자를 위한 출입구 경사로</div>
         </div>
       </label>
       <label class="check-item">
         <input type="checkbox" id="a_sign"  aria-label="안내 스티커·도움벨 신청"/>
         <div class="item-info">
-          <div class="item-name">🏷️ 안내 스티커·도움벨</div>
+          <div class="item-name"><span aria-hidden="true">🏷️</span> 안내 스티커·도움벨</div>
           <div class="item-desc">경사로·점자메뉴판·QR 안내를 쉽게 확인할 수 있는 표시</div>
         </div>
       </label>
       <label class="check-item">
         <input type="checkbox" id="a_other" onchange="toggleOtherInput(this)"  aria-label="기타 신청"/>
         <div class="item-info">
-          <div class="item-name">💬 기타</div>
+          <div class="item-name"><span aria-hidden="true">💬</span> 기타</div>
           <div class="item-desc">위 항목 외 접근성 관련 지원이 필요한 경우</div>
         </div>
       </label>
@@ -576,7 +577,7 @@
         <label class="field-label" for="r_addr">주소<span class="opt">(선택)</span></label>
         <div style="display:flex;gap:8px">
           <input type="text" id="r_addr" placeholder="상호명 검색으로 자동 입력돼요" aria-label="추천 상점 주소" style="flex:1" />
-          <button type="button" onclick="openPlaceSearch('recommend')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="지도에서 장소 찾기">🔍 찾기</button>
+          <button type="button" onclick="openPlaceSearch('recommend')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="지도에서 장소 찾기"><span aria-hidden="true">🔍</span> 찾기</button>
         </div>
         <input type="hidden" id="r_lat" />
         <input type="hidden" id="r_lng" />
@@ -586,12 +587,12 @@
     <div class="card">
       <div class="card-title">어떤 점이 좋았나요?</div>
       <div class="check-list">
-        <label class="check-item"><input type="checkbox" id="r_braille" aria-label="점자메뉴판 또는 QR 메뉴가 있어요"/><div class="item-info"><div class="item-name">📖 점자메뉴판 또는 QR 메뉴가 있어요</div><div class="item-desc">메뉴를 텍스트나 점자로 확인할 수 있어요</div></div></label>
-        <label class="check-item"><input type="checkbox" id="r_ramp" aria-label="문턱 없이 출입하기 쉬워요"/><div class="item-info"><div class="item-name">♿ 문턱 없이 출입하기 쉬워요</div><div class="item-desc">휠체어·유모차도 편하게 들어올 수 있어요</div></div></label>
-        <label class="check-item"><input type="checkbox" id="r_toilet" aria-label="화장실 이용 편해요"/><div class="item-info"><div class="item-name">🚻 화장실 이용 편해요</div></div></label>
-        <label class="check-item"><input type="checkbox" id="r_staff" aria-label="직원 설명이 도움이 됐어요"/><div class="item-info"><div class="item-name">😊 직원 설명이 도움이 됐어요</div><div class="item-desc">메뉴·자리·이용 방법 안내가 도움이 됐어요</div></div></label>
-        <label class="check-item"><input type="checkbox" id="r_sign" aria-label="메뉴 확인이 쉬워요"/><div class="item-info"><div class="item-name">🔤 메뉴 확인이 쉬워요</div></div></label>
-        <label class="check-item"><input type="checkbox" id="r_other_chk" onchange="document.getElementById('r_other_wrap').style.display=this.checked?'block':'none'" aria-label="기타"/><div class="item-info"><div class="item-name">💬 기타</div><div class="item-desc">직접 적어주세요</div></div></label>
+        <label class="check-item"><input type="checkbox" id="r_braille" aria-label="점자메뉴판 또는 QR 메뉴가 있어요"/><div class="item-info"><div class="item-name"><span aria-hidden="true">📖</span> 점자메뉴판 또는 QR 메뉴가 있어요</div><div class="item-desc">메뉴를 텍스트나 점자로 확인할 수 있어요</div></div></label>
+        <label class="check-item"><input type="checkbox" id="r_ramp" aria-label="문턱 없이 출입하기 쉬워요"/><div class="item-info"><div class="item-name"><span aria-hidden="true">♿</span> 문턱 없이 출입하기 쉬워요</div><div class="item-desc">휠체어·유모차도 편하게 들어올 수 있어요</div></div></label>
+        <label class="check-item"><input type="checkbox" id="r_toilet" aria-label="화장실 이용 편해요"/><div class="item-info"><div class="item-name"><span aria-hidden="true">🚻</span> 화장실 이용 편해요</div></div></label>
+        <label class="check-item"><input type="checkbox" id="r_staff" aria-label="직원 설명이 도움이 됐어요"/><div class="item-info"><div class="item-name"><span aria-hidden="true">😊</span> 직원 설명이 도움이 됐어요</div><div class="item-desc">메뉴·자리·이용 방법 안내가 도움이 됐어요</div></div></label>
+        <label class="check-item"><input type="checkbox" id="r_sign" aria-label="메뉴 확인이 쉬워요"/><div class="item-info"><div class="item-name"><span aria-hidden="true">🔤</span> 메뉴 확인이 쉬워요</div></div></label>
+        <label class="check-item"><input type="checkbox" id="r_other_chk" onchange="document.getElementById('r_other_wrap').style.display=this.checked?'block':'none'" aria-label="기타"/><div class="item-info"><div class="item-name"><span aria-hidden="true">💬</span> 기타</div><div class="item-desc">직접 적어주세요</div></div></label>
       </div>
       <div id="r_other_wrap" style="display:none;margin-top:10px">
         <textarea id="r_other_text" placeholder="어떤 점이 좋았는지 자유롭게 적어주세요." style="min-height:72px" aria-label="기타 좋았던 점"></textarea>
@@ -636,7 +637,7 @@
       <label class="field-label" for="m_addr">주소<span class="req">*</span></label>
       <div style="display:flex;gap:8px">
         <input type="text" id="m_addr" placeholder="상호명 검색으로 자동 입력돼요" aria-label="모니터링 주소" style="flex:1" />
-        <button type="button" onclick="openPlaceSearch('monitor')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="지도에서 장소 찾기">🔍 찾기</button>
+        <button type="button" onclick="openPlaceSearch('monitor')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="지도에서 장소 찾기"><span aria-hidden="true">🔍</span> 찾기</button>
       </div>
       <input type="hidden" id="m_lat" />
       <input type="hidden" id="m_lng" />
@@ -673,9 +674,9 @@
       <label class="field-label">출입구 및 경사로 접근성</label>
       <div id="r2-criteria" style="font-size:11px;color:var(--text-muted);margin-bottom:6px">좋음: 문턱이 없거나 경사로가 있어 휠체어·유모차가 혼자 들어갈 수 있어요 · 보통: 도움을 받으면 들어갈 수 있어요 · 미흡: 턱이 높아 들어가기 어려워요</div>
       <div class="rating-group" id="rg_r2" role="radiogroup" aria-label="출입구 및 경사로 접근성 평가" aria-describedby="r2-criteria">
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r2','rg_r2',this,'good')">👍 좋음</button>
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r2','rg_r2',this,'fair')">😐 보통</button>
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r2','rg_r2',this,'poor')">👎 미흡</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r2','rg_r2',this,'good')"><span aria-hidden="true">👍</span> 좋음</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r2','rg_r2',this,'fair')"><span aria-hidden="true">😐</span> 보통</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r2','rg_r2',this,'poor')"><span aria-hidden="true">👎</span> 미흡</button>
       </div>
       <input type="hidden" id="m_r2" />
     </div>
@@ -683,9 +684,9 @@
       <label class="field-label">실내 이동 및 이용 편의</label>
       <div id="r4-criteria" style="font-size:11px;color:var(--text-muted);margin-bottom:6px">좋음: 테이블 사이가 넓어 이동이 자유롭고 안내판도 알아보기 쉬워요 · 보통: 일부 좁은 구간이 있어요 · 미흡: 통로가 좁아 이동이 어려워요</div>
       <div class="rating-group" id="rg_r4" role="radiogroup" aria-label="실내 이동 및 이용 편의 평가" aria-describedby="r4-criteria">
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'good')">👍 좋음</button>
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'fair')">😐 보통</button>
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'poor')">👎 미흡</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'good')"><span aria-hidden="true">👍</span> 좋음</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'fair')"><span aria-hidden="true">😐</span> 보통</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r4','rg_r4',this,'poor')"><span aria-hidden="true">👎</span> 미흡</button>
       </div>
       <input type="hidden" id="m_r4" />
     </div>
@@ -693,9 +694,9 @@
       <label class="field-label">점자메뉴판·QR 메뉴 이용</label>
       <div id="r1-criteria" style="font-size:11px;color:var(--text-muted);margin-bottom:6px">좋음: 점자·음성·QR 등으로 메뉴를 스스로 확인할 수 있어요 · 보통: 직원 설명이 있으면 확인 가능해요 · 미흡: 메뉴 확인 방법이 없어요</div>
       <div class="rating-group" id="rg_r1" role="radiogroup" aria-label="점자메뉴판·QR 메뉴 이용 평가" aria-describedby="r1-criteria">
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'good')">👍 좋음</button>
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'fair')">😐 보통</button>
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'poor')">👎 미흡</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'good')"><span aria-hidden="true">👍</span> 좋음</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'fair')"><span aria-hidden="true">😐</span> 보통</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r1','rg_r1',this,'poor')"><span aria-hidden="true">👎</span> 미흡</button>
       </div>
       <input type="hidden" id="m_r1" />
     </div>
@@ -703,9 +704,9 @@
       <label class="field-label">화장실 접근성</label>
       <div id="r3-criteria" style="font-size:11px;color:var(--text-muted);margin-bottom:6px">좋음: 휠체어로 진입해 혼자 이용할 수 있어요 · 보통: 공간이 좁거나 손잡이가 부족해 불편함이 있어요 · 미흡: 휠체어 진입이 어렵거나 화장실이 없어요</div>
       <div class="rating-group" id="rg_r3" role="radiogroup" aria-label="화장실 접근성 평가" aria-describedby="r3-criteria">
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r3','rg_r3',this,'good')">👍 좋음</button>
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r3','rg_r3',this,'fair')">😐 보통</button>
-        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r3','rg_r3',this,'poor')">👎 미흡</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r3','rg_r3',this,'good')"><span aria-hidden="true">👍</span> 좋음</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r3','rg_r3',this,'fair')"><span aria-hidden="true">😐</span> 보통</button>
+        <button class="rating-btn" role="radio" aria-checked="false" onclick="setRating('m_r3','rg_r3',this,'poor')"><span aria-hidden="true">👎</span> 미흡</button>
       </div>
       <input type="hidden" id="m_r3" />
     </div>
@@ -836,7 +837,7 @@
   <div class="card">
     <div class="card-title">현장 사진</div>
     <div class="photo-drop" role="button" tabindex="0" aria-label="현장 사진 추가하기. 최대 6장" onclick="document.getElementById('m_photos').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('m_photos').click();}">
-      <div class="drop-icon">📷</div>
+      <div class="drop-icon" aria-hidden="true">📷</div>
       <p aria-live="polite">탭해서 사진 추가하기</p>
       <small>최대 6장</small>
     </div>
@@ -847,10 +848,10 @@
     <div class="card-title">최종 판단</div>
     <div class="field">
       <label class="field-label">최종 판단</label>
-      <div class="pill-group">
-        <button class="pill" id="pill_yes"    onclick="selectPill('yes')">🚨 지원 검토 필요</button>
-        <button class="pill" id="pill_no"     onclick="selectPill('no')">✅ 확인 완료</button>
-        <button class="pill" id="pill_follow" onclick="selectPill('follow')">🕐 재방문 필요</button>
+      <div class="pill-group" role="group" aria-label="최종 판단 선택">
+        <button class="pill" id="pill_yes"    aria-pressed="false" onclick="selectPill('yes')"><span aria-hidden="true">🚨</span> 지원 검토 필요</button>
+        <button class="pill" id="pill_no"     aria-pressed="false" onclick="selectPill('no')"><span aria-hidden="true">✅</span> 확인 완료</button>
+        <button class="pill" id="pill_follow" aria-pressed="false" onclick="selectPill('follow')"><span aria-hidden="true">🕐</span> 재방문 필요</button>
       </div>
       <input type="hidden" id="m_action" />
     </div>
@@ -939,7 +940,7 @@
     <div style="position:relative">
       <div id="kakao-map" role="application" aria-label="배리어프리 상점 지도" style="width:100%;height:240px;border-radius:12px;border:1px solid var(--border);"></div>
       <button onclick="moveToMyLocation()" style="position:absolute;bottom:12px;right:12px;background:white;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:500;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.12);display:flex;align-items:center;gap:6px;z-index:10">
-        📍 내 위치
+        <span aria-hidden="true">📍</span> 내 위치
       </button>
     </div>
     <div id="map-legend" style="display:flex;flex-direction:column;gap:6px;margin-top:6px;padding:8px 10px;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
@@ -990,7 +991,7 @@
 <div id="settings" class="section" role="tabpanel" aria-label="설정">
   <div class="card">
     <div class="card-title">담당자 인증</div>
-    <div id="manager-auth-status" style="font-size:13px;color:var(--text-muted);margin-bottom:12px">🔒 인증되지 않았어요. 담당자 비번으로 로그인하면 개인정보 확인과 체크리스트 수정이 가능해요.</div>
+    <div id="manager-auth-status" style="font-size:13px;color:var(--text-muted);margin-bottom:12px">인증되지 않았어요. 담당자 비번으로 로그인하면 개인정보 확인과 체크리스트 수정이 가능해요.</div>
     <button class="sec-btn primary" id="manager-auth-btn" onclick="toggleManagerAuth()" aria-describedby="manager-auth-status">담당자 로그인</button>
   </div>
   <div id="manager-only-section" style="display:none">
@@ -1024,8 +1025,8 @@
           <option value="추천">추천</option>
         </select>
       </div>
-      <button type="button" class="sec-btn primary" onclick="openPrintFilteredChecklists()" style="margin:0 0 10px 0">🖨️ 현재 조건의 체크리스트만 출력</button>
-      <button type="button" class="sec-btn primary" onclick="downloadMonitoringExcel()" style="margin:0 0 10px 0;background:#117f3a;border-color:#117f3a">📊 전체 활동 기록 엑셀로 받기</button>
+      <button type="button" class="sec-btn primary" onclick="openPrintFilteredChecklists()" style="margin:0 0 10px 0"><span aria-hidden="true">🖨️</span> 현재 조건의 체크리스트만 출력</button>
+      <button type="button" class="sec-btn primary" onclick="downloadMonitoringExcel()" style="margin:0 0 10px 0;background:#117f3a;border-color:#117f3a"><span aria-hidden="true">📊</span> 전체 활동 기록 엑셀로 받기</button>
       <div id="settings-records-count" style="font-size:12px;color:var(--text-muted);margin-bottom:8px" aria-live="polite"></div>
       <div id="settings-records-list" class="settings-list-scroll" role="list" aria-label="기록 목록" aria-live="polite">
         <div class="empty-state"><div class="empty-icon" aria-hidden="true">📋</div>기록이 없어요. "최신 기록 다시 불러오기"를 눌러주세요.</div>
@@ -1036,16 +1037,16 @@
       <p style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:10px">
         활동일지는 팀별로 출력해요. 같은 날짜·같은 팀의 일지는 하나로 묶이고, 방문상점명을 기준으로 관련 체크리스트가 함께 붙어요.
       </p>
-      <button type="button" class="sec-btn primary" onclick="refreshJournalReports()" style="margin-bottom:10px">🔄 활동일지 새로고침</button>
+      <button type="button" class="sec-btn primary" onclick="refreshJournalReports()" style="margin-bottom:10px"><span aria-hidden="true">🔄</span> 활동일지 새로고침</button>
       <div id="settings-journal-print-list" class="settings-list-scroll" role="list" aria-label="활동일지 출력 목록" aria-live="polite">
         <div class="empty-state"><div class="empty-icon" aria-hidden="true">📝</div>담당자 로그인 후 활동일지 출력이 가능해요.</div>
       </div>
     </div>
     <div class="card">
       <div class="card-title">데이터 연결 상태</div>
-      <div id="sheet-status" class="settings-status connected">✅ 정상적으로 연결되어 있어요</div>
+      <div id="sheet-status" class="settings-status connected">정상적으로 연결되어 있어요</div>
       <p style="font-size:13px;color:var(--text-muted);margin-top:8px">신청·추천·모니터링 기록은 Supabase에 저장되고, 비밀번호 확인과 알림 메일 발송은 별도 시스템(Google Apps Script)을 통해 처리돼요.</p>
-      <button class="sec-btn primary" onclick="loadFromSheet()" style="margin-top:12px" aria-label="서버에서 최신 기록 다시 불러오기">📥 최신 기록 다시 불러오기</button>
+      <button class="sec-btn primary" onclick="loadFromSheet()" style="margin-top:12px" aria-label="서버에서 최신 기록 다시 불러오기"><span aria-hidden="true">📥</span> 최신 기록 다시 불러오기</button>
       <div id="settings-toast" class="toast" style="margin-top:10px"></div>
     </div>
     <div class="card">
@@ -1456,7 +1457,9 @@ function setRating(fieldId, groupId, btn, level) {
   });
   btn.classList.add('sel-' + level);
   btn.setAttribute('aria-checked', 'true');
-  document.getElementById(fieldId).value = level === 'good' ? '좋음' : level === 'fair' ? '보통' : '미흡';
+  var ratingLabel = level === 'good' ? '좋음' : level === 'fair' ? '보통' : '미흡';
+  document.getElementById(fieldId).value = ratingLabel;
+  announceForSR(ratingLabel + ' 선택됨');
 }
 
 document.querySelectorAll('.rating-group').forEach(function(group) {
@@ -1582,7 +1585,17 @@ function selectPill(val) {
     el.setAttribute('aria-pressed', v === val ? 'true' : 'false');
     if (v === val) el.classList.add('active-' + v);
   });
-  document.getElementById('m_action').value = val === 'yes' ? '지원 검토 필요' : val === 'no' ? '확인 완료' : '재방문 필요';
+  const actionLabel = val === 'yes' ? '지원 검토 필요' : val === 'no' ? '확인 완료' : '재방문 필요';
+  document.getElementById('m_action').value = actionLabel;
+  announceForSR('최종 판단: ' + actionLabel + ' 선택됨');
+}
+
+// 스크린리더 전용 알림 (화면에는 보이지 않음)
+function announceForSR(msg) {
+  var live = document.getElementById('sr-announcer');
+  if (!live) return;
+  live.textContent = '';
+  setTimeout(function() { live.textContent = msg; }, 50);
 }
 let selectedPhotos = [];
 
@@ -1633,6 +1646,8 @@ async function filesToBase64(files) {
 
 // ── 토스트 / 로딩 ─────────────────────────────────
 function showToast(id, msg, type) {
+  // 스크린리더가 이모지 이름을 읽지 않도록 메시지에서 이모지를 제거 (색상으로 성공/오류 구분됨)
+  msg = String(msg).replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u2705\u274C\u26A0\uFE0F]/gu, '').replace(/\s+/g, ' ').trim();
   const el = document.getElementById(id); el.textContent = msg; el.className = 'toast ' + type;
   setTimeout(() => { el.className = 'toast'; }, 5000);
 }
@@ -1762,7 +1777,7 @@ function showRecentEditButton(afterToastId, kind, recordId) {
   btn.style.width = '100%';
   btn.dataset.kind = kind;
   btn.dataset.recordId = recordId;
-  btn.textContent = kind === 'journal' ? '✏️ 방금 제출한 활동일지 수정' : '✏️ 방금 제출한 체크리스트 수정';
+  btn.textContent = kind === 'journal' ? '방금 제출한 활동일지 수정' : '방금 제출한 체크리스트 수정';
   btn.setAttribute('aria-label', btn.textContent);
   wrap.appendChild(btn);
   toast.insertAdjacentElement('afterend', wrap);
@@ -2285,11 +2300,11 @@ function renderJournalList() {
   el.innerHTML = journals.map(function(j) {
     return '<div class="journal-item">'
       + '<div class="journal-item-header">'
-      + '<span class="journal-item-date">📅 ' + (j.date||'') + (j.time?' '+j.time:'') + '</span>'
-      + '<span class="journal-item-team">👥 ' + (j.team||'') + (j.author?' ('+j.author+')':'') + '</span>'
+      + '<span class="journal-item-date"><span aria-hidden="true">📅</span> ' + (j.date||'') + (j.time?' '+j.time:'') + '</span>'
+      + '<span class="journal-item-team"><span aria-hidden="true">👥</span> ' + (j.team||'') + (j.author?' ('+j.author+')':'') + '</span>'
       + '</div>'
-      + '<div class="journal-item-stores">🏪 ' + (j.stores||'상점 정보 없음') + '</div>'
-      + (j.memo ? '<div class="journal-item-memo">💬 ' + j.memo + '</div>' : '')
+      + '<div class="journal-item-stores"><span aria-hidden="true">🏪</span> ' + (j.stores||'상점 정보 없음') + '</div>'
+      + (j.memo ? '<div class="journal-item-memo"><span aria-hidden="true">💬</span> ' + j.memo + '</div>' : '')
       + '</div>';
   }).join('');
 }
@@ -2480,7 +2495,7 @@ function renderHomeMap(records) {
     container.style.display = 'flex';
     container.style.alignItems = 'center';
     container.style.justifyContent = 'center';
-    container.innerHTML = '<div style="color:var(--text-muted);font-size:13px">📍 아직 기록이 없어요</div>';
+    container.innerHTML = '<div style="color:var(--text-muted);font-size:13px">아직 기록이 없어요</div>';
     return;
   }
   const homeMap = new kakao.maps.Map(container, {
@@ -2532,7 +2547,7 @@ function renderTypeChart(records) {
 
   const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
   if (entries.length === 0) {
-    el.innerHTML = '<div class="empty-state" style="padding:20px"><div class="empty-icon">📊</div>아직 데이터가 없어요</div>';
+    el.innerHTML = '<div class="empty-state" style="padding:20px"><div class="empty-icon" aria-hidden="true">📊</div>아직 데이터가 없어요</div>';
     return;
   }
 
@@ -2557,12 +2572,12 @@ function renderGoodCases(records) {
   if (!el) return;
   const goodCases = records.filter(r => r.type === 'monitor' && r.goodcase);
   if (goodCases.length === 0) {
-    el.innerHTML = '<div class="empty-state" style="padding:20px"><div class="empty-icon">⭐</div>아직 좋은 사례가 없어요</div>';
+    el.innerHTML = '<div class="empty-state" style="padding:20px"><div class="empty-icon" aria-hidden="true">⭐</div>아직 좋은 사례가 없어요</div>';
     return;
   }
   el.innerHTML = goodCases.map(r => `
     <div class="good-case-item">
-      <div class="good-case-name">⭐ ${r.name}</div>
+      <div class="good-case-name"><span aria-hidden="true">⭐</span> ${r.name}</div>
       <div class="good-case-comment">${r.comment || ''}</div>
       <div class="good-case-meta">${r.addr} · ${r.author || ''} · ${r.date || ''}</div>
     </div>`).join('');
@@ -2885,7 +2900,7 @@ function renderRecords() {
   const el = document.getElementById('records-list');
   const countEl = document.getElementById('records-count');
   if (records.length === 0) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div>해당하는 기록이 없어요</div>';
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon" aria-hidden="true">🔍</div>해당하는 기록이 없어요</div>';
     if (countEl) countEl.textContent = '검색 결과가 없어요.';
     return;
   }
@@ -2902,8 +2917,8 @@ function recordCard(r, idx) {
     : isRevisitAction(r.action) ? `<span class="tag tag-fair">${r.action}</span>`
     : r.action === '신청 접수' ? '<span class="tag tag-apply">신청 접수</span>'
     : r.action === '검토 중' ? '<span class="tag" style="background:#f3e8ff;color:#7c3aed">검토 중</span>'
-    : r.action === '보급 완료' ? '<span class="tag tag-good">보급 완료 ✓</span>'
-    : r.action === '조치 완료' ? '<span class="tag tag-good">조치 완료 ✓</span>'
+    : r.action === '보급 완료' ? '<span class="tag tag-good">보급 완료 <span aria-hidden="true">✓</span></span>'
+    : r.action === '조치 완료' ? '<span class="tag tag-good">조치 완료 <span aria-hidden="true">✓</span></span>'
     : '';
   const visitSummary = visitPurposeFromExtras(r.extras || r.extra_notes || r.items || '');
   const summaryText = r.type === 'monitor'
@@ -2930,7 +2945,7 @@ function recordCard(r, idx) {
           + (r.intro
             ? `<div class="detail-row"><span class="detail-label">한줄소개</span><span class="detail-value">${r.intro}</span></div>`
             : '')
-        : '<div class="detail-row"><span style="font-size:12px;color:var(--text-muted)">🔒 신청자·연락처는 담당자만 볼 수 있어요</span></div>'
+        : '<div class="detail-row"><span style="font-size:12px;color:var(--text-muted)">신청자·연락처는 담당자만 볼 수 있어요</span></div>'
       }
     `;
   } else {
@@ -2959,12 +2974,12 @@ function recordCard(r, idx) {
         ? (r.team_name || r.recorder || r.author
             ? `<div class="detail-row"><span class="detail-label">활동 팀</span><span class="detail-value">${r.team_name || r.recorder || r.author}</span></div>`
             : '')
-        : '<div class="detail-row"><span style="font-size:12px;color:var(--text-muted)">🔒 활동 팀은 모니터링단·담당자만 볼 수 있어요</span></div>'
+        : '<div class="detail-row"><span style="font-size:12px;color:var(--text-muted)">활동 팀은 모니터링단·담당자만 볼 수 있어요</span></div>'
       }
       ${(monitorUnlocked || managerUnlocked) && r.id
         ? `<div class="photo-view-wrap" data-record-id="${r.id}" data-loaded="false"
              style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
-             <div style="font-size:12px;color:var(--text-muted)">📷 사진 불러오는 중...</div>
+             <div style="font-size:12px;color:var(--text-muted)">사진 불러오는 중...</div>
            </div>`
         : ''
       }
@@ -2975,7 +2990,7 @@ function recordCard(r, idx) {
     <div class="rec-top">
       <span class="rec-name">${r.name}</span>
       <div style="display:flex;align-items:center;gap:4px;margin-left:auto">
-        ${managerUnlocked && (r.type === 'monitor' || r.type === 'apply' || r.type === 'recommend') ? `<button class="edit-btn" onclick="openEditModal(event, '${idx}')">✏️ 수정</button>` : ''}
+        ${managerUnlocked && (r.type === 'monitor' || r.type === 'apply' || r.type === 'recommend') ? `<button class="edit-btn" onclick="openEditModal(event, '${idx}')"><span aria-hidden="true">✏️</span> 수정</button>` : ''}
         <span class="rec-toggle" id="toggle-${idx}">▼ 상세</span>
       </div>
     </div>
@@ -2983,7 +2998,7 @@ function recordCard(r, idx) {
     <div class="rec-tags">${typeTag}${actionTag}${itemsTag}</div>
     <div class="record-detail" id="detail-${idx}">
       ${detail}
-      ${managerUnlocked && r.type === 'monitor' && r.id ? `<button type="button" class="sec-btn primary print-monitor-btn" data-record-id="${String(r.id).replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" onclick="event.stopPropagation()" style="margin-top:10px;width:100%;font-size:12px;padding:8px 10px">🖨️ 체크리스트 출력</button>` : ''}
+      ${managerUnlocked && r.type === 'monitor' && r.id ? `<button type="button" class="sec-btn primary print-monitor-btn" data-record-id="${String(r.id).replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" onclick="event.stopPropagation()" style="margin-top:10px;width:100%;font-size:12px;padding:8px 10px"><span aria-hidden="true">🖨️</span> 체크리스트 출력</button>` : ''}
       ${managerUnlocked && r.type === 'monitor' ? '<div style="font-size:12px;color:var(--text-muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">상태 변경은 체크리스트 수정에서 진행해 주세요.</div>' : ''}
     </div>
   </div>`;
@@ -3024,7 +3039,7 @@ async function fetchRecordPhotoRows(recordId) {
 async function loadPhotosByRecordId(recordId, container) {
   // 공개 상태에서는 절대 실행 안 함
   if (!monitorUnlocked && !managerUnlocked) {
-    container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">🔒 사진은 모니터링단·담당자만 볼 수 있어요</div>';
+    container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">사진은 모니터링단·담당자만 볼 수 있어요</div>';
     console.log('[권한] 공개 모드 - 사진 조회 차단');
     return;
   }
@@ -3064,7 +3079,7 @@ async function loadPhotosByRecordId(recordId, container) {
 
     // 썸네일 렌더링
     container.innerHTML =
-      '<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">📷 사진 ' + validUrls.length + '장</div>' +
+      '<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">사진 ' + validUrls.length + '장</div>' +
       '<div style="display:flex;flex-wrap:wrap;gap:8px">' +
       validUrls.map(function(url) {
         return '<a href="' + url + '" target="_blank" rel="noopener">' +
@@ -3123,7 +3138,7 @@ function renderEditForm(r) {
       <div class="field"><label class="field-label" for="ef_addr">주소</label>
         <div style="display:flex;gap:8px">
           <input type="text" id="ef_addr" value="${r.addr || ''}" placeholder="주소를 확인해서 입력해 주세요" style="flex:1" />
-          <button type="button" onclick="openPlaceSearch('edit')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif">🔍 찾기</button>
+          <button type="button" onclick="openPlaceSearch('edit')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="지도에서 장소 찾기"><span aria-hidden="true">🔍</span> 찾기</button>
         </div>
         <input type="hidden" id="ef_lat" value="${r.lat || ''}" />
         <input type="hidden" id="ef_lng" value="${r.lng || ''}" />
@@ -3148,7 +3163,7 @@ function renderEditForm(r) {
       <div class="field"><label class="field-label" for="ef_addr">주소</label>
         <div style="display:flex;gap:8px">
           <input type="text" id="ef_addr" value="${r.addr || ''}" placeholder="주소를 확인해서 입력해 주세요" style="flex:1" />
-          <button type="button" onclick="openPlaceSearch('edit')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif">🔍 찾기</button>
+          <button type="button" onclick="openPlaceSearch('edit')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="지도에서 장소 찾기"><span aria-hidden="true">🔍</span> 찾기</button>
         </div>
         <input type="hidden" id="ef_lat" value="${r.lat || ''}" />
         <input type="hidden" id="ef_lng" value="${r.lng || ''}" />
@@ -3175,7 +3190,7 @@ function renderEditForm(r) {
       <div class="field"><label class="field-label" for="ef_addr">주소</label>
         <div style="display:flex;gap:8px">
           <input type="text" id="ef_addr" value="${r.addr || ''}" style="flex:1" />
-          <button type="button" onclick="openPlaceSearch('edit')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif">🔍 찾기</button>
+          <button type="button" onclick="openPlaceSearch('edit')" style="padding:0 12px;background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif" aria-label="지도에서 장소 찾기"><span aria-hidden="true">🔍</span> 찾기</button>
         </div>
         <input type="hidden" id="ef_lat" value="${r.lat || ''}" />
         <input type="hidden" id="ef_lng" value="${r.lng || ''}" />
@@ -3697,15 +3712,15 @@ function renderSettingsJournalPrints() {
     var relatedCount = getRelatedRecordsForJournal(j).length;
     return '<div class="journal-item" role="listitem">'
       + '<div class="journal-item-header">'
-      + '<span class="journal-item-date">📅 ' + escapeHtml(formatPrintDate(j.date || j.activity_date || '')) + (j.time ? ' ' + escapeHtml(j.time) : '') + '</span>'
+      + '<span class="journal-item-date"><span aria-hidden="true">📅</span> ' + escapeHtml(formatPrintDate(j.date || j.activity_date || '')) + (j.time ? ' ' + escapeHtml(j.time) : '') + '</span>'
       + '<span class="journal-item-team">체크리스트 ' + relatedCount + '건</span>'
       + '</div>'
-      + '<div class="journal-item-stores">👥 ' + escapeHtml(j.team || '팀 정보 없음') + (j.author ? ' · ' + escapeHtml(j.author) : '') + '</div>'
-      + (j.stores ? '<div class="journal-item-memo">🏪 ' + escapeHtml(j.stores) + '</div>' : '')
-      + (j.memo ? '<div class="journal-item-memo">💬 ' + escapeHtml(String(j.memo).slice(0, 120)) + (String(j.memo).length > 120 ? '…' : '') + '</div>' : '')
+      + '<div class="journal-item-stores"><span aria-hidden="true">👥</span> ' + escapeHtml(j.team || '팀 정보 없음') + (j.author ? ' · ' + escapeHtml(j.author) : '') + '</div>'
+      + (j.stores ? '<div class="journal-item-memo"><span aria-hidden="true">🏪</span> ' + escapeHtml(j.stores) + '</div>' : '')
+      + (j.memo ? '<div class="journal-item-memo"><span aria-hidden="true">💬</span> ' + escapeHtml(String(j.memo).slice(0, 120)) + (String(j.memo).length > 120 ? '…' : '') + '</div>' : '')
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">'
-      + '<button type="button" class="sec-btn journal-edit-btn" data-journal-index="' + j.__journalIndex + '" style="margin:0;font-size:12px;padding:8px 10px">✏️ 일지 수정</button>'
-      + '<button type="button" class="sec-btn primary print-journal-report-btn" data-journal-index="' + j.__journalIndex + '" style="margin:0;font-size:12px;padding:8px 10px">📝 활동일지 출력</button>'
+      + '<button type="button" class="sec-btn journal-edit-btn" data-journal-index="' + j.__journalIndex + '" style="margin:0;font-size:12px;padding:8px 10px"><span aria-hidden="true">✏️</span> 일지 수정</button>'
+      + '<button type="button" class="sec-btn primary print-journal-report-btn" data-journal-index="' + j.__journalIndex + '" style="margin:0;font-size:12px;padding:8px 10px"><span aria-hidden="true">📝</span> 활동일지 출력</button>'
       + '</div>'
       + '</div>';
   }).join('');
@@ -4038,13 +4053,13 @@ function updateManagerAuthUI() {
   const section = document.getElementById('manager-only-section');
   if (!status || !btn) return;
   if (managerUnlocked) {
-    status.textContent = '✅ 담당자로 로그인되어 있어요. 개인정보 확인과 체크리스트 수정이 가능해요.';
+    status.textContent = '담당자로 로그인되어 있어요. 개인정보 확인과 체크리스트 수정이 가능해요.';
     status.style.color = 'var(--good)';
     btn.textContent = '로그아웃';
     btn.className = 'sec-btn danger';
     if (section) section.style.display = 'block';
   } else {
-    status.textContent = '🔒 인증되지 않았어요. 담당자 비번으로 로그인하면 개인정보 확인과 체크리스트 수정이 가능해요.';
+    status.textContent = '인증되지 않았어요. 담당자 비번으로 로그인하면 개인정보 확인과 체크리스트 수정이 가능해요.';
     status.style.color = 'var(--text-muted)';
     btn.textContent = '담당자 로그인';
     btn.className = 'sec-btn primary';
@@ -4235,7 +4250,7 @@ function renderSettingsRecords() {
         var linkNote = document.createElement('div');
         linkNote.style.cssText = 'margin-top:6px;padding:8px 10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:12px;color:#1d4ed8';
         var linkLabels = linkedRecords.map(function(x) { return linkedTypeLabelMap[getRecordType(x)] || x.type; }).join(', ');
-        linkNote.textContent = '🔗 같은 장소의 다른 기록이 있어요 (' + linkLabels + ', 총 ' + linkedRecords.length + '건) — 상태를 같이 맞춰주면 지도에 중복 없이 표시돼요.';
+        linkNote.textContent = '같은 장소의 다른 기록이 있어요 (' + linkLabels + ', 총 ' + linkedRecords.length + '건) — 상태를 같이 맞춰주면 지도에 중복 없이 표시돼요.';
         div.appendChild(linkNote);
 
         linkedRecords.forEach(function(linked) {
@@ -4244,7 +4259,7 @@ function renderSettingsRecords() {
           linkBtn.className = 'sec-btn';
           linkBtn.style.cssText = 'width:100%;margin-top:6px;font-size:12px;padding:6px 8px';
           var linkedLabel = linkedTypeLabelMap[getRecordType(linked)] || linked.type;
-          linkBtn.textContent = '🔗 ' + linkedLabel + ' 기록 확인하기 (' + (linked.name || '') + ')';
+          linkBtn.textContent = linkedLabel + ' 기록 확인하기 (' + (linked.name || '') + ')';
           linkBtn.setAttribute('aria-label', name + '와 연결된 ' + linkedLabel + ' 기록 확인하기');
           linkBtn.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -4270,9 +4285,9 @@ function renderSettingsRecords() {
       editBtn.type = 'button';
       editBtn.className = 'sec-btn primary';
       editBtn.style.cssText = 'width:100%;margin-top:8px;font-size:12px;padding:7px 8px';
-      var editBtnLabel = typeMatches(r, 'monitor') ? '✏️ 체크리스트 수정' : '✏️ 신청/추천 수정';
+      var editBtnLabel = typeMatches(r, 'monitor') ? '체크리스트 수정' : '신청/추천 수정';
       editBtn.textContent = editBtnLabel;
-      editBtn.setAttribute('aria-label', name + ' ' + editBtnLabel.replace('✏️ ', ''));
+      editBtn.setAttribute('aria-label', name + ' ' + editBtnLabel);
       editBtn.addEventListener('click', function(e) {
         e.stopPropagation();
         var recordsNow = getRecords();
@@ -4305,7 +4320,7 @@ function renderSettingsRecords() {
       photoWrap.className = 'photo-view-wrap';
       photoWrap.dataset.recordId = r.id;
       photoWrap.style.cssText = 'margin-top:10px;padding-top:10px;border-top:1px solid var(--border)';
-      photoWrap.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">📷 사진 불러오는 중...</div>';
+      photoWrap.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">사진 불러오는 중...</div>';
       div.appendChild(photoWrap);
       (function(id, wrap) {
         setTimeout(function() { loadPhotosByRecordId(id, wrap); }, 100);
@@ -4516,10 +4531,10 @@ async function loadFromSheet() {
   } finally {
     btn.disabled = false;
     btn.textContent = managerUnlocked
-      ? '📥 관리자 상세 데이터 불러오기'
+      ? '관리자 상세 데이터 불러오기'
       : monitorUnlocked
-        ? '📥 상세 데이터 불러오기'
-        : '📥 공개 데이터 불러오기';
+        ? '상세 데이터 불러오기'
+        : '공개 데이터 불러오기';
   }
 }
 
@@ -4710,8 +4725,8 @@ function mapRecordExtraHtml(rec) {
       + (rec.comment ? '<div class="detail-row"><span class="detail-label">종합 의견</span><span class="detail-value">' + rec.comment + '</span></div>' : '')
       + (extraDetails ? '<div class="detail-row"><span class="detail-label">추가 확인</span><span class="detail-value">' + extraDetails + '</span></div>' : '')
       + ((rec.team_name || rec.recorder || rec.author) ? '<div class="detail-row"><span class="detail-label">활동 팀</span><span class="detail-value">' + (rec.team_name || rec.recorder || rec.author) + '</span></div>' : '')
-      + (rec.id ? '<div class="photo-view-wrap" data-record-id="' + rec.id + '" data-loaded="false" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><div style="font-size:12px;color:var(--text-muted)">📷 상세보기를 열면 사진을 불러옵니다.</div></div>' : '')
-      + (managerUnlocked && rec.id ? '<button type="button" class="sec-btn primary print-monitor-btn" data-record-id="' + String(rec.id).replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '" style="margin-top:10px;width:100%;font-size:12px;padding:8px 10px">🖨️ 체크리스트 출력</button>' : '')
+      + (rec.id ? '<div class="photo-view-wrap" data-record-id="' + rec.id + '" data-loaded="false" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><div style="font-size:12px;color:var(--text-muted)">상세보기를 열면 사진을 불러옵니다.</div></div>' : '')
+      + (managerUnlocked && rec.id ? '<button type="button" class="sec-btn primary print-monitor-btn" data-record-id="' + String(rec.id).replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '" style="margin-top:10px;width:100%;font-size:12px;padding:8px 10px"><span aria-hidden="true">🖨️</span> 체크리스트 출력</button>' : '')
       + '</div>';
   }
 
@@ -4806,7 +4821,7 @@ function renderMap() {
     // 신청/추천 + 모니터링이 같은 장소(place_id)로 묶인 경우, 다른 경로로도 기록이 있다는 걸 알려줍니다.
     const groupTypeLabelMap = { apply: '보급 신청', recommend: '상점 추천', monitor: '모니터링' };
     const groupNoteText = (rec._groupTypes && rec._groupTypes.length > 1)
-      ? '🔗 ' + rec._groupTypes.map(function(t) { return groupTypeLabelMap[t] || t; }).join(' · ') + '로 같이 기록된 곳이에요'
+      ? rec._groupTypes.map(function(t) { return groupTypeLabelMap[t] || t; }).join(' · ') + '로 같이 기록된 곳이에요'
       : '';
     const groupNoteHtml = groupNoteText
       ? '<div style="font-size:11px;color:#6b7280;margin-top:4px">' + groupNoteText + '</div>'
