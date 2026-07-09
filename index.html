@@ -648,11 +648,23 @@
       <input type="date" id="m_date" aria-label="모니터링 날짜" />
     </div>
     <div class="field">
+      <label class="field-label" for="m_activity_kind">활동 구분<span class="req">*</span></label>
+      <select id="m_activity_kind" onchange="updateActivityKind()" aria-label="활동 구분 선택">
+        <option value="team">팀 활동</option>
+        <option value="personal">개인 수시 확인</option>
+      </select>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:5px">혼자 지나가다 확인한 경우 '개인 수시 확인'을 선택해 주세요. 개인 확인 기록은 활동 일지에 포함되지 않아요.</p>
+    </div>
+    <div class="field" id="m_team_field">
       <label class="field-label" for="m_team">활동 팀<span class="req">*</span></label>
       <select id="m_team" onchange="updateMonitorTeamMembers()" aria-label="모니터링 활동 팀 선택">
         <option value="">-- 팀을 선택하세요 --</option>
       </select>
       <p id="m_team_members" style="font-size:12px;color:var(--text-muted);margin-top:5px"></p>
+    </div>
+    <div class="field" id="m_personal_field" style="display:none">
+      <label class="field-label" for="m_personal_name">확인한 사람 이름<span class="req">*</span></label>
+      <input type="text" id="m_personal_name" placeholder="예) 홍길동" aria-label="확인한 사람 이름" />
     </div>
   </div>
   <div class="card">
@@ -1225,27 +1237,39 @@ let pinValue = '', monitorUnlocked = false, managerUnlocked = false, monitorSess
 // 담당자/모니터링단 권한 모두 sessionStorage에 저장하지 않습니다.
 // 두 권한 모두 메모리 변수(monitorUnlocked, managerUnlocked)로만 유지되며,
 // 새로고침하거나 탭/앱을 완전히 닫았다가 다시 열면 항상 초기화되어 재인증이 필요합니다.
-// 모니터링단 권한은 sessionStorage에 저장되어, 탭/창을 닫았다가 다시 열어도
+// 모니터링단 권한은 localStorage에 저장되어, 앱/탭을 완전히 닫았다가 다시 열어도
 // (그리고 새로고침해도) 유지됩니다. 시각장애인 모니터링단이 현장 활동 중
 // 매번 PIN을 다시 입력해야 하는 부담을 줄이기 위한 정책입니다.
-// 담당자 권한은 개인정보(신청자명·연락처 등)에 접근하므로, 보안을 위해
-// sessionStorage에 저장하지 않고 새로고침/재진입 시 항상 재인증을 요구합니다.
+// 모니터링단 권한은 개인정보(신청자명·연락처 등)에 접근할 수 없으므로 보안상 무리가 없습니다.
+// 담당자 권한은 개인정보에 접근하므로, 보안을 위해
+// 저장하지 않고 새로고침/재진입 시 항상 재인증을 요구합니다.
 function saveAuthSession() {
   try {
     if (monitorUnlocked && monitorSessionPin) {
-      sessionStorage.setItem('openVillageAuth', JSON.stringify({
+      localStorage.setItem('openVillageAuth', JSON.stringify({
         monitorUnlocked: true,
         monitorSessionPin: monitorSessionPin
       }));
     } else {
-      sessionStorage.removeItem('openVillageAuth');
+      localStorage.removeItem('openVillageAuth');
     }
+    // 과거 버전의 sessionStorage 흔적 정리
+    sessionStorage.removeItem('openVillageAuth');
   } catch(e) {}
 }
 
 function restoreAuthSession() {
   try {
-    var saved = JSON.parse(sessionStorage.getItem('openVillageAuth') || '{}');
+    var saved = JSON.parse(localStorage.getItem('openVillageAuth') || 'null');
+    // 과거 버전(sessionStorage)에서 마이그레이션
+    if (!saved) {
+      saved = JSON.parse(sessionStorage.getItem('openVillageAuth') || '{}');
+      if (saved && saved.monitorUnlocked) {
+        localStorage.setItem('openVillageAuth', JSON.stringify(saved));
+        sessionStorage.removeItem('openVillageAuth');
+      }
+    }
+    saved = saved || {};
     monitorUnlocked = !!saved.monitorUnlocked;
     monitorSessionPin = saved.monitorSessionPin || '';
   } catch(e) {
@@ -1881,6 +1905,24 @@ function populateMonitorTeamSelect() {
   updateMonitorTeamMembers();
 }
 
+function updateActivityKind() {
+  var kindEl = document.getElementById('m_activity_kind');
+  var kind = kindEl ? kindEl.value : 'team';
+  var teamField = document.getElementById('m_team_field');
+  var personalField = document.getElementById('m_personal_field');
+  if (teamField) teamField.style.display = kind === 'personal' ? 'none' : '';
+  if (personalField) personalField.style.display = kind === 'personal' ? 'block' : '';
+}
+
+function updateEditActivityKind() {
+  var kindEl = document.getElementById('ef_activity_kind');
+  var kind = kindEl ? kindEl.value : 'team';
+  var teamField = document.getElementById('ef_team_field');
+  var personalField = document.getElementById('ef_personal_field');
+  if (teamField) teamField.style.display = kind === 'personal' ? 'none' : '';
+  if (personalField) personalField.style.display = kind === 'personal' ? 'block' : '';
+}
+
 function updateMonitorTeamMembers() {
   var teamSel = document.getElementById('m_team');
   var memberEl = document.getElementById('m_team_members');
@@ -1907,22 +1949,29 @@ async function submitMonitor() {
   const action = document.getElementById('m_action').value;
   const visitType = document.getElementById('m_visit_type').value;
   const teamName = document.getElementById('m_team').value;
+  const activityKindEl = document.getElementById('m_activity_kind');
+  const isPersonal = !!(activityKindEl && activityKindEl.value === 'personal');
+  const personalNameEl = document.getElementById('m_personal_name');
+  const personalName = isPersonal && personalNameEl ? personalNameEl.value.trim() : '';
   await loadAppSettings();
   const teamYear = String((APP_SETTINGS && APP_SETTINGS.activeYear) || new Date().getFullYear());
-  const monitorTeam = teamsForActiveYear().find(function(t) { return t.name === teamName; }) ||
-    TEAMS.find(function(t) { return t.name === teamName; });
-  const teamMembers = monitorTeam && monitorTeam.members ? monitorTeam.members.join(', ') : '';
-  const author = teamMembers || teamName;
+  const monitorTeam = isPersonal ? null : (teamsForActiveYear().find(function(t) { return t.name === teamName; }) ||
+    TEAMS.find(function(t) { return t.name === teamName; }));
+  const teamMembers = isPersonal ? personalName : (monitorTeam && monitorTeam.members ? monitorTeam.members.join(', ') : '');
+  const effTeamName = isPersonal ? '개인 수시 확인' : teamName;
+  const author = teamMembers || effTeamName;
   if (!place) { showToast('monitor-toast','장소명을 입력해 주세요.','error'); return; }
   if (!addr)  { showToast('monitor-toast','주소를 입력해 주세요.','error'); return; }
   if (!date)  { showToast('monitor-toast','날짜를 선택해 주세요.','error'); return; }
-  if (!teamName) { showToast('monitor-toast','활동 팀을 선택해 주세요.','error'); return; }
+  if (isPersonal) {
+    if (!personalName) { showToast('monitor-toast','확인한 분의 이름을 입력해 주세요.','error'); return; }
+  } else if (!teamName) { showToast('monitor-toast','활동 팀을 선택해 주세요.','error'); return; }
   if (!visitType) { showToast('monitor-toast','방문 목적을 선택해 주세요.','error'); return; }
   if (!comment) { showToast('monitor-toast','종합 의견을 입력해 주세요.','error'); return; }
   const existingSupplyExtra = visitType === '기존 보급처 확인' ? existingSupplyNotes() : [];
   const comfortStoreExtra = visitType === '이용하기 편한 상점 확인' ? comfortStoreNotes() : [];
   const supportNeededExtra = visitType === '지원이 필요한 상점 확인' ? supportNeededNotes() : [];
-  const extras = ['방문 목적: ' + visitType].concat(existingSupplyExtra, comfortStoreExtra, supportNeededExtra).filter(Boolean).join(', ');
+  const extras = (isPersonal ? ['활동 구분: 개인 수시 확인'] : []).concat(['방문 목적: ' + visitType], existingSupplyExtra, comfortStoreExtra, supportNeededExtra).filter(Boolean).join(', ');
   const comfortRecommendEl = document.getElementById('m_comfort_recommend');
   const goodcase = visitType === '이용하기 편한 상점 확인' && comfortRecommendEl && comfortRecommendEl.value === '소개 추천';
   const ts = new Date().toLocaleString('ko-KR');
@@ -1950,7 +1999,7 @@ async function submitMonitor() {
     extra_notes:     extras,
     recorder:        author,
     team_year:       teamYear,
-    team_name:       teamName,
+    team_name:       effTeamName,
     team_members:    teamMembers,
     status:          '확인 중'
   };
@@ -1972,7 +2021,7 @@ async function submitMonitor() {
   }
   // ──────────────────────────────────────────────────────
 
-  saveRecord({ id: recordId, type:'monitor', name: place, addr, lat, lng, place_id: placeId, date, r1, r2, r3, r4, action, comment, author, recorder: author, extras, goodcase, timestamp: ts, team_year: teamYear, team_name: teamName, team_members: teamMembers });
+  saveRecord({ id: recordId, type:'monitor', name: place, addr, lat, lng, place_id: placeId, date, r1, r2, r3, r4, action, comment, author, recorder: author, extras, goodcase, timestamp: ts, team_year: teamYear, team_name: effTeamName, team_members: teamMembers });
   updateDashboard();
   renderRecords();
   renderSettingsRecords();
@@ -2001,6 +2050,11 @@ async function submitMonitor() {
   document.getElementById('m_comment').value = '';
   document.getElementById('m_team').value = '';
   updateMonitorTeamMembers();
+  var _kindEl = document.getElementById('m_activity_kind');
+  if (_kindEl) _kindEl.value = 'team';
+  var _pnameEl = document.getElementById('m_personal_name');
+  if (_pnameEl) _pnameEl.value = '';
+  updateActivityKind();
   // 평가 버튼 초기화
   ['m_r1','m_r2','m_r3','m_r4'].forEach(function(id) { document.getElementById(id).value = ''; });
   document.querySelectorAll('.rating-btn').forEach(function(b) { b.classList.remove('sel-good','sel-fair','sel-poor'); b.setAttribute('aria-pressed','false'); b.setAttribute('aria-checked','false'); });
@@ -2176,6 +2230,7 @@ function loadJournalStores() {
   var records = getRecords().filter(function(r) {
     if (!typeMatches(r, 'monitor')) return false;
     if (normDate(r.date) !== normToday) return false;
+    if ((r.team_name || '') === '개인 수시 확인') return false; // 개인 확인 기록은 일지에서 제외
     if ((r.team_name || '') === teamName) return true;
     if (!members.length) return true;
     return members.some(function(m) { return (r.team_members || r.author || r.recorder || '').includes(m); });
@@ -2222,6 +2277,13 @@ async function submitJournal() {
   if (!time) { showToast('journal-toast','활동 시간을 입력해 주세요.','error'); return; }
   if (!teamName) { showToast('journal-toast','활동 팀을 선택해 주세요.','error'); return; }
   if (!memo) { showToast('journal-toast','활동 내용을 입력해 주세요.','error'); return; }
+  // 최신 체크리스트 동기화 — 팀원이 다른 기기에서 방금 제출한 기록이 빠지지 않도록
+  setLoading('journal-btn', true, '일지 제출하기');
+  try {
+    await syncRecordsFromSupabase(true);
+  } catch(e) {
+    console.warn('[활동일지] 동기화 실패, 기기에 저장된 기록으로 진행:', e.message);
+  }
   await loadAppSettings();
   var teamYear = String((APP_SETTINGS && APP_SETTINGS.activeYear) || new Date().getFullYear());
   var activeTeams = teamsForActiveYear();
@@ -2237,12 +2299,13 @@ async function submitJournal() {
   var monRecords = getRecords().filter(function(r) {
     if (!typeMatches(r, 'monitor')) return false;
     if (normDate2(r.date) !== normDate2(date)) return false;
+    if ((r.team_name || '') === '개인 수시 확인') return false; // 개인 확인 기록은 일지에서 제외
     if ((r.team_name || '') === teamName) return true;
     return !members.length || members.some(function(m) { return (r.team_members || r.author || r.recorder || '').includes(m); });
   });
   var stores = monRecords.map(function(r) { return r.name; });
   if (extra) extra.split(',').map(function(s) { return s.trim(); }).filter(Boolean).forEach(function(s) { stores.push(s); });
-  if (!stores.length) { showToast('journal-toast','방문 상점이 없어요. 날짜·팀을 확인하거나 직접 추가해 주세요.','error'); return; }
+  if (!stores.length) { setLoading('journal-btn', false, '일지 제출하기'); showToast('journal-toast','방문 상점이 없어요. 날짜·팀을 확인하거나 직접 추가해 주세요.','error'); return; }
   var storeList = stores.join(', ');
   var ts = new Date().toLocaleString('ko-KR');
   var journalId = crypto.randomUUID();
@@ -3185,6 +3248,16 @@ function renderEditForm(r) {
     const ratingOptions = (id, val) => ['좋음','보통','미흡'].map(v =>
       `<option value="${v}" ${val===v?'selected':''}>${v}</option>`).join('');
     const editAction = getRecordAction(r);
+    const editIsPersonal = (r.team_name || '') === '개인 수시 확인';
+    const editTeamNames = (function() {
+      var names = teamsForActiveYear().map(function(t) { return t.name; });
+      TEAMS.forEach(function(t) { if (names.indexOf(t.name) < 0) names.push(t.name); });
+      if (r.team_name && !editIsPersonal && names.indexOf(r.team_name) < 0) names.push(r.team_name);
+      return names;
+    })();
+    const editTeamOptions = '<option value="">-- 팀을 선택하세요 --</option>' + editTeamNames.map(function(n) {
+      return '<option value="' + n + '"' + (!editIsPersonal && n === r.team_name ? ' selected' : '') + '>' + n + '</option>';
+    }).join('');
     body.innerHTML = `
       <div class="field"><label class="field-label" for="ef_name">장소명</label><input type="text" id="ef_name" value="${r.name || ''}" /></div>
       <div class="field"><label class="field-label" for="ef_addr">주소</label>
@@ -3197,6 +3270,18 @@ function renderEditForm(r) {
         <input type="hidden" id="ef_place_id" value="${r.place_id || ''}" />
       </div>
       <div class="field"><label class="field-label" for="ef_date">점검 날짜</label><input type="date" id="ef_date" value="${r.date || ''}" /></div>
+      <div class="field"><label class="field-label" for="ef_activity_kind">활동 구분</label>
+        <select id="ef_activity_kind" onchange="updateEditActivityKind()" aria-label="활동 구분 선택">
+          <option value="team" ${editIsPersonal?'':'selected'}>팀 활동</option>
+          <option value="personal" ${editIsPersonal?'selected':''}>개인 수시 확인</option>
+        </select>
+      </div>
+      <div class="field" id="ef_team_field" style="${editIsPersonal?'display:none':''}"><label class="field-label" for="ef_team">활동 팀</label>
+        <select id="ef_team" aria-label="활동 팀 선택">${editTeamOptions}</select>
+      </div>
+      <div class="field" id="ef_personal_field" style="${editIsPersonal?'':'display:none'}"><label class="field-label" for="ef_personal_name">확인한 사람 이름</label>
+        <input type="text" id="ef_personal_name" value="${editIsPersonal ? (r.recorder || r.author || r.team_members || '') : ''}" placeholder="예) 홍길동" aria-label="확인한 사람 이름" />
+      </div>
       <div class="field"><label class="field-label" for="ef_r2">경사로</label><select id="ef_r2" aria-label="경사로 평가">${ratingOptions('r2',r.r2)}</select></div>
       <div class="field"><label class="field-label" for="ef_r4">안내판</label><select id="ef_r4" aria-label="안내판 평가">${ratingOptions('r4',r.r4)}</select></div>
       <div class="field"><label class="field-label" for="ef_r1">점자메뉴판</label><select id="ef_r1" aria-label="점자메뉴판 평가">${ratingOptions('r1',r.r1)}</select></div>
@@ -3445,6 +3530,31 @@ async function saveEdit() {
     r.comment = document.getElementById('ef_comment').value.trim();
     r.author  = document.getElementById('ef_author').value.trim();
     r.recorder = r.author;
+
+    // 활동 구분에 따라 팀/개인 정보 반영
+    var efKindEl = document.getElementById('ef_activity_kind');
+    if (efKindEl) {
+      if (efKindEl.value === 'personal') {
+        var efPNameEl = document.getElementById('ef_personal_name');
+        var efPName = efPNameEl ? efPNameEl.value.trim() : '';
+        if (!efPName) throw new Error('확인한 분의 이름을 입력해 주세요.');
+        r.team_name = '개인 수시 확인';
+        r.team_members = efPName;
+        r.author = efPName;
+        r.recorder = efPName;
+      } else {
+        var efTeamSel = document.getElementById('ef_team');
+        var efTeamName = efTeamSel ? efTeamSel.value : (r.team_name || '');
+        if (!efTeamName || efTeamName === '개인 수시 확인') throw new Error('활동 팀을 선택해 주세요.');
+        var efTeamObj = teamsForActiveYear().find(function(t) { return t.name === efTeamName; }) ||
+          TEAMS.find(function(t) { return t.name === efTeamName; });
+        var efMembers = efTeamObj && efTeamObj.members && efTeamObj.members.length ? efTeamObj.members.join(', ') : (r.team_members || '');
+        r.team_name = efTeamName;
+        r.team_members = efMembers;
+        r.author = efMembers || efTeamName;
+        r.recorder = r.author;
+      }
+    }
 
     await updateMonitorRecordInSupabase(r);
 
