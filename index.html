@@ -1058,6 +1058,7 @@
       <div class="card-title">데이터 연결 상태</div>
       <div id="sheet-status" class="settings-status connected">정상적으로 연결되어 있어요</div>
       <p style="font-size:13px;color:var(--text-muted);margin-top:8px">신청·추천·모니터링 기록은 Supabase에 저장되고, 비밀번호 확인과 알림 메일 발송은 별도 시스템(Google Apps Script)을 통해 처리돼요.</p>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:6px">앱 버전: <span id="app-version"></span></p>
       <button class="sec-btn primary" onclick="loadFromSheet()" style="margin-top:12px" aria-label="서버에서 최신 기록 다시 불러오기"><span aria-hidden="true">📥</span> 최신 기록 다시 불러오기</button>
       <div id="settings-toast" class="toast" style="margin-top:10px"></div>
     </div>
@@ -1075,6 +1076,7 @@
 const FALLBACK_MONITOR_PIN  = '';   // 서버 확인 실패 시 열지 않음
 const FALLBACK_MANAGER_PIN  = '';   // 서버 확인 실패 시 열지 않음
 // ───────────────────────────────────────────────────────
+const APP_VERSION = '2026-07-10.2';
 let SCRIPT_URL = localStorage.getItem('scriptUrl') || 'https://script.google.com/macros/s/AKfycbxBQWn2adwedy94MWxF3NGjyEnnMHde4vm-6VRXP1PEVGr6mDKQbQm7RFG3vnmrcAQ4/exec';
 
 // ── Supabase 연결 (applications 테이블 전용) ──────────
@@ -1157,12 +1159,16 @@ async function loadAppSettings(force) {
   return appSettingsPromise;
 }
 
+let lastPinCheckNetworkError = false;
 async function verifyPin(pinType, pin) {
+  lastPinCheckNetworkError = false;
   try {
-    const data = await postSheetData({ type: 'checkPin', pinType: pinType, pin: pin });
+    const data = await postSheetData({ type: 'checkPin', pinType: pinType, pin: pin }, 15000);
     if (data && data.result === 'ok' && typeof data.valid === 'boolean') return data.valid;
+    lastPinCheckNetworkError = true;
   } catch(e) {
     console.warn('서버 비밀번호 확인 실패:', e);
+    lastPinCheckNetworkError = true;
   }
   return pinType === 'manager' ? pin === FALLBACK_MANAGER_PIN : pin === FALLBACK_MONITOR_PIN;
 }
@@ -1430,7 +1436,7 @@ async function checkPin() {
       if (pendingManagerCallback) { pendingManagerCallback(); pendingManagerCallback = null; }
     } else {
       for (let i = 0; i < 4; i++) document.getElementById('dot' + i).classList.add('error');
-      document.getElementById('lock-error').textContent = '비밀번호가 맞지 않아요.';
+      document.getElementById('lock-error').textContent = lastPinCheckNetworkError ? '비밀번호 확인 서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.' : '비밀번호가 맞지 않아요.';
       setTimeout(() => { pinValue = ''; updateDots(); }, 800);
     }
   } else {
@@ -1467,7 +1473,7 @@ async function checkPin() {
       }
     } else {
       for (let i = 0; i < 4; i++) document.getElementById('dot' + i).classList.add('error');
-      document.getElementById('lock-error').textContent = '비밀번호가 맞지 않아요. 다시 시도해 주세요.';
+      document.getElementById('lock-error').textContent = lastPinCheckNetworkError ? '비밀번호 확인 서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.' : '비밀번호가 맞지 않아요. 다시 시도해 주세요.';
       setTimeout(() => { pinValue = ''; updateDots(); }, 800);
     }
   }
@@ -1682,16 +1688,23 @@ function setLoading(btnId, loading, label) {
 }
 
 // ── 신청 제출 ─────────────────────────────────────
-async function postSheetData(payload) {
-  const res = await fetch(SCRIPT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(payload)
-  });
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  const data = await res.json();
-  if (data.result && data.result !== 'ok') throw new Error(data.message || '시트 저장 실패');
-  return data;
+async function postSheetData(payload, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(function() { controller.abort(); }, timeoutMs || 30000);
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (data.result && data.result !== 'ok') throw new Error(data.message || '시트 저장 실패');
+    return data;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // ── 메일 알림 전용 함수 (GAS notify 분기 호출) ────────
@@ -5051,6 +5064,7 @@ clearPersistedManagerAuth();
 // 2) 모니터링단 세션은 sessionStorage에서 복원하고, 담당자는 항상 잠금 상태로 시작합니다.
 restoreAuthSession();
 updateManagerAuthUI();
+(function() { var v = document.getElementById('app-version'); if (v) v.textContent = APP_VERSION; console.log('[앱 버전]', APP_VERSION); })();
 loadAppSettings().then(function() { populateMonitorTeamSelect(); });
 if (monitorUnlocked || managerUnlocked) {
   syncRecordsFromSupabase(true).then(function() {
