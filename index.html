@@ -648,23 +648,11 @@
       <input type="date" id="m_date" aria-label="모니터링 날짜" />
     </div>
     <div class="field">
-      <label class="field-label" for="m_activity_kind">활동 구분<span class="req">*</span></label>
-      <select id="m_activity_kind" onchange="updateActivityKind()" aria-label="활동 구분 선택">
-        <option value="team">팀 활동</option>
-        <option value="personal">개인 수시 확인</option>
-      </select>
-      <p style="font-size:12px;color:var(--text-muted);margin-top:5px">혼자 지나가다 확인한 경우 '개인 수시 확인'을 선택해 주세요. 개인 확인 기록은 활동 일지에 포함되지 않아요.</p>
-    </div>
-    <div class="field" id="m_team_field">
       <label class="field-label" for="m_team">활동 팀<span class="req">*</span></label>
       <select id="m_team" onchange="updateMonitorTeamMembers()" aria-label="모니터링 활동 팀 선택">
         <option value="">-- 팀을 선택하세요 --</option>
       </select>
       <p id="m_team_members" style="font-size:12px;color:var(--text-muted);margin-top:5px"></p>
-    </div>
-    <div class="field" id="m_personal_field" style="display:none">
-      <label class="field-label" for="m_personal_name">확인한 사람 이름<span class="req">*</span></label>
-      <input type="text" id="m_personal_name" placeholder="예) 홍길동" aria-label="확인한 사람 이름" />
     </div>
   </div>
   <div class="card">
@@ -1058,7 +1046,6 @@
       <div class="card-title">데이터 연결 상태</div>
       <div id="sheet-status" class="settings-status connected">정상적으로 연결되어 있어요</div>
       <p style="font-size:13px;color:var(--text-muted);margin-top:8px">신청·추천·모니터링 기록은 Supabase에 저장되고, 비밀번호 확인과 알림 메일 발송은 별도 시스템(Google Apps Script)을 통해 처리돼요.</p>
-      <p style="font-size:12px;color:var(--text-muted);margin-top:6px">앱 버전: <span id="app-version"></span></p>
       <button class="sec-btn primary" onclick="loadFromSheet()" style="margin-top:12px" aria-label="서버에서 최신 기록 다시 불러오기"><span aria-hidden="true">📥</span> 최신 기록 다시 불러오기</button>
       <div id="settings-toast" class="toast" style="margin-top:10px"></div>
     </div>
@@ -1076,7 +1063,6 @@
 const FALLBACK_MONITOR_PIN  = '';   // 서버 확인 실패 시 열지 않음
 const FALLBACK_MANAGER_PIN  = '';   // 서버 확인 실패 시 열지 않음
 // ───────────────────────────────────────────────────────
-const APP_VERSION = '2026-07-10.2';
 let SCRIPT_URL = localStorage.getItem('scriptUrl') || 'https://script.google.com/macros/s/AKfycbxBQWn2adwedy94MWxF3NGjyEnnMHde4vm-6VRXP1PEVGr6mDKQbQm7RFG3vnmrcAQ4/exec';
 
 // ── Supabase 연결 (applications 테이블 전용) ──────────
@@ -1159,16 +1145,12 @@ async function loadAppSettings(force) {
   return appSettingsPromise;
 }
 
-let lastPinCheckNetworkError = false;
 async function verifyPin(pinType, pin) {
-  lastPinCheckNetworkError = false;
   try {
-    const data = await postSheetData({ type: 'checkPin', pinType: pinType, pin: pin }, 15000);
+    const data = await postSheetData({ type: 'checkPin', pinType: pinType, pin: pin });
     if (data && data.result === 'ok' && typeof data.valid === 'boolean') return data.valid;
-    lastPinCheckNetworkError = true;
   } catch(e) {
     console.warn('서버 비밀번호 확인 실패:', e);
-    lastPinCheckNetworkError = true;
   }
   return pinType === 'manager' ? pin === FALLBACK_MANAGER_PIN : pin === FALLBACK_MONITOR_PIN;
 }
@@ -1243,39 +1225,27 @@ let pinValue = '', monitorUnlocked = false, managerUnlocked = false, monitorSess
 // 담당자/모니터링단 권한 모두 sessionStorage에 저장하지 않습니다.
 // 두 권한 모두 메모리 변수(monitorUnlocked, managerUnlocked)로만 유지되며,
 // 새로고침하거나 탭/앱을 완전히 닫았다가 다시 열면 항상 초기화되어 재인증이 필요합니다.
-// 모니터링단 권한은 localStorage에 저장되어, 앱/탭을 완전히 닫았다가 다시 열어도
+// 모니터링단 권한은 sessionStorage에 저장되어, 탭/창을 닫았다가 다시 열어도
 // (그리고 새로고침해도) 유지됩니다. 시각장애인 모니터링단이 현장 활동 중
 // 매번 PIN을 다시 입력해야 하는 부담을 줄이기 위한 정책입니다.
-// 모니터링단 권한은 개인정보(신청자명·연락처 등)에 접근할 수 없으므로 보안상 무리가 없습니다.
-// 담당자 권한은 개인정보에 접근하므로, 보안을 위해
-// 저장하지 않고 새로고침/재진입 시 항상 재인증을 요구합니다.
+// 담당자 권한은 개인정보(신청자명·연락처 등)에 접근하므로, 보안을 위해
+// sessionStorage에 저장하지 않고 새로고침/재진입 시 항상 재인증을 요구합니다.
 function saveAuthSession() {
   try {
     if (monitorUnlocked && monitorSessionPin) {
-      localStorage.setItem('openVillageAuth', JSON.stringify({
+      sessionStorage.setItem('openVillageAuth', JSON.stringify({
         monitorUnlocked: true,
         monitorSessionPin: monitorSessionPin
       }));
     } else {
-      localStorage.removeItem('openVillageAuth');
+      sessionStorage.removeItem('openVillageAuth');
     }
-    // 과거 버전의 sessionStorage 흔적 정리
-    sessionStorage.removeItem('openVillageAuth');
   } catch(e) {}
 }
 
 function restoreAuthSession() {
   try {
-    var saved = JSON.parse(localStorage.getItem('openVillageAuth') || 'null');
-    // 과거 버전(sessionStorage)에서 마이그레이션
-    if (!saved) {
-      saved = JSON.parse(sessionStorage.getItem('openVillageAuth') || '{}');
-      if (saved && saved.monitorUnlocked) {
-        localStorage.setItem('openVillageAuth', JSON.stringify(saved));
-        sessionStorage.removeItem('openVillageAuth');
-      }
-    }
-    saved = saved || {};
+    var saved = JSON.parse(sessionStorage.getItem('openVillageAuth') || '{}');
     monitorUnlocked = !!saved.monitorUnlocked;
     monitorSessionPin = saved.monitorSessionPin || '';
   } catch(e) {
@@ -1436,7 +1406,7 @@ async function checkPin() {
       if (pendingManagerCallback) { pendingManagerCallback(); pendingManagerCallback = null; }
     } else {
       for (let i = 0; i < 4; i++) document.getElementById('dot' + i).classList.add('error');
-      document.getElementById('lock-error').textContent = lastPinCheckNetworkError ? '비밀번호 확인 서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.' : '비밀번호가 맞지 않아요.';
+      document.getElementById('lock-error').textContent = '비밀번호가 맞지 않아요.';
       setTimeout(() => { pinValue = ''; updateDots(); }, 800);
     }
   } else {
@@ -1473,7 +1443,7 @@ async function checkPin() {
       }
     } else {
       for (let i = 0; i < 4; i++) document.getElementById('dot' + i).classList.add('error');
-      document.getElementById('lock-error').textContent = lastPinCheckNetworkError ? '비밀번호 확인 서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.' : '비밀번호가 맞지 않아요. 다시 시도해 주세요.';
+      document.getElementById('lock-error').textContent = '비밀번호가 맞지 않아요. 다시 시도해 주세요.';
       setTimeout(() => { pinValue = ''; updateDots(); }, 800);
     }
   }
@@ -1688,23 +1658,16 @@ function setLoading(btnId, loading, label) {
 }
 
 // ── 신청 제출 ─────────────────────────────────────
-async function postSheetData(payload, timeoutMs) {
-  const controller = new AbortController();
-  const timer = setTimeout(function() { controller.abort(); }, timeoutMs || 30000);
-  try {
-    const res = await fetch(SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    if (data.result && data.result !== 'ok') throw new Error(data.message || '시트 저장 실패');
-    return data;
-  } finally {
-    clearTimeout(timer);
-  }
+async function postSheetData(payload) {
+  const res = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+  if (data.result && data.result !== 'ok') throw new Error(data.message || '시트 저장 실패');
+  return data;
 }
 
 // ── 메일 알림 전용 함수 (GAS notify 분기 호출) ────────
@@ -1918,24 +1881,6 @@ function populateMonitorTeamSelect() {
   updateMonitorTeamMembers();
 }
 
-function updateActivityKind() {
-  var kindEl = document.getElementById('m_activity_kind');
-  var kind = kindEl ? kindEl.value : 'team';
-  var teamField = document.getElementById('m_team_field');
-  var personalField = document.getElementById('m_personal_field');
-  if (teamField) teamField.style.display = kind === 'personal' ? 'none' : '';
-  if (personalField) personalField.style.display = kind === 'personal' ? 'block' : '';
-}
-
-function updateEditActivityKind() {
-  var kindEl = document.getElementById('ef_activity_kind');
-  var kind = kindEl ? kindEl.value : 'team';
-  var teamField = document.getElementById('ef_team_field');
-  var personalField = document.getElementById('ef_personal_field');
-  if (teamField) teamField.style.display = kind === 'personal' ? 'none' : '';
-  if (personalField) personalField.style.display = kind === 'personal' ? 'block' : '';
-}
-
 function updateMonitorTeamMembers() {
   var teamSel = document.getElementById('m_team');
   var memberEl = document.getElementById('m_team_members');
@@ -1962,29 +1907,22 @@ async function submitMonitor() {
   const action = document.getElementById('m_action').value;
   const visitType = document.getElementById('m_visit_type').value;
   const teamName = document.getElementById('m_team').value;
-  const activityKindEl = document.getElementById('m_activity_kind');
-  const isPersonal = !!(activityKindEl && activityKindEl.value === 'personal');
-  const personalNameEl = document.getElementById('m_personal_name');
-  const personalName = isPersonal && personalNameEl ? personalNameEl.value.trim() : '';
   await loadAppSettings();
   const teamYear = String((APP_SETTINGS && APP_SETTINGS.activeYear) || new Date().getFullYear());
-  const monitorTeam = isPersonal ? null : (teamsForActiveYear().find(function(t) { return t.name === teamName; }) ||
-    TEAMS.find(function(t) { return t.name === teamName; }));
-  const teamMembers = isPersonal ? personalName : (monitorTeam && monitorTeam.members ? monitorTeam.members.join(', ') : '');
-  const effTeamName = isPersonal ? '개인 수시 확인' : teamName;
-  const author = teamMembers || effTeamName;
+  const monitorTeam = teamsForActiveYear().find(function(t) { return t.name === teamName; }) ||
+    TEAMS.find(function(t) { return t.name === teamName; });
+  const teamMembers = monitorTeam && monitorTeam.members ? monitorTeam.members.join(', ') : '';
+  const author = teamMembers || teamName;
   if (!place) { showToast('monitor-toast','장소명을 입력해 주세요.','error'); return; }
   if (!addr)  { showToast('monitor-toast','주소를 입력해 주세요.','error'); return; }
   if (!date)  { showToast('monitor-toast','날짜를 선택해 주세요.','error'); return; }
-  if (isPersonal) {
-    if (!personalName) { showToast('monitor-toast','확인한 분의 이름을 입력해 주세요.','error'); return; }
-  } else if (!teamName) { showToast('monitor-toast','활동 팀을 선택해 주세요.','error'); return; }
+  if (!teamName) { showToast('monitor-toast','활동 팀을 선택해 주세요.','error'); return; }
   if (!visitType) { showToast('monitor-toast','방문 목적을 선택해 주세요.','error'); return; }
   if (!comment) { showToast('monitor-toast','종합 의견을 입력해 주세요.','error'); return; }
   const existingSupplyExtra = visitType === '기존 보급처 확인' ? existingSupplyNotes() : [];
   const comfortStoreExtra = visitType === '이용하기 편한 상점 확인' ? comfortStoreNotes() : [];
   const supportNeededExtra = visitType === '지원이 필요한 상점 확인' ? supportNeededNotes() : [];
-  const extras = (isPersonal ? ['활동 구분: 개인 수시 확인'] : []).concat(['방문 목적: ' + visitType], existingSupplyExtra, comfortStoreExtra, supportNeededExtra).filter(Boolean).join(', ');
+  const extras = ['방문 목적: ' + visitType].concat(existingSupplyExtra, comfortStoreExtra, supportNeededExtra).filter(Boolean).join(', ');
   const comfortRecommendEl = document.getElementById('m_comfort_recommend');
   const goodcase = visitType === '이용하기 편한 상점 확인' && comfortRecommendEl && comfortRecommendEl.value === '소개 추천';
   const ts = new Date().toLocaleString('ko-KR');
@@ -2012,7 +1950,7 @@ async function submitMonitor() {
     extra_notes:     extras,
     recorder:        author,
     team_year:       teamYear,
-    team_name:       effTeamName,
+    team_name:       teamName,
     team_members:    teamMembers,
     status:          '확인 중'
   };
@@ -2034,7 +1972,7 @@ async function submitMonitor() {
   }
   // ──────────────────────────────────────────────────────
 
-  saveRecord({ id: recordId, type:'monitor', name: place, addr, lat, lng, place_id: placeId, date, r1, r2, r3, r4, action, comment, author, recorder: author, extras, goodcase, timestamp: ts, team_year: teamYear, team_name: effTeamName, team_members: teamMembers });
+  saveRecord({ id: recordId, type:'monitor', name: place, addr, lat, lng, place_id: placeId, date, r1, r2, r3, r4, action, comment, author, recorder: author, extras, goodcase, timestamp: ts, team_year: teamYear, team_name: teamName, team_members: teamMembers });
   updateDashboard();
   renderRecords();
   renderSettingsRecords();
@@ -2063,11 +2001,6 @@ async function submitMonitor() {
   document.getElementById('m_comment').value = '';
   document.getElementById('m_team').value = '';
   updateMonitorTeamMembers();
-  var _kindEl = document.getElementById('m_activity_kind');
-  if (_kindEl) _kindEl.value = 'team';
-  var _pnameEl = document.getElementById('m_personal_name');
-  if (_pnameEl) _pnameEl.value = '';
-  updateActivityKind();
   // 평가 버튼 초기화
   ['m_r1','m_r2','m_r3','m_r4'].forEach(function(id) { document.getElementById(id).value = ''; });
   document.querySelectorAll('.rating-btn').forEach(function(b) { b.classList.remove('sel-good','sel-fair','sel-poor'); b.setAttribute('aria-pressed','false'); b.setAttribute('aria-checked','false'); });
@@ -2243,7 +2176,6 @@ function loadJournalStores() {
   var records = getRecords().filter(function(r) {
     if (!typeMatches(r, 'monitor')) return false;
     if (normDate(r.date) !== normToday) return false;
-    if ((r.team_name || '') === '개인 수시 확인') return false; // 개인 확인 기록은 일지에서 제외
     if ((r.team_name || '') === teamName) return true;
     if (!members.length) return true;
     return members.some(function(m) { return (r.team_members || r.author || r.recorder || '').includes(m); });
@@ -2290,13 +2222,6 @@ async function submitJournal() {
   if (!time) { showToast('journal-toast','활동 시간을 입력해 주세요.','error'); return; }
   if (!teamName) { showToast('journal-toast','활동 팀을 선택해 주세요.','error'); return; }
   if (!memo) { showToast('journal-toast','활동 내용을 입력해 주세요.','error'); return; }
-  // 최신 체크리스트 동기화 — 팀원이 다른 기기에서 방금 제출한 기록이 빠지지 않도록
-  setLoading('journal-btn', true, '일지 제출하기');
-  try {
-    await syncRecordsFromSupabase(true);
-  } catch(e) {
-    console.warn('[활동일지] 동기화 실패, 기기에 저장된 기록으로 진행:', e.message);
-  }
   await loadAppSettings();
   var teamYear = String((APP_SETTINGS && APP_SETTINGS.activeYear) || new Date().getFullYear());
   var activeTeams = teamsForActiveYear();
@@ -2312,13 +2237,12 @@ async function submitJournal() {
   var monRecords = getRecords().filter(function(r) {
     if (!typeMatches(r, 'monitor')) return false;
     if (normDate2(r.date) !== normDate2(date)) return false;
-    if ((r.team_name || '') === '개인 수시 확인') return false; // 개인 확인 기록은 일지에서 제외
     if ((r.team_name || '') === teamName) return true;
     return !members.length || members.some(function(m) { return (r.team_members || r.author || r.recorder || '').includes(m); });
   });
   var stores = monRecords.map(function(r) { return r.name; });
   if (extra) extra.split(',').map(function(s) { return s.trim(); }).filter(Boolean).forEach(function(s) { stores.push(s); });
-  if (!stores.length) { setLoading('journal-btn', false, '일지 제출하기'); showToast('journal-toast','방문 상점이 없어요. 날짜·팀을 확인하거나 직접 추가해 주세요.','error'); return; }
+  if (!stores.length) { showToast('journal-toast','방문 상점이 없어요. 날짜·팀을 확인하거나 직접 추가해 주세요.','error'); return; }
   var storeList = stores.join(', ');
   var ts = new Date().toLocaleString('ko-KR');
   var journalId = crypto.randomUUID();
@@ -3261,16 +3185,6 @@ function renderEditForm(r) {
     const ratingOptions = (id, val) => ['좋음','보통','미흡'].map(v =>
       `<option value="${v}" ${val===v?'selected':''}>${v}</option>`).join('');
     const editAction = getRecordAction(r);
-    const editIsPersonal = (r.team_name || '') === '개인 수시 확인';
-    const editTeamNames = (function() {
-      var names = teamsForActiveYear().map(function(t) { return t.name; });
-      TEAMS.forEach(function(t) { if (names.indexOf(t.name) < 0) names.push(t.name); });
-      if (r.team_name && !editIsPersonal && names.indexOf(r.team_name) < 0) names.push(r.team_name);
-      return names;
-    })();
-    const editTeamOptions = '<option value="">-- 팀을 선택하세요 --</option>' + editTeamNames.map(function(n) {
-      return '<option value="' + n + '"' + (!editIsPersonal && n === r.team_name ? ' selected' : '') + '>' + n + '</option>';
-    }).join('');
     body.innerHTML = `
       <div class="field"><label class="field-label" for="ef_name">장소명</label><input type="text" id="ef_name" value="${r.name || ''}" /></div>
       <div class="field"><label class="field-label" for="ef_addr">주소</label>
@@ -3283,18 +3197,6 @@ function renderEditForm(r) {
         <input type="hidden" id="ef_place_id" value="${r.place_id || ''}" />
       </div>
       <div class="field"><label class="field-label" for="ef_date">점검 날짜</label><input type="date" id="ef_date" value="${r.date || ''}" /></div>
-      <div class="field"><label class="field-label" for="ef_activity_kind">활동 구분</label>
-        <select id="ef_activity_kind" onchange="updateEditActivityKind()" aria-label="활동 구분 선택">
-          <option value="team" ${editIsPersonal?'':'selected'}>팀 활동</option>
-          <option value="personal" ${editIsPersonal?'selected':''}>개인 수시 확인</option>
-        </select>
-      </div>
-      <div class="field" id="ef_team_field" style="${editIsPersonal?'display:none':''}"><label class="field-label" for="ef_team">활동 팀</label>
-        <select id="ef_team" aria-label="활동 팀 선택">${editTeamOptions}</select>
-      </div>
-      <div class="field" id="ef_personal_field" style="${editIsPersonal?'':'display:none'}"><label class="field-label" for="ef_personal_name">확인한 사람 이름</label>
-        <input type="text" id="ef_personal_name" value="${editIsPersonal ? (r.recorder || r.author || r.team_members || '') : ''}" placeholder="예) 홍길동" aria-label="확인한 사람 이름" />
-      </div>
       <div class="field"><label class="field-label" for="ef_r2">경사로</label><select id="ef_r2" aria-label="경사로 평가">${ratingOptions('r2',r.r2)}</select></div>
       <div class="field"><label class="field-label" for="ef_r4">안내판</label><select id="ef_r4" aria-label="안내판 평가">${ratingOptions('r4',r.r4)}</select></div>
       <div class="field"><label class="field-label" for="ef_r1">점자메뉴판</label><select id="ef_r1" aria-label="점자메뉴판 평가">${ratingOptions('r1',r.r1)}</select></div>
@@ -3543,31 +3445,6 @@ async function saveEdit() {
     r.comment = document.getElementById('ef_comment').value.trim();
     r.author  = document.getElementById('ef_author').value.trim();
     r.recorder = r.author;
-
-    // 활동 구분에 따라 팀/개인 정보 반영
-    var efKindEl = document.getElementById('ef_activity_kind');
-    if (efKindEl) {
-      if (efKindEl.value === 'personal') {
-        var efPNameEl = document.getElementById('ef_personal_name');
-        var efPName = efPNameEl ? efPNameEl.value.trim() : '';
-        if (!efPName) throw new Error('확인한 분의 이름을 입력해 주세요.');
-        r.team_name = '개인 수시 확인';
-        r.team_members = efPName;
-        r.author = efPName;
-        r.recorder = efPName;
-      } else {
-        var efTeamSel = document.getElementById('ef_team');
-        var efTeamName = efTeamSel ? efTeamSel.value : (r.team_name || '');
-        if (!efTeamName || efTeamName === '개인 수시 확인') throw new Error('활동 팀을 선택해 주세요.');
-        var efTeamObj = teamsForActiveYear().find(function(t) { return t.name === efTeamName; }) ||
-          TEAMS.find(function(t) { return t.name === efTeamName; });
-        var efMembers = efTeamObj && efTeamObj.members && efTeamObj.members.length ? efTeamObj.members.join(', ') : (r.team_members || '');
-        r.team_name = efTeamName;
-        r.team_members = efMembers;
-        r.author = efMembers || efTeamName;
-        r.recorder = r.author;
-      }
-    }
 
     await updateMonitorRecordInSupabase(r);
 
@@ -4899,16 +4776,8 @@ function renderMap() {
     currentInfoWindow = null;
   }
 
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(function(pos) {
-      const myPos = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
-      const mySvg = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#6366f1" stroke="white" stroke-width="2"/><circle cx="10" cy="10" r="3" fill="white"/></svg>';
-      new kakao.maps.Marker({
-        map: mapInstance, position: myPos, zIndex: 10,
-        image: new kakao.maps.MarkerImage('data:image/svg+xml;charset=utf-8,'+encodeURIComponent(mySvg), new kakao.maps.Size(20,20), {offset: new kakao.maps.Point(10,10)})
-      });
-    });
-  }
+  // 앱을 열 때마다 위치 권한 팝업이 뜨지 않도록 자동 위치 요청을 제거했습니다.
+  // 현재 위치는 지도의 "내 위치" 버튼(moveToMyLocation)을 눌렀을 때만 요청합니다.
 
   listEl.innerHTML = '';
   const recordListEl = listEl;
@@ -5064,7 +4933,6 @@ clearPersistedManagerAuth();
 // 2) 모니터링단 세션은 sessionStorage에서 복원하고, 담당자는 항상 잠금 상태로 시작합니다.
 restoreAuthSession();
 updateManagerAuthUI();
-(function() { var v = document.getElementById('app-version'); if (v) v.textContent = APP_VERSION; console.log('[앱 버전]', APP_VERSION); })();
 loadAppSettings().then(function() { populateMonitorTeamSelect(); });
 if (monitorUnlocked || managerUnlocked) {
   syncRecordsFromSupabase(true).then(function() {
