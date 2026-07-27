@@ -1222,30 +1222,31 @@ function gotoMapTab() {
 // ── PIN 잠금 ──────────────────────────────────────
 let pinValue = '', monitorUnlocked = false, managerUnlocked = false, monitorSessionPin = '', managerSessionPin = '', pendingTabEl = null, pendingPinType = 'monitor';
 
-// 담당자/모니터링단 권한 모두 sessionStorage에 저장하지 않습니다.
-// 두 권한 모두 메모리 변수(monitorUnlocked, managerUnlocked)로만 유지되며,
-// 새로고침하거나 탭/앱을 완전히 닫았다가 다시 열면 항상 초기화되어 재인증이 필요합니다.
-// 모니터링단 권한은 sessionStorage에 저장되어, 탭/창을 닫았다가 다시 열어도
-// (그리고 새로고침해도) 유지됩니다. 시각장애인 모니터링단이 현장 활동 중
-// 매번 PIN을 다시 입력해야 하는 부담을 줄이기 위한 정책입니다.
-// 담당자 권한은 개인정보(신청자명·연락처 등)에 접근하므로, 보안을 위해
-// sessionStorage에 저장하지 않고 새로고침/재진입 시 항상 재인증을 요구합니다.
+// 담당자 권한은 sessionStorage/localStorage 어디에도 저장하지 않습니다.
+// 메모리 변수(managerUnlocked)로만 유지되며, 새로고침하거나 탭/앱을
+// 완전히 닫았다가 다시 열면 항상 초기화되어 재인증이 필요합니다.
+// (개인정보(신청자명·연락처 등)에 접근하는 권한이라 보안을 위해 매번 재인증)
+//
+// 모니터링단 권한은 localStorage에 저장되어, 앱을 완전히 종료했다가
+// 다시 실행해도(iOS PWA 백그라운드 종료 포함) 유지됩니다. 시각장애인
+// 모니터링단이 현장 활동 중 매번 PIN을 다시 입력해야 하는 부담을
+// 줄이기 위한 정책입니다. (기기에 남는 값은 PIN 자체뿐이라 개인정보 노출 위험은 없음)
 function saveAuthSession() {
   try {
     if (monitorUnlocked && monitorSessionPin) {
-      sessionStorage.setItem('openVillageAuth', JSON.stringify({
+      localStorage.setItem('openVillageAuth', JSON.stringify({
         monitorUnlocked: true,
         monitorSessionPin: monitorSessionPin
       }));
     } else {
-      sessionStorage.removeItem('openVillageAuth');
+      localStorage.removeItem('openVillageAuth');
     }
   } catch(e) {}
 }
 
 function restoreAuthSession() {
   try {
-    var saved = JSON.parse(sessionStorage.getItem('openVillageAuth') || '{}');
+    var saved = JSON.parse(localStorage.getItem('openVillageAuth') || '{}');
     monitorUnlocked = !!saved.monitorUnlocked;
     monitorSessionPin = saved.monitorSessionPin || '';
   } catch(e) {
@@ -4930,7 +4931,7 @@ if ('serviceWorker' in navigator) {
 document.getElementById('m_date').valueAsDate = new Date();
 // 1) 과거 버전에서 남아있을 수 있는 담당자 관련 저장값(레거시 키)을 정리합니다.
 clearPersistedManagerAuth();
-// 2) 모니터링단 세션은 sessionStorage에서 복원하고, 담당자는 항상 잠금 상태로 시작합니다.
+// 2) 모니터링단 세션은 localStorage에서 복원하고, 담당자는 항상 잠금 상태로 시작합니다.
 restoreAuthSession();
 updateManagerAuthUI();
 loadAppSettings().then(function() { populateMonitorTeamSelect(); });
