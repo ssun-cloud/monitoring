@@ -1101,7 +1101,7 @@
 const FALLBACK_MONITOR_PIN  = '';   // 서버 확인 실패 시 열지 않음
 const FALLBACK_MANAGER_PIN  = '';   // 서버 확인 실패 시 열지 않음
 // ───────────────────────────────────────────────────────
-const APP_VERSION = '2026-07-30.14';
+const APP_VERSION = '2026-07-30.15';
 let SCRIPT_URL = localStorage.getItem('scriptUrl') || 'https://script.google.com/macros/s/AKfycbxBQWn2adwedy94MWxF3NGjyEnnMHde4vm-6VRXP1PEVGr6mDKQbQm7RFG3vnmrcAQ4/exec';
 
 // ── Supabase 연결 (applications 테이블 전용) ──────────
@@ -3972,11 +3972,13 @@ function getRelatedRecordsForJournal(journal) {
   });
 }
 
+// 쉼표·줄바꿈·슬래시로만 나눕니다.
+// 띄어쓰기로 나누면 'CU 종로신교점', 'Oude bakery'처럼 공백이 들어간 상점명이 쪼개져요.
 function uniqNonEmpty(values) {
   var seen = {};
   var out = [];
   (values || []).forEach(function(v) {
-    String(v || '').split(/[ ,，、\n\/]+/).forEach(function(part) {
+    String(v || '').split(/[,，、\n\/]+/).forEach(function(part) {
       var text = part.trim();
       if (!text) return;
       var key = normalizePrintText(text);
