@@ -783,6 +783,17 @@
       <input type="text" id="m_supply_support_other_text" placeholder="기타 내용을 적어주세요" style="display:none;margin-top:8px" />
     </div>
     <div class="field">
+      <label class="field-label" for="m_supply_recommend">무장애지도에 소개할 만한가요?</label>
+      <select id="m_supply_recommend">
+        <option value="">선택해 주세요</option>
+        <option value="소개 추천">소개 추천</option>
+        <option value="일부 정보 확인 후 추천">일부 정보 확인 후 추천</option>
+        <option value="추천 어려움">추천 어려움</option>
+        <option value="판단 보류">판단 보류</option>
+      </select>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:5px">보급물이 잘 쓰이고 있어 다른 분들께 소개할 만하면 '소개 추천'을 골라주세요.</p>
+    </div>
+    <div class="field">
       <label class="field-label" for="m_supply_memo">기타 의견 또는 실제 이용 경험<span class="opt">(선택)</span></label>
       <textarea id="m_supply_memo" placeholder="실제 이용 경험, 상점 의견, 변화된 점, 추가로 확인할 내용을 간단히 적어주세요." style="min-height:86px"></textarea>
     </div>
@@ -1090,7 +1101,7 @@
 const FALLBACK_MONITOR_PIN  = '';   // 서버 확인 실패 시 열지 않음
 const FALLBACK_MANAGER_PIN  = '';   // 서버 확인 실패 시 열지 않음
 // ───────────────────────────────────────────────────────
-const APP_VERSION = '2026-07-30.9';
+const APP_VERSION = '2026-07-30.10';
 let SCRIPT_URL = localStorage.getItem('scriptUrl') || 'https://script.google.com/macros/s/AKfycbxBQWn2adwedy94MWxF3NGjyEnnMHde4vm-6VRXP1PEVGr6mDKQbQm7RFG3vnmrcAQ4/exec';
 
 // ── Supabase 연결 (applications 테이블 전용) ──────────
@@ -1541,7 +1552,7 @@ function setMonitorVisitType(value) {
 }
 function resetExistingSupplyFields() {
   document.querySelectorAll('input[name="m_supply_items"], input[name="m_supply_support"]').forEach(function(el) { el.checked = false; });
-  ['m_supply_status','m_supply_use'].forEach(function(id) {
+  ['m_supply_status','m_supply_use','m_supply_recommend'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -1586,6 +1597,8 @@ function existingSupplyNotes() {
   var items = checkedValues('m_supply_items');
   var status = document.getElementById('m_supply_status').value;
   var use = document.getElementById('m_supply_use').value;
+  var recommendEl = document.getElementById('m_supply_recommend');
+  var recommend = recommendEl ? recommendEl.value : '';
   var memo = document.getElementById('m_supply_memo').value.trim();
   var support = checkedValues('m_supply_support').map(function(value) {
     if (value !== '기타') return value;
@@ -1596,6 +1609,7 @@ function existingSupplyNotes() {
     items.length && '설치된 물품: ' + items.join(' · '),
     status && '보급물 상태: ' + status,
     use && '사용 가능 여부: ' + use,
+    recommend && '지도 소개: ' + recommend,
     support.length && '보급물 관련 개선이 필요한 부분: ' + support.join(' · '),
     memo && '기타 의견 또는 실제 이용 경험: ' + memo
   ].filter(Boolean);
@@ -2595,23 +2609,35 @@ function updateDashboard() {
 }
 
 // 모니터링단이 '이용하기 편한 상점 확인'으로 방문해 '소개 추천'으로 판단한 기록인지 확인합니다.
+function segmentValue(segments, label) {
+  var seg = segments.filter(function(s) { return s.label === label; })[0];
+  return seg ? String(seg.value || '').trim() : '';
+}
+
 function isComfortStoreRecommended(r) {
   if (getRecordType(r) !== 'monitor') return false;
   var extras = r.extras || r.extra_notes || '';
-  if (visitPurposeFromExtras(extras) !== '이용하기 편한 상점 확인') return false;
-  var intro = comfortStoreSegments(extras).filter(function(seg) {
-    return seg.label === '무장애지도 소개';
-  })[0];
-  return !!(intro && String(intro.value || '').trim() === '소개 추천');
+  var purpose = visitPurposeFromExtras(extras);
+  // 이용하기 편한 상점 확인 → '무장애지도 소개'
+  if (purpose === '이용하기 편한 상점 확인') {
+    return segmentValue(comfortStoreSegments(extras), '무장애지도 소개') === '소개 추천';
+  }
+  // 기존 보급처 확인 → '지도 소개' (보급 후 잘 쓰이고 있는 가게도 소개할 수 있게)
+  if (purpose === '기존 보급처 확인') {
+    return segmentValue(existingSupplySegments(extras), '지도 소개') === '소개 추천';
+  }
+  return false;
 }
 
 // 목록에 보여줄 '좋은 점' 문구를 기록 유형에 맞게 가져옵니다.
 function comfortStoreGoodPoints(r) {
   if (getRecordType(r) === 'recommend') return String(r.items || '').trim();
-  var good = comfortStoreSegments(r.extras || r.extra_notes || '').filter(function(seg) {
-    return seg.label === '좋은 점';
-  })[0];
-  return good ? String(good.value || '').trim() : '';
+  var extras = r.extras || r.extra_notes || '';
+  // 기존 보급처는 설치된 물품을 보여주는 게 주민에게 더 유용해요.
+  if (visitPurposeFromExtras(extras) === '기존 보급처 확인') {
+    return segmentValue(existingSupplySegments(extras), '설치된 물품');
+  }
+  return segmentValue(comfortStoreSegments(extras), '좋은 점');
 }
 
 // 좋은 점 항목을 화면에는 가운뎃점으로 이어 보여주되, 가운뎃점 자체는 스크린리더가
@@ -2928,6 +2954,7 @@ function existingSupplySegments(extras) {
     '설치된 물품',
     '보급물 상태',
     '사용 가능 여부',
+    '지도 소개',
     '보급물 관련 개선이 필요한 부분',
     '개선 또는 지원 필요',
     '기타 의견 또는 실제 이용 경험',
