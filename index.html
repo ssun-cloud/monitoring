@@ -336,6 +336,19 @@
     border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
   }
+  /* 홈: 편한 가게 목록 (길어지면 이 영역만 스크롤) */
+  #home-recommend-list {
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 6px;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  #home-recommend-list:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+  #home-recommend-list > div:last-child { border-bottom: none; }
+  @media (max-width: 768px) {
+    #home-recommend-list { max-height: 46vh; }
+  }
   #settings-records-list { max-height: 380px; }
   #settings-journal-print-list { max-height: 340px; }
   @media (max-width: 768px) {
@@ -446,7 +459,7 @@
 
   <div class="card">
     <div class="card-title">모니터링단(이웃지기)이 확인한 편한 가게</div>
-    <div id="home-recommend-list" role="list" aria-live="polite"></div>
+    <div id="home-recommend-list" role="list" aria-live="polite" tabindex="0" aria-label="모니터링단이 확인한 편한 가게 목록"></div>
   </div>
 
   <div class="card" style="padding:0;overflow:hidden">
@@ -1077,7 +1090,7 @@
 const FALLBACK_MONITOR_PIN  = '';   // 서버 확인 실패 시 열지 않음
 const FALLBACK_MANAGER_PIN  = '';   // 서버 확인 실패 시 열지 않음
 // ───────────────────────────────────────────────────────
-const APP_VERSION = '2026-07-30.3';
+const APP_VERSION = '2026-07-30.6';
 let SCRIPT_URL = localStorage.getItem('scriptUrl') || 'https://script.google.com/macros/s/AKfycbxBQWn2adwedy94MWxF3NGjyEnnMHde4vm-6VRXP1PEVGr6mDKQbQm7RFG3vnmrcAQ4/exec';
 
 // ── Supabase 연결 (applications 테이블 전용) ──────────
@@ -2551,6 +2564,19 @@ function comfortStoreGoodPoints(r) {
   return good ? String(good.value || '').trim() : '';
 }
 
+// 좋은 점 항목을 화면에는 가운뎃점으로 이어 보여주되, 가운뎃점 자체는 스크린리더가
+// 읽지 않도록 숨깁니다. (문장부호를 자세히 읽는 설정에서 "가운뎃점"이 끼어드는 걸 막기 위함)
+// 구분자 앞뒤 공백은 숨기지 않아, 음성으로는 항목 사이가 자연스럽게 띄어 읽힙니다.
+function goodPointsHtml(text) {
+  var parts = String(text || '').split(' · ').map(function(s) { return s.trim(); }).filter(Boolean);
+  if (!parts.length) return '';
+  var inner = parts.map(function(part, i) {
+    var sep = i ? ' <span aria-hidden="true">·</span> ' : '';
+    return sep + escapeHtml(part);
+  }).join('');
+  return '<div style="font-size:12px;color:#1a5c4a;margin-top:6px;background:var(--teal-light);display:inline-block;padding:2px 8px;border-radius:10px">' + inner + '</div>';
+}
+
 function renderHomeRecommendList(records) {
   const el = document.getElementById('home-recommend-list');
   if (!el) return;
@@ -2563,7 +2589,7 @@ function renderHomeRecommendList(records) {
   // 같은 장소에 추천과 모니터링 기록이 모두 있으면 하나로 묶습니다.
   const verified = groupRecordsByPlace(picked)
     .sort(function(a, b) { return new Date(b.timestamp || b.created_at || 0) - new Date(a.timestamp || a.created_at || 0); })
-    .slice(0, 5);
+    .slice(0, 30);
 
   if (verified.length === 0) {
     el.innerHTML = '<div class="empty-state" style="padding:16px 0"><div class="empty-icon" aria-hidden="true">🌟</div>아직 모니터링단이 확인한 가게가 없어요</div>';
@@ -2571,13 +2597,10 @@ function renderHomeRecommendList(records) {
   }
 
   el.innerHTML = verified.map(function(r) {
-    const goodPoints = comfortStoreGoodPoints(r);
-    const sourceLabel = getRecordType(r) === 'monitor' ? '모니터링단 확인' : '주민 추천';
     return '<div role="listitem" style="padding:12px 0;border-bottom:1px solid var(--border)">'
       + '<div style="font-weight:700;font-size:14px">' + escapeHtml(r.name || '') + '</div>'
       + '<div style="font-size:12px;color:var(--text-muted);margin-top:2px">' + escapeHtml(r.addr || '') + '</div>'
-      + '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' + escapeHtml(sourceLabel) + '</div>'
-      + (goodPoints ? '<div style="font-size:12px;color:#1a5c4a;margin-top:6px;background:var(--teal-light);display:inline-block;padding:2px 8px;border-radius:10px">' + escapeHtml(goodPoints) + '</div>' : '')
+      + goodPointsHtml(comfortStoreGoodPoints(r))
       + '</div>';
   }).join('');
 }
