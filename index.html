@@ -1090,7 +1090,7 @@
 const FALLBACK_MONITOR_PIN  = '';   // 서버 확인 실패 시 열지 않음
 const FALLBACK_MANAGER_PIN  = '';   // 서버 확인 실패 시 열지 않음
 // ───────────────────────────────────────────────────────
-const APP_VERSION = '2026-07-30.6';
+const APP_VERSION = '2026-07-30.7';
 let SCRIPT_URL = localStorage.getItem('scriptUrl') || 'https://script.google.com/macros/s/AKfycbxBQWn2adwedy94MWxF3NGjyEnnMHde4vm-6VRXP1PEVGr6mDKQbQm7RFG3vnmrcAQ4/exec';
 
 // ── Supabase 연결 (applications 테이블 전용) ──────────
@@ -2048,7 +2048,7 @@ async function submitMonitor() {
   }
   // ──────────────────────────────────────────────────────
 
-  saveRecord({ id: recordId, type:'monitor', name: place, addr, lat, lng, place_id: placeId, date, r1, r2, r3, r4, action, comment, author, recorder: author, extras, goodcase, timestamp: ts, team_year: teamYear, team_name: effTeamName, team_members: teamMembers });
+  saveRecord({ id: recordId, type:'monitor', name: place, addr, lat, lng, place_id: placeId, date, r1, r2, r3, r4, action, comment, author, recorder: author, extras, goodcase, timestamp: ts, team_year: teamYear, team_name: effTeamName, team_members: teamMembers, status: '확인 중' });
   updateDashboard();
   renderRecords();
   renderSettingsRecords();
@@ -2536,6 +2536,46 @@ async function updateRecordStatus(timestamp, type, status) {
   }
 }
 // ──────────────────────────────────────────────────────
+
+// ── 모니터링 기록의 지도 공개 여부 변경 (담당자 전용) ────
+// monitoring_records.status만 바꿉니다. 모니터링단이 적은 action_required는 그대로 둡니다.
+async function updateMonitorPublishStatus(recordId, newStatus, prevStatus, selectEl) {
+  if (!managerUnlocked || !managerSessionPin) {
+    showToast('settings-toast', '담당자 로그인 후 변경할 수 있어요.', 'error');
+    if (selectEl) selectEl.value = prevStatus;
+    return;
+  }
+  if (selectEl) selectEl.disabled = true;
+  try {
+    var result = await _supabase.rpc('update_record_status', {
+      pin_input:   managerSessionPin,
+      record_type: 'monitor',
+      record_id:   recordId,
+      new_status:  newStatus
+    });
+    if (result.error) throw result.error;
+
+    // 로컬 기록에도 즉시 반영
+    var records = getRecords();
+    records.forEach(function(x) {
+      if (String(x.id) === String(recordId)) x.status = newStatus;
+    });
+    localStorage.setItem('records', JSON.stringify(records));
+
+    showToast('settings-toast', newStatus === '양호'
+      ? '지도와 홈에 공개했어요.'
+      : '공개를 해제했어요. 주민 화면에서는 보이지 않아요.', 'success');
+
+    updateDashboard();
+    renderMap();
+    renderRecords();
+    renderSettingsRecords();
+  } catch(e) {
+    console.error('[공개상태] 변경 실패:', e.message || e);
+    showToast('settings-toast', '변경에 실패했어요: ' + (e.message || e), 'error');
+    if (selectEl) { selectEl.value = prevStatus; selectEl.disabled = false; }
+  }
+}
 
 // ── 대시보드 ──────────────────────────────────────
 function updateDashboard() {
@@ -3127,7 +3167,7 @@ function recordCard(r, idx) {
     <div class="record-detail" id="detail-${idx}">
       ${detail}
       ${managerUnlocked && r.type === 'monitor' && r.id ? `<button type="button" class="sec-btn primary print-monitor-btn" data-record-id="${String(r.id).replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" onclick="event.stopPropagation()" style="margin-top:10px;width:100%;font-size:12px;padding:8px 10px"><span aria-hidden="true">🖨️</span> 체크리스트 출력</button>` : ''}
-      ${managerUnlocked && r.type === 'monitor' ? '<div style="font-size:12px;color:var(--text-muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">상태 변경은 체크리스트 수정에서 진행해 주세요.</div>' : ''}
+      ${managerUnlocked && r.type === 'monitor' ? '<div style="font-size:12px;color:var(--text-muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">지도 공개 여부는 설정 탭 &gt; 전체 기록에서 바꿀 수 있어요.</div>' : ''}
     </div>
   </div>`;
 }
@@ -3410,7 +3450,7 @@ function renderEditForm(r) {
       <div class="field"><label class="field-label" for="ef_r4">안내판</label><select id="ef_r4" aria-label="안내판 평가">${ratingOptions('r4',r.r4)}</select></div>
       <div class="field"><label class="field-label" for="ef_r1">점자메뉴판</label><select id="ef_r1" aria-label="점자메뉴판 평가">${ratingOptions('r1',r.r1)}</select></div>
       <div class="field"><label class="field-label" for="ef_r3">화장실</label><select id="ef_r3" aria-label="화장실 평가">${ratingOptions('r3',r.r3)}</select></div>
-      <div class="field"><label class="field-label" for="ef_action">조치 여부</label>
+      <div class="field"><label class="field-label" for="ef_action">최종 판단<span class="opt">(모니터링단 기록)</span></label>
         <select id="ef_action" aria-label="조치 필요 여부">
           <option value="지원 검토 필요" ${editAction==='지원 검토 필요'?'selected':''}>지원 검토 필요</option>
           <option value="확인 완료" ${editAction==='확인 완료'?'selected':''}>확인 완료</option>
@@ -3669,7 +3709,7 @@ async function saveEdit() {
     r.action  = document.getElementById('ef_action').value;
     r.action_required = r.action;
     r.actionRequired = r.action;
-    r.status = r.action;
+    // r.status(공개 상태)는 담당자가 설정 탭에서 따로 관리하므로 여기서 덮어쓰지 않습니다.
     r.extras  = document.getElementById('ef_extras').value.trim();
     r.comment = document.getElementById('ef_comment').value.trim();
     r.author  = document.getElementById('ef_author').value.trim();
@@ -4509,7 +4549,7 @@ function renderSettingsRecords() {
       + ((monitorUnlocked || managerUnlocked) && (r.team_name || r.recorder || r.author)
           ? '<div style="font-size:12px;margin-bottom:4px">활동 팀: ' + (r.team_name || r.recorder || r.author) + '</div>'
           : '')
-      + (currentAction ? '<div style="font-size:12px;margin-bottom:8px;color:var(--text)">현재 상태: ' + currentAction + '</div>' : '')
+      + (currentAction ? '<div style="font-size:12px;margin-bottom:8px;color:var(--text)">' + (normalizedType === 'monitor' ? '모니터링단 최종 판단: ' : '현재 상태: ') + currentAction + '</div>' : '')
       + (settingsSummaryText ? '<div style="font-size:12px;margin-bottom:8px;color:var(--text)">' + settingsSummaryText + '</div>' : '');
     div.innerHTML = header;
 
@@ -4549,8 +4589,31 @@ function renderSettingsRecords() {
       }
     }
 
-    // 상태 변경 드롭다운은 혼동을 줄이기 위해 제거했습니다.
-    // 상태 변경은 아래 체크리스트 수정 버튼에서 진행합니다.
+    // ── 지도 공개 여부 (담당자 전용) ──────────────────
+    // 모니터링단이 적은 최종 판단은 그대로 두고, 주민에게 보일지 여부만 여기서 정합니다.
+    if (managerUnlocked && normalizedType === 'monitor' && r.id) {
+      var pubWrap = document.createElement('div');
+      pubWrap.style.cssText = 'margin-top:8px;padding:8px 10px;background:var(--teal-light);border:1px solid var(--teal-mid);border-radius:8px';
+      var pubId = 'pub-status-' + String(r.id).replace(/[^a-zA-Z0-9_-]/g, '');
+      var pubCurrent = normalizeActionValue(r.status || '') || '확인 중';
+      var pubOptions = ['확인 중', '양호'];
+      if (pubOptions.indexOf(pubCurrent) < 0) pubOptions.unshift(pubCurrent);
+      var pubLabelMap = { '확인 중': '확인 중 (주민에게 안 보임)', '양호': '양호 (지도·홈에 공개)' };
+      pubWrap.innerHTML = '<label for="' + pubId + '" style="display:block;font-size:12px;font-weight:500;color:#1a5c4a;margin-bottom:5px">지도 공개 여부</label>'
+        + '<select id="' + pubId + '" style="width:100%;padding:7px 10px;font-size:13px;font-family:\'Noto Sans KR\',sans-serif;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--white)">'
+        + pubOptions.map(function(opt) {
+            return '<option value="' + escapeHtml(opt) + '"' + (opt === pubCurrent ? ' selected' : '') + '>' + escapeHtml(pubLabelMap[opt] || opt) + '</option>';
+          }).join('')
+        + '</select>';
+      div.appendChild(pubWrap);
+      var pubSelect = pubWrap.querySelector('select');
+      pubSelect.addEventListener('click', function(e) { e.stopPropagation(); });
+      pubSelect.addEventListener('change', function(e) {
+        e.stopPropagation();
+        updateMonitorPublishStatus(r.id, pubSelect.value, pubCurrent, pubSelect);
+      });
+    }
+
     if (managerUnlocked && (typeMatches(r, 'monitor') || typeMatches(r, 'apply') || typeMatches(r, 'recommend')) && r.id) {
       var editBtn = document.createElement('button');
       editBtn.type = 'button';
@@ -4714,7 +4777,11 @@ async function syncRecordsFromSupabase(force) {
       action:          normalizedAction,
       action_required: firstNonEmpty(r.action_required, r.actionRequired, r.action_required_text, normalizedAction),
       actionRequired:  firstNonEmpty(r.actionRequired, r.action_required, normalizedAction),
-      status:          firstNonEmpty(r.status, normalizedAction),
+      // 모니터링 기록은 담당자가 정하는 공개 상태(DB의 status 컬럼)를 따로 보관합니다.
+      // 공개 뷰/RPC 모두 status를 'action'이라는 이름으로 내려주고, action_required는 별도로 옵니다.
+      status:          normalizedType === 'monitor'
+                         ? normalizeActionValue(firstNonEmpty(r.status, r.action))
+                         : firstNonEmpty(r.status, normalizedAction),
       monitored_at:    monitoredAt,
       r_braille:       firstNonEmpty(r.r_braille, r.braille, r.braille_menu),
       r_ramp:          firstNonEmpty(r.r_ramp, r.ramp, r.entrance_access),
@@ -4898,9 +4965,17 @@ function moveToMyLocation() {
 }
 
 // 검증 완료 여부 판단
+// 지도·홈에 주민에게 공개할지 판단하는 값입니다.
+// 모니터링 기록은 담당자가 정한 공개 상태(status)를 쓰고,
+// 모니터링단이 적은 최종 판단(action_required)은 건드리지 않습니다.
+function getPublishStatus(rec) {
+  if (getRecordType(rec) === 'monitor') return normalizeActionValue(rec.status || '');
+  return getRecordAction(rec);
+}
+
 function isVerified(rec) {
   const verifiedStatuses = ['보급 완료', '조치 완료', '확인 완료', '확인 완료 ✓', '양호'];
-  return verifiedStatuses.includes(rec.action);
+  return verifiedStatuses.includes(getPublishStatus(rec));
 }
 
 function getMarkerColor(rec) {
