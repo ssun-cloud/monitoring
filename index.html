@@ -406,11 +406,11 @@
   </div>
 </div>
 
-<a href="#apply" class="sr-only" style="position:absolute;left:-9999px;top:0;background:var(--teal);color:white;padding:8px 16px;z-index:9999;border-radius:4px" onfocus="this.style.left='0'" onblur="this.style.left='-9999px'">본문으로 바로가기</a>
+<a href="#" class="sr-only" style="position:absolute;left:-9999px;top:0;background:var(--teal);color:white;padding:8px 16px;z-index:9999;border-radius:4px" onfocus="this.style.left='0'" onblur="this.style.left='-9999px'" onclick="skipToContent(event)">본문으로 바로가기</a>
 <header class="app-header">
   <h1><span aria-hidden="true">🌿</span> 열린 마을 만들기</h1>
   <p>누구나 편하게 오갈 수 있는 마을을 함께 만들어요</p>
-  <a href="tel:0263957051" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--teal);text-decoration:none;margin-top:4px"><span aria-hidden="true">📞</span> 02-6395-7051 · 평일 09:00~18:00</a>
+  <a href="tel:0263957051" aria-label="전화 걸기 0 2, 6 3 9 5, 7 0 5 1. 평일 오전 9시부터 오후 6시까지" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--teal);text-decoration:none;margin-top:4px"><span aria-hidden="true">📞</span> 02-6395-7051 · 평일 09:00~18:00</a>
 </header>
 
 <nav class="tabs" role="tablist" aria-label="메뉴">
@@ -458,8 +458,8 @@
   </div>
 
   <div class="card">
-    <div class="card-title">모니터링단(이웃지기)이 확인한 편한 가게</div>
-    <div id="home-recommend-list" role="list" aria-live="polite" tabindex="0" aria-label="모니터링단이 확인한 편한 가게 목록"></div>
+    <h2 class="card-title" id="home-recommend-title">모니터링단(이웃지기)이 확인한 편한 가게</h2>
+    <div id="home-recommend-list" role="list" tabindex="0" aria-labelledby="home-recommend-title"></div>
   </div>
 
   <div class="card" style="padding:0;overflow:hidden">
@@ -1101,7 +1101,7 @@
 const FALLBACK_MONITOR_PIN  = '';   // 서버 확인 실패 시 열지 않음
 const FALLBACK_MANAGER_PIN  = '';   // 서버 확인 실패 시 열지 않음
 // ───────────────────────────────────────────────────────
-const APP_VERSION = '2026-07-30.10';
+const APP_VERSION = '2026-07-30.14';
 let SCRIPT_URL = localStorage.getItem('scriptUrl') || 'https://script.google.com/macros/s/AKfycbxBQWn2adwedy94MWxF3NGjyEnnMHde4vm-6VRXP1PEVGr6mDKQbQm7RFG3vnmrcAQ4/exec';
 
 // ── Supabase 연결 (applications 테이블 전용) ──────────
@@ -1196,6 +1196,18 @@ async function verifyPin(pinType, pin) {
     lastPinCheckNetworkError = true;
   }
   return pinType === 'manager' ? pin === FALLBACK_MANAGER_PIN : pin === FALLBACK_MONITOR_PIN;
+}
+
+// ── 본문으로 바로가기 ─────────────────────────────
+// 헤더와 탭 메뉴를 건너뛰고, 지금 보고 있는 화면의 본문으로 초점을 옮깁니다.
+// (예전에는 신청·추천 화면으로 고정돼 있어서, 다른 탭에서는 눌러도 아무 일이 없었어요)
+function skipToContent(e) {
+  if (e) e.preventDefault();
+  var section = document.querySelector('.section.active');
+  if (!section) return;
+  section.setAttribute('tabindex', '-1');
+  section.focus();
+  section.scrollIntoView({ block: 'start' });
 }
 
 // ── 탭 전환 ──────────────────────────────────────
@@ -2640,17 +2652,9 @@ function comfortStoreGoodPoints(r) {
   return segmentValue(comfortStoreSegments(extras), '좋은 점');
 }
 
-// 좋은 점 항목을 화면에는 가운뎃점으로 이어 보여주되, 가운뎃점 자체는 스크린리더가
-// 읽지 않도록 숨깁니다. (문장부호를 자세히 읽는 설정에서 "가운뎃점"이 끼어드는 걸 막기 위함)
-// 구분자 앞뒤 공백은 숨기지 않아, 음성으로는 항목 사이가 자연스럽게 띄어 읽힙니다.
-function goodPointsHtml(text) {
-  var parts = String(text || '').split(' · ').map(function(s) { return s.trim(); }).filter(Boolean);
-  if (!parts.length) return '';
-  var inner = parts.map(function(part, i) {
-    var sep = i ? ' <span aria-hidden="true">·</span> ' : '';
-    return sep + escapeHtml(part);
-  }).join('');
-  return '<div style="font-size:12px;color:#1a5c4a;margin-top:6px;background:var(--teal-light);display:inline-block;padding:2px 8px;border-radius:10px">' + inner + '</div>';
+// 좋은 점 항목을 쉼표로 나눈 배열로 돌려줍니다. (화면 표시와 음성 읽기에 각각 씁니다)
+function goodPointsList(text) {
+  return String(text || '').split(' · ').map(function(s) { return s.trim(); }).filter(Boolean);
 }
 
 function renderHomeRecommendList(records) {
@@ -2668,15 +2672,24 @@ function renderHomeRecommendList(records) {
     .slice(0, 30);
 
   if (verified.length === 0) {
-    el.innerHTML = '<div class="empty-state" style="padding:16px 0"><div class="empty-icon" aria-hidden="true">🌟</div>아직 모니터링단이 확인한 가게가 없어요</div>';
+    el.innerHTML = '<div role="listitem" class="empty-state" style="padding:16px 0"><div class="empty-icon" aria-hidden="true">🌟</div>아직 모니터링단이 확인한 가게가 없어요</div>';
     return;
   }
 
+  // 항목 하나를 스크린리더가 한 번에 읽도록, 바깥 요소에 전체 문장을 aria-label로 붙이고
+  // 안쪽 화면 표시용 내용은 aria-hidden으로 감춥니다.
+  // (예전처럼 가운뎃점을 span으로 감싸면 VoiceOver가 그 지점에서 끊어 읽어요)
   el.innerHTML = verified.map(function(r) {
-    return '<div role="listitem" style="padding:12px 0;border-bottom:1px solid var(--border)">'
-      + '<div style="font-weight:700;font-size:14px">' + escapeHtml(r.name || '') + '</div>'
-      + '<div style="font-size:12px;color:var(--text-muted);margin-top:2px">' + escapeHtml(r.addr || '') + '</div>'
-      + goodPointsHtml(comfortStoreGoodPoints(r))
+    var storeName = r.name || '';
+    var storeAddr = r.addr || '';
+    var points = goodPointsList(comfortStoreGoodPoints(r));
+    var srLabel = [storeName, storeAddr].concat(points).filter(Boolean).join(', ');
+    return '<div role="listitem" aria-label="' + escapeHtml(srLabel) + '" style="padding:12px 0;border-bottom:1px solid var(--border)">'
+      + '<div aria-hidden="true">'
+      + '<div style="font-weight:700;font-size:14px">' + escapeHtml(storeName) + '</div>'
+      + '<div style="font-size:12px;color:var(--text-muted);margin-top:2px">' + escapeHtml(storeAddr) + '</div>'
+      + (points.length ? '<div style="font-size:12px;color:#1a5c4a;margin-top:6px;background:var(--teal-light);display:inline-block;padding:2px 8px;border-radius:10px">' + escapeHtml(points.join(' · ')) + '</div>' : '')
+      + '</div>'
       + '</div>';
   }).join('');
 }
