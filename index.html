@@ -1090,7 +1090,7 @@
 const FALLBACK_MONITOR_PIN  = '';   // 서버 확인 실패 시 열지 않음
 const FALLBACK_MANAGER_PIN  = '';   // 서버 확인 실패 시 열지 않음
 // ───────────────────────────────────────────────────────
-const APP_VERSION = '2026-07-30.7';
+const APP_VERSION = '2026-07-30.9';
 let SCRIPT_URL = localStorage.getItem('scriptUrl') || 'https://script.google.com/macros/s/AKfycbxBQWn2adwedy94MWxF3NGjyEnnMHde4vm-6VRXP1PEVGr6mDKQbQm7RFG3vnmrcAQ4/exec';
 
 // ── Supabase 연결 (applications 테이블 전용) ──────────
@@ -2539,13 +2539,19 @@ async function updateRecordStatus(timestamp, type, status) {
 
 // ── 모니터링 기록의 지도 공개 여부 변경 (담당자 전용) ────
 // monitoring_records.status만 바꿉니다. 모니터링단이 적은 action_required는 그대로 둡니다.
-async function updateMonitorPublishStatus(recordId, newStatus, prevStatus, selectEl) {
+async function updateMonitorPublishStatus(recordId, newStatus, prevStatus, selectEl, msgEl) {
+  function setMsg(text, isError) {
+    if (!msgEl) return;
+    msgEl.textContent = text;
+    msgEl.style.color = isError ? 'var(--poor)' : '#1a5c4a';
+  }
   if (!managerUnlocked || !managerSessionPin) {
-    showToast('settings-toast', '담당자 로그인 후 변경할 수 있어요.', 'error');
+    setMsg('담당자 로그인 후 변경할 수 있어요.', true);
     if (selectEl) selectEl.value = prevStatus;
     return;
   }
   if (selectEl) selectEl.disabled = true;
+  setMsg('변경하는 중...');
   try {
     var result = await _supabase.rpc('update_record_status', {
       pin_input:   managerSessionPin,
@@ -2562,17 +2568,21 @@ async function updateMonitorPublishStatus(recordId, newStatus, prevStatus, selec
     });
     localStorage.setItem('records', JSON.stringify(records));
 
-    showToast('settings-toast', newStatus === '양호'
+    var doneMsg = newStatus === '양호'
       ? '지도와 홈에 공개했어요.'
-      : '공개를 해제했어요. 주민 화면에서는 보이지 않아요.', 'success');
+      : '공개를 해제했어요. 주민 화면에서는 보이지 않아요.';
+    setMsg(doneMsg);
+    announceForSR(doneMsg);
+    if (selectEl) selectEl.disabled = false;
 
+    // 목록은 다시 그리지 않습니다. (스크롤 위치가 튀지 않도록)
     updateDashboard();
     renderMap();
     renderRecords();
-    renderSettingsRecords();
   } catch(e) {
     console.error('[공개상태] 변경 실패:', e.message || e);
-    showToast('settings-toast', '변경에 실패했어요: ' + (e.message || e), 'error');
+    setMsg('변경에 실패했어요: ' + (e.message || e), true);
+    announceForSR('공개 여부 변경에 실패했어요.');
     if (selectEl) { selectEl.value = prevStatus; selectEl.disabled = false; }
   }
 }
@@ -4604,13 +4614,15 @@ function renderSettingsRecords() {
         + pubOptions.map(function(opt) {
             return '<option value="' + escapeHtml(opt) + '"' + (opt === pubCurrent ? ' selected' : '') + '>' + escapeHtml(pubLabelMap[opt] || opt) + '</option>';
           }).join('')
-        + '</select>';
+        + '</select>'
+        + '<div class="pub-status-msg" role="status" aria-live="polite" style="font-size:12px;margin-top:6px;min-height:16px;color:#1a5c4a"></div>';
       div.appendChild(pubWrap);
       var pubSelect = pubWrap.querySelector('select');
+      var pubMsg = pubWrap.querySelector('.pub-status-msg');
       pubSelect.addEventListener('click', function(e) { e.stopPropagation(); });
       pubSelect.addEventListener('change', function(e) {
         e.stopPropagation();
-        updateMonitorPublishStatus(r.id, pubSelect.value, pubCurrent, pubSelect);
+        updateMonitorPublishStatus(r.id, pubSelect.value, pubCurrent, pubSelect, pubMsg);
       });
     }
 
@@ -4913,7 +4925,11 @@ let currentInfoWindow = null;
 
 function initMap() {
   if (window.kakaoMapReady) {
-    if ((monitorUnlocked || managerUnlocked) && !getRecords().some(function(r) { return typeMatches(r, 'monitor'); })) {
+    // 기록이 아직 없으면 로그인 여부와 상관없이 한 번 더 불러옵니다.
+    var needSync = (monitorUnlocked || managerUnlocked)
+      ? !getRecords().some(function(r) { return typeMatches(r, 'monitor'); })
+      : !getRecords().length;
+    if (needSync) {
       syncRecordsFromSupabase(true).then(function() {
         renderRecords();
         renderSettingsRecords();
@@ -5281,15 +5297,17 @@ restoreAuthSession();
 updateManagerAuthUI();
 (function() { var v = document.getElementById('app-version'); if (v) v.textContent = APP_VERSION; console.log('[앱 버전]', APP_VERSION); })();
 loadAppSettings().then(function() { populateMonitorTeamSelect(); });
-if (monitorUnlocked || managerUnlocked) {
-  syncRecordsFromSupabase(true).then(function() {
-    updateDashboard();
-    renderRecords();
-    renderSettingsRecords();
-    renderSettingsJournalPrints();
-    renderMap();
-  });
-}
+// 로그인 여부와 관계없이 앱을 열면 서버 데이터를 한 번 불러옵니다.
+// (예전에는 모니터링단·담당자만 조회해서, 주민이 처음 들어오면 지도와 홈 목록이 비어 보였어요)
+syncRecordsFromSupabase(true).then(function() {
+  updateDashboard();
+  renderRecords();
+  renderSettingsRecords();
+  renderSettingsJournalPrints();
+  renderMap();
+}).catch(function(e) {
+  console.warn('[초기 조회] 실패, 기기에 저장된 기록으로 표시합니다:', e.message || e);
+});
 updateDashboard();
 loadSettingsUI();
 
