@@ -913,8 +913,12 @@
         <input type="date" id="j_date" aria-label="활동 날짜" onchange="loadJournalStores()" />
       </div>
       <div class="field">
-        <label class="field-label" for="j_time">활동 시간<span class="req">*</span></label>
-        <input type="time" id="j_time" aria-label="활동 시간" />
+        <label class="field-label" for="j_time">활동 시작 시간<span class="req">*</span></label>
+        <input type="time" id="j_time" aria-label="활동 시작 시간" />
+      </div>
+      <div class="field">
+        <label class="field-label" for="j_time_end">활동 종료 시간<span class="req">*</span></label>
+        <input type="time" id="j_time_end" aria-label="활동 종료 시간" />
       </div>
       <div class="field">
         <label class="field-label" for="j_team">활동 팀<span class="req">*</span></label>
@@ -1101,7 +1105,7 @@
 const FALLBACK_MONITOR_PIN  = '';   // 서버 확인 실패 시 열지 않음
 const FALLBACK_MANAGER_PIN  = '';   // 서버 확인 실패 시 열지 않음
 // ───────────────────────────────────────────────────────
-const APP_VERSION = '2026-07-30.15';
+const APP_VERSION = '2026-07-31.1';
 let SCRIPT_URL = localStorage.getItem('scriptUrl') || 'https://script.google.com/macros/s/AKfycbxBQWn2adwedy94MWxF3NGjyEnnMHde4vm-6VRXP1PEVGr6mDKQbQm7RFG3vnmrcAQ4/exec';
 
 // ── Supabase 연결 (applications 테이블 전용) ──────────
@@ -2317,17 +2321,22 @@ function loadJournalStores() {
 async function submitJournal() {
   var dateEl = document.getElementById('j_date');
   var timeEl = document.getElementById('j_time');
+  var timeEndEl = document.getElementById('j_time_end');
   var teamEl = document.getElementById('j_team');
   var memoEl = document.getElementById('j_memo');
   var extraEl = document.getElementById('j_extra');
   if (!dateEl || !timeEl || !teamEl) return;
   var date = dateEl.value;
-  var time = timeEl.value;
+  var timeStart = timeEl.value;
+  var timeEnd = timeEndEl ? timeEndEl.value : '';
   var teamName = teamEl.value;
   var memo = memoEl ? memoEl.value.trim() : '';
   var extra = extraEl ? extraEl.value.trim() : '';
   if (!date) { showToast('journal-toast','활동 날짜를 선택해 주세요.','error'); return; }
-  if (!time) { showToast('journal-toast','활동 시간을 입력해 주세요.','error'); return; }
+  if (!timeStart) { showToast('journal-toast','활동 시작 시간을 입력해 주세요.','error'); return; }
+  if (!timeEnd) { showToast('journal-toast','활동 종료 시간을 입력해 주세요.','error'); return; }
+  if (timeEnd <= timeStart) { showToast('journal-toast','종료 시간은 시작 시간보다 늦어야 해요.','error'); return; }
+  var time = timeStart + '~' + timeEnd;
   if (!teamName) { showToast('journal-toast','활동 팀을 선택해 주세요.','error'); return; }
   if (!memo) { showToast('journal-toast','활동 내용을 입력해 주세요.','error'); return; }
   // 최신 체크리스트 동기화 — 팀원이 다른 기기에서 방금 제출한 기록이 빠지지 않도록
@@ -3587,7 +3596,7 @@ function renderJournalEditForm(journal) {
   const body = document.getElementById('edit-form-body');
   body.innerHTML = `
     <div class="field"><label class="field-label" for="jf_date">활동 날짜</label><input type="date" id="jf_date" value="${journal.date || ''}" /></div>
-    <div class="field"><label class="field-label" for="jf_time">활동 시간</label><input type="text" id="jf_time" value="${journal.time || ''}" placeholder="예) 14:00~16:00" /></div>
+    <div class="field"><label class="field-label" for="jf_time">활동 시간</label><input type="text" id="jf_time" value="${journal.time || ''}" placeholder="예) 14:20~16:40" /></div>
     <div class="field"><label class="field-label" for="jf_team">활동 팀</label><input type="text" id="jf_team" value="${journal.team || ''}" /></div>
     <div class="field"><label class="field-label" for="jf_author">팀원</label><input type="text" id="jf_author" value="${journal.author || ''}" /></div>
     <div class="field"><label class="field-label" for="jf_stores">방문 상점</label><textarea id="jf_stores" style="min-height:72px">${journal.stores || ''}</textarea></div>
