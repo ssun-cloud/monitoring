@@ -345,6 +345,21 @@
     -webkit-overflow-scrolling: touch;
   }
   #home-recommend-list:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+  /* 홈: 편한 가게 목록 항목 (누르면 아래 현황 지도가 그 위치로 이동) */
+  .home-shop-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 12px 0;
+    margin: 0;
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+    color: inherit;
+  }
+  .home-shop-btn:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; border-radius: 6px; }
+  .home-shop-btn:active { background: var(--teal-light); }
   #home-recommend-list > div:last-child { border-bottom: none; }
   @media (max-width: 768px) {
     #home-recommend-list { max-height: 46vh; }
@@ -2683,22 +2698,60 @@ function renderHomeRecommendList(records) {
     return;
   }
 
-  // 항목 하나를 스크린리더가 한 번에 읽도록, 바깥 요소에 전체 문장을 aria-label로 붙이고
+  // 항목 하나를 스크린리더가 한 번에 읽도록, 바깥 버튼에 전체 문장을 aria-label로 붙이고
   // 안쪽 화면 표시용 내용은 aria-hidden으로 감춥니다.
   // (예전처럼 가운뎃점을 span으로 감싸면 VoiceOver가 그 지점에서 끊어 읽어요)
+  // 버튼을 누르면 아래 현황 지도가 그 가게 위치로 옮겨집니다.
   el.innerHTML = verified.map(function(r) {
     var storeName = r.name || '';
     var storeAddr = r.addr || '';
     var points = goodPointsList(comfortStoreGoodPoints(r));
-    var srLabel = [storeName, storeAddr].concat(points).filter(Boolean).join(', ');
-    return '<div role="listitem" aria-label="' + escapeHtml(srLabel) + '" style="padding:12px 0;border-bottom:1px solid var(--border)">'
+    var srLabel = [storeName, storeAddr].concat(points).filter(Boolean).join(', ') + '. 지도에서 위치 보기';
+    return '<div role="listitem" style="border-bottom:1px solid var(--border)">'
+      + '<button type="button" class="home-shop-btn" data-place-key="' + escapeHtml(placeKeyOf(r)) + '" data-place-name="' + escapeHtml(storeName) + '" aria-label="' + escapeHtml(srLabel) + '">'
       + '<div aria-hidden="true">'
-      + '<div style="font-weight:700;font-size:14px">' + escapeHtml(storeName) + '</div>'
+      + '<div style="display:flex;align-items:center;gap:6px">'
+      + '<span style="font-weight:700;font-size:14px">' + escapeHtml(storeName) + '</span>'
+      + '<span style="color:var(--teal);font-size:13px;flex-shrink:0">→</span>'
+      + '</div>'
       + '<div style="font-size:12px;color:var(--text-muted);margin-top:2px">' + escapeHtml(storeAddr) + '</div>'
       + (points.length ? '<div style="font-size:12px;color:#1a5c4a;margin-top:6px;background:var(--teal-light);display:inline-block;padding:2px 8px;border-radius:10px">' + escapeHtml(points.join(' · ')) + '</div>' : '')
       + '</div>'
+      + '</button>'
       + '</div>';
   }).join('');
+}
+
+// ── 홈 지도: 목록에서 가게를 누르면 그 마커로 이동할 수 있게 정보를 보관합니다 ──────
+let homeMapInstance = null;
+let homeMapMarkerIndex = {};
+let homeMapInfoWindow = null;
+
+// 같은 장소를 목록과 지도에서 같은 열쇠로 찾기 위한 값입니다.
+// place_id가 있으면 그걸 쓰고, 없는 옛 기록은 이름+주소를 씁니다.
+function placeKeyOf(rec) {
+  return rec.place_id ? ('pid:' + rec.place_id) : ('na:' + (rec.name || '') + '|' + (rec.addr || ''));
+}
+
+// 홈 목록에서 가게를 눌렀을 때, 홈 지도를 그 위치로 옮기고 이름 말풍선을 엽니다.
+function focusHomeMapPlace(key, name) {
+  const container = document.getElementById('home-map');
+  const entry = homeMapMarkerIndex[key];
+  if (container && container.scrollIntoView) {
+    container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  if (!entry || !homeMapInstance) {
+    // 아직 지도가 준비되지 않았거나 좌표를 못 찾은 경우
+    announceForSR('지도를 준비하고 있어요. 잠시 후 다시 눌러 주세요.');
+    return;
+  }
+  kakao.maps.event.trigger(homeMapInstance, 'resize');
+  homeMapInstance.setLevel(3);
+  homeMapInstance.setCenter(entry.coords);
+  if (homeMapInfoWindow) homeMapInfoWindow.close();
+  homeMapInfoWindow = entry.info;
+  entry.info.open(homeMapInstance, entry.marker);
+  announceForSR((name || '선택한 가게') + ' 위치로 지도를 옮겼어요.');
 }
 
 function renderHomeMap(records) {
@@ -2714,7 +2767,10 @@ function renderHomeMap(records) {
     if (monitorUnlocked || managerUnlocked) return true;
     return isVerified(r);
   });
+  homeMapMarkerIndex = {};
+  homeMapInfoWindow = null;
   if (mapRecords.length === 0) {
+    homeMapInstance = null;
     container.style.background = 'var(--bg)';
     container.style.display = 'flex';
     container.style.alignItems = 'center';
@@ -2726,25 +2782,36 @@ function renderHomeMap(records) {
     center: new kakao.maps.LatLng(37.5726, 126.9793),
     level: 6
   });
+  homeMapInstance = homeMap;
   const geocoder = new kakao.maps.services.Geocoder();
   // 같은 장소에 신청/추천과 모니터링 기록이 함께 있어도 마커 1개로 보이도록 그룹핑
   groupRecordsByPlace(mapRecords).forEach(rec => {
     const color = getMarkerColor(rec);
-    if (typeof rec.lat === 'number' && typeof rec.lng === 'number' && !isNaN(rec.lat) && !isNaN(rec.lng)) {
-      new kakao.maps.Marker({
+    // 마커를 만들고, 목록에서 찾아올 수 있도록 장소 열쇠로 보관합니다.
+    function addHomeMarker(coords) {
+      const marker = new kakao.maps.Marker({
         map: homeMap,
-        position: new kakao.maps.LatLng(rec.lat, rec.lng),
+        position: coords,
         image: makeMarkerImage(color)
       });
+      const info = new kakao.maps.InfoWindow({
+        content: '<div style="padding:8px 12px;font-size:13px;font-family:Noto Sans KR,sans-serif;line-height:1.5;white-space:nowrap"><strong>'
+          + escapeHtml(rec.name || '') + '</strong></div>'
+      });
+      kakao.maps.event.addListener(marker, 'click', function() {
+        if (homeMapInfoWindow) homeMapInfoWindow.close();
+        info.open(homeMap, marker);
+        homeMapInfoWindow = info;
+      });
+      homeMapMarkerIndex[placeKeyOf(rec)] = { marker: marker, info: info, coords: coords };
+    }
+
+    if (typeof rec.lat === 'number' && typeof rec.lng === 'number' && !isNaN(rec.lat) && !isNaN(rec.lng)) {
+      addHomeMarker(new kakao.maps.LatLng(rec.lat, rec.lng));
     } else {
       geocoder.addressSearch(rec.addr, function(result, status) {
         if (status !== kakao.maps.services.Status.OK) return;
-        const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
-        new kakao.maps.Marker({
-          map: homeMap,
-          position: coords,
-          image: makeMarkerImage(color)
-        });
+        addHomeMarker(new kakao.maps.LatLng(result[0].y, result[0].x));
       });
     }
   });
@@ -5329,7 +5396,6 @@ function renderMap() {
         ? '<div style="padding:10px 12px;font-size:13px;font-family:Noto Sans KR,sans-serif;min-width:150px;max-width:230px;line-height:1.5">'
           + '<strong>'+escapeHtml(rec.name || '')+'</strong>'
           + (rec.addr ? '<br><span style="color:#6b7280;font-size:12px">'+escapeHtml(rec.addr)+'</span>' : '')
-          + (publicPoints.length ? '<br><span style="color:#1a5c4a;font-size:12px">'+escapeHtml(publicPoints.join(' · '))+'</span>' : '')
           + kakaoLinkHtml
           + '</div>'
         : '<div style="padding:10px 12px;font-size:13px;font-family:Noto Sans KR,sans-serif;min-width:150px;line-height:1.5">'
@@ -5404,6 +5470,17 @@ syncRecordsFromSupabase(true).then(function() {
 });
 updateDashboard();
 loadSettingsUI();
+
+// 홈: 편한 가게 목록에서 가게를 누르면 아래 현황 지도가 그 위치로 이동
+if (!window.__homeShopClickAttached) {
+  window.__homeShopClickAttached = true;
+  document.addEventListener('click', function(e) {
+    var shopBtn = e.target.closest && e.target.closest('.home-shop-btn');
+    if (!shopBtn) return;
+    e.preventDefault();
+    focusHomeMapPlace(shopBtn.dataset.placeKey, shopBtn.dataset.placeName);
+  });
+}
 
 // 활동일지 수정 버튼 이벤트
 if (!window.__journalEditHandlerAttached) {
