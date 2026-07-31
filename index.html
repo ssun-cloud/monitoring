@@ -913,12 +913,8 @@
         <input type="date" id="j_date" aria-label="활동 날짜" onchange="loadJournalStores()" />
       </div>
       <div class="field">
-        <label class="field-label" for="j_time">활동 시작 시간<span class="req">*</span></label>
-        <input type="time" id="j_time" aria-label="활동 시작 시간" />
-      </div>
-      <div class="field">
-        <label class="field-label" for="j_time_end">활동 종료 시간<span class="req">*</span></label>
-        <input type="time" id="j_time_end" aria-label="활동 종료 시간" />
+        <label class="field-label" for="j_time">활동 시간<span class="req">*</span></label>
+        <input type="time" id="j_time" aria-label="활동 시간" />
       </div>
       <div class="field">
         <label class="field-label" for="j_team">활동 팀<span class="req">*</span></label>
@@ -976,7 +972,7 @@
 
 <!-- 지도 -->
 <div id="map" class="section" role="tabpanel" aria-label="현황 지도">
-  <div class="notice">신청이 접수된 상점 위치를 지도에서 확인할 수 있어요.<br>주소가 입력된 신청 기록만 표시됩니다.</div>
+  <div class="notice" id="map-notice">신청이 접수된 상점 위치를 지도에서 확인할 수 있어요.<br>주소가 입력된 신청 기록만 표시됩니다.</div>
   <div class="map-sticky" style="background:var(--bg);padding-bottom:8px">
     <div style="position:relative">
       <div id="kakao-map" role="application" aria-label="배리어프리 상점 지도" style="width:100%;height:240px;border-radius:12px;border:1px solid var(--border);"></div>
@@ -1105,7 +1101,7 @@
 const FALLBACK_MONITOR_PIN  = '';   // 서버 확인 실패 시 열지 않음
 const FALLBACK_MANAGER_PIN  = '';   // 서버 확인 실패 시 열지 않음
 // ───────────────────────────────────────────────────────
-const APP_VERSION = '2026-07-31.1';
+const APP_VERSION = '2026-07-30.15';
 let SCRIPT_URL = localStorage.getItem('scriptUrl') || 'https://script.google.com/macros/s/AKfycbxBQWn2adwedy94MWxF3NGjyEnnMHde4vm-6VRXP1PEVGr6mDKQbQm7RFG3vnmrcAQ4/exec';
 
 // ── Supabase 연결 (applications 테이블 전용) ──────────
@@ -2321,22 +2317,17 @@ function loadJournalStores() {
 async function submitJournal() {
   var dateEl = document.getElementById('j_date');
   var timeEl = document.getElementById('j_time');
-  var timeEndEl = document.getElementById('j_time_end');
   var teamEl = document.getElementById('j_team');
   var memoEl = document.getElementById('j_memo');
   var extraEl = document.getElementById('j_extra');
   if (!dateEl || !timeEl || !teamEl) return;
   var date = dateEl.value;
-  var timeStart = timeEl.value;
-  var timeEnd = timeEndEl ? timeEndEl.value : '';
+  var time = timeEl.value;
   var teamName = teamEl.value;
   var memo = memoEl ? memoEl.value.trim() : '';
   var extra = extraEl ? extraEl.value.trim() : '';
   if (!date) { showToast('journal-toast','활동 날짜를 선택해 주세요.','error'); return; }
-  if (!timeStart) { showToast('journal-toast','활동 시작 시간을 입력해 주세요.','error'); return; }
-  if (!timeEnd) { showToast('journal-toast','활동 종료 시간을 입력해 주세요.','error'); return; }
-  if (timeEnd <= timeStart) { showToast('journal-toast','종료 시간은 시작 시간보다 늦어야 해요.','error'); return; }
-  var time = timeStart + '~' + timeEnd;
+  if (!time) { showToast('journal-toast','활동 시간을 입력해 주세요.','error'); return; }
   if (!teamName) { showToast('journal-toast','활동 팀을 선택해 주세요.','error'); return; }
   if (!memo) { showToast('journal-toast','활동 내용을 입력해 주세요.','error'); return; }
   // 최신 체크리스트 동기화 — 팀원이 다른 기기에서 방금 제출한 기록이 빠지지 않도록
@@ -2659,6 +2650,13 @@ function comfortStoreGoodPoints(r) {
     return segmentValue(existingSupplySegments(extras), '설치된 물품');
   }
   return segmentValue(comfortStoreSegments(extras), '좋은 점');
+}
+
+// 주민(비인증)에게 보여줄 '편의 정보' 문구입니다.
+// 보급 신청 기록은 설치된 물품(items)이, 추천·모니터링 기록은 좋은 점이 주민에게 유용해요.
+function publicGoodPoints(r) {
+  if (getRecordType(r) === 'apply') return String(r.items || '').trim();
+  return comfortStoreGoodPoints(r);
 }
 
 // 좋은 점 항목을 쉼표로 나눈 배열로 돌려줍니다. (화면 표시와 음성 읽기에 각각 씁니다)
@@ -3596,7 +3594,7 @@ function renderJournalEditForm(journal) {
   const body = document.getElementById('edit-form-body');
   body.innerHTML = `
     <div class="field"><label class="field-label" for="jf_date">활동 날짜</label><input type="date" id="jf_date" value="${journal.date || ''}" /></div>
-    <div class="field"><label class="field-label" for="jf_time">활동 시간</label><input type="text" id="jf_time" value="${journal.time || ''}" placeholder="예) 14:20~16:40" /></div>
+    <div class="field"><label class="field-label" for="jf_time">활동 시간</label><input type="text" id="jf_time" value="${journal.time || ''}" placeholder="예) 14:00~16:00" /></div>
     <div class="field"><label class="field-label" for="jf_team">활동 팀</label><input type="text" id="jf_team" value="${journal.team || ''}" /></div>
     <div class="field"><label class="field-label" for="jf_author">팀원</label><input type="text" id="jf_author" value="${journal.author || ''}" /></div>
     <div class="field"><label class="field-label" for="jf_stores">방문 상점</label><textarea id="jf_stores" style="min-height:72px">${journal.stores || ''}</textarea></div>
@@ -5046,6 +5044,9 @@ function isVerified(rec) {
 }
 
 function getMarkerColor(rec) {
+  // 주민(비인증)에게는 확인 완료된 기록만 보이고 범례도 숨기므로,
+  // 유형·상태별로 색을 나누지 않고 한 가지 색으로 통일해 보여줍니다.
+  if (!monitorUnlocked && !managerUnlocked) return '#1a8c6e';
   if (isSupportReviewAction(rec.action)) return '#dc2626';
   if (isRevisitAction(rec.action)) return '#d97706';
   // 미검증은 회색
@@ -5149,6 +5150,20 @@ function mapRecordExtraHtml(rec) {
 
 function renderMap() {
   const renderSeq = ++mapRenderSeq;
+  // 주민(비인증) 화면인지 판단합니다.
+  // 주민에게는 '모니터링·확인 완료' 같은 내부 관리 용어 대신, 홈 화면처럼 편의 정보만 보여줍니다.
+  const isPublicView = !monitorUnlocked && !managerUnlocked;
+
+  // 주민에게는 유형·상태 필터가 의미가 없으므로(확인 완료된 기록만 보임) 범례 영역 자체를 숨깁니다.
+  var legendEl = document.getElementById('map-legend');
+  if (legendEl) legendEl.style.display = isPublicView ? 'none' : '';
+  var noticeEl = document.getElementById('map-notice');
+  if (noticeEl) {
+    noticeEl.innerHTML = isPublicView
+      ? '모니터링단(이웃지기)이 직접 방문해 확인한 가게예요.<br>가게를 누르면 지도에서 위치를 볼 수 있어요.'
+      : '신청이 접수된 상점 위치를 지도에서 확인할 수 있어요.<br>주소가 입력된 신청 기록만 표시됩니다.';
+  }
+
   // 비로그인 공개 사용자에게는 미검증 항목 자체가 노출되지 않으므로, 해당 필터 버튼은 숨기고 선택도 해제합니다.
   var unverifiedBtn = document.querySelector('.map-filter-btn[data-filter-value="unverified"]');
   if (unverifiedBtn) {
@@ -5221,7 +5236,6 @@ function renderMap() {
     const mapSummaryText = rec.type === 'monitor'
       ? (mapVisitSummary ? '방문 목적: ' + mapVisitSummary : '')
       : rec.items;
-    item.setAttribute('aria-label', rec.name + ', ' + rec.addr + ', ' + typeLabel + (actionLabel ? ', ' + actionLabel : '') + (mapSummaryText ? ', ' + mapSummaryText : '') + '. 지도에서 위치 보기');
     const verifiedBadge = isVerified(rec) ? '' : '<span style="font-size:10px;color:#9ca3af;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px;padding:1px 6px;margin-left:4px">미검증</span>';
     // 신청/추천 + 모니터링이 같은 장소(place_id)로 묶인 경우, 다른 경로로도 기록이 있다는 걸 알려줍니다.
     const groupTypeLabelMap = { apply: '보급 신청', recommend: '상점 추천', monitor: '모니터링' };
@@ -5232,18 +5246,36 @@ function renderMap() {
       ? '<div style="font-size:11px;color:#6b7280;margin-top:4px">' + groupNoteText + '</div>'
       : '';
     const extraHtml = mapRecordExtraHtml(rec);
-    item.innerHTML = '<div class="rec-top" style="justify-content:flex-start;gap:6px">'
-      + '<span style="width:10px;height:10px;border-radius:50%;background:'+markerColor+';display:inline-block;flex-shrink:0" aria-hidden="true"></span>'
-      + '<span class="rec-name">'+rec.name+'</span>'
-      + verifiedBadge
-      + '</div>'
-      + '<div class="rec-addr">'+rec.addr+'</div>'
-      + '<div class="rec-tags"><span class="'+typeTagStyle+'">'+typeLabel+'</span>'
-      + (actionLabel ? '<span class="'+actionTagStyle+'">'+actionLabel+'</span>' : '')
-      + (mapSummaryText ? '<span class="tag" style="background:#f0fdf4;color:#166534">'+mapSummaryText+'</span>' : '')
-      + '</div>'
-      + groupNoteHtml
-      + extraHtml;
+    // 주민에게 보여줄 편의 정보 (홈 화면 '편한 가게' 목록과 같은 기준)
+    const publicPoints = isPublicView ? goodPointsList(publicGoodPoints(rec)) : [];
+
+    if (isPublicView) {
+      // 항목 하나를 스크린리더가 한 번에 읽도록, 바깥 요소에 전체 문장을 aria-label로 붙이고
+      // 안쪽 화면 표시용 내용은 aria-hidden으로 감춥니다. (홈 목록과 동일한 방식)
+      item.setAttribute('aria-label', [rec.name, rec.addr].concat(publicPoints).filter(Boolean).join(', ') + '. 지도에서 위치 보기');
+      item.innerHTML = '<div aria-hidden="true">'
+        + '<div class="rec-top" style="justify-content:flex-start;gap:6px">'
+        + '<span style="width:10px;height:10px;border-radius:50%;background:'+markerColor+';display:inline-block;flex-shrink:0"></span>'
+        + '<span class="rec-name">'+escapeHtml(rec.name || '')+'</span>'
+        + '</div>'
+        + '<div class="rec-addr">'+escapeHtml(rec.addr || '')+'</div>'
+        + (publicPoints.length ? '<div style="font-size:12px;color:#1a5c4a;margin-top:6px;background:var(--teal-light);display:inline-block;padding:2px 8px;border-radius:10px">'+escapeHtml(publicPoints.join(' · '))+'</div>' : '')
+        + '</div>';
+    } else {
+      item.setAttribute('aria-label', rec.name + ', ' + rec.addr + ', ' + typeLabel + (actionLabel ? ', ' + actionLabel : '') + (mapSummaryText ? ', ' + mapSummaryText : '') + '. 지도에서 위치 보기');
+      item.innerHTML = '<div class="rec-top" style="justify-content:flex-start;gap:6px">'
+        + '<span style="width:10px;height:10px;border-radius:50%;background:'+markerColor+';display:inline-block;flex-shrink:0" aria-hidden="true"></span>'
+        + '<span class="rec-name">'+rec.name+'</span>'
+        + verifiedBadge
+        + '</div>'
+        + '<div class="rec-addr">'+rec.addr+'</div>'
+        + '<div class="rec-tags"><span class="'+typeTagStyle+'">'+typeLabel+'</span>'
+        + (actionLabel ? '<span class="'+actionTagStyle+'">'+actionLabel+'</span>' : '')
+        + (mapSummaryText ? '<span class="tag" style="background:#f0fdf4;color:#166534">'+mapSummaryText+'</span>' : '')
+        + '</div>'
+        + groupNoteHtml
+        + extraHtml;
+    }
     // 키보드 Enter로도 클릭 가능하게
     item.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.click(); }
@@ -5289,13 +5321,24 @@ function renderMap() {
         : (typeof coords.getLat === 'function')
           ? 'https://map.kakao.com/link/map/' + encodeURIComponent(rec.name || '장소') + ',' + coords.getLat() + ',' + coords.getLng()
           : (rec.addr ? 'https://map.kakao.com/link/search/' + encodeURIComponent((rec.name || '') + ' ' + rec.addr) : '');
-      const infoHtml = '<div style="padding:10px 12px;font-size:13px;font-family:Noto Sans KR,sans-serif;min-width:150px;line-height:1.5">'
-        + '<strong>'+rec.name+'</strong><br>'
-        + '<span style="color:'+markerColor+';font-size:12px;font-weight:600">기록 유형: '+popupTypeLabel+'</span>'
-        + (popupStatus ? '<br><span style="color:#6b7280;font-size:12px">상태: '+popupStatus+'</span>' : '')
-        + (groupNoteText ? '<br><span style="color:#6b7280;font-size:11px">'+groupNoteText+'</span>' : '')
-        + (kakaoSearchUrl ? '<br><a href="'+kakaoSearchUrl+'" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;padding:5px 8px;border-radius:6px;background:#1a8c6e;color:white;text-decoration:none;font-size:12px;font-weight:700">지도에서 보기</a>' : '')
-        + '</div>';
+      const kakaoLinkHtml = kakaoSearchUrl
+        ? '<br><a href="'+kakaoSearchUrl+'" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;padding:5px 8px;border-radius:6px;background:#1a8c6e;color:white;text-decoration:none;font-size:12px;font-weight:700">지도에서 보기</a>'
+        : '';
+      // 주민에게는 '기록 유형·상태' 대신 가게 이름과 편의 정보만 보여줍니다.
+      const infoHtml = isPublicView
+        ? '<div style="padding:10px 12px;font-size:13px;font-family:Noto Sans KR,sans-serif;min-width:150px;max-width:230px;line-height:1.5">'
+          + '<strong>'+escapeHtml(rec.name || '')+'</strong>'
+          + (rec.addr ? '<br><span style="color:#6b7280;font-size:12px">'+escapeHtml(rec.addr)+'</span>' : '')
+          + (publicPoints.length ? '<br><span style="color:#1a5c4a;font-size:12px">'+escapeHtml(publicPoints.join(' · '))+'</span>' : '')
+          + kakaoLinkHtml
+          + '</div>'
+        : '<div style="padding:10px 12px;font-size:13px;font-family:Noto Sans KR,sans-serif;min-width:150px;line-height:1.5">'
+          + '<strong>'+rec.name+'</strong><br>'
+          + '<span style="color:'+markerColor+';font-size:12px;font-weight:600">기록 유형: '+popupTypeLabel+'</span>'
+          + (popupStatus ? '<br><span style="color:#6b7280;font-size:12px">상태: '+popupStatus+'</span>' : '')
+          + (groupNoteText ? '<br><span style="color:#6b7280;font-size:11px">'+groupNoteText+'</span>' : '')
+          + kakaoLinkHtml
+          + '</div>';
       const info = new kakao.maps.InfoWindow({ content: infoHtml });
 
       kakao.maps.event.addListener(marker, 'click', function() {
