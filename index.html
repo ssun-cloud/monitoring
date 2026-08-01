@@ -190,6 +190,7 @@
   .tag-action { background: var(--poor-bg); color: var(--poor); }
   .tag-good { background: var(--good-bg); color: var(--good); }
   .tag-fair { background: var(--fair-bg); color: var(--fair); }
+  .tag-muted { background: #f3f4f6; color: #6b7280; }
   .rec-date { font-size: 11px; color: var(--text-muted); }
   .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 15px; }
   .empty-state .empty-icon { font-size: 36px; margin-bottom: 10px; }
@@ -1003,9 +1004,9 @@
       <div role="radiogroup" aria-label="유형 필터" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
         <span style="font-size:11px;color:var(--text-muted);margin-right:2px">유형</span>
         <button type="button" class="map-filter-btn" data-filter-group="type" data-filter-value="" role="radio" onclick="setMapFilter('type','')" aria-checked="true" style="font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--teal-light);color:var(--teal);font-weight:600;cursor:pointer;font-family:'Noto Sans KR',sans-serif">전체</button>
-        <button type="button" class="map-filter-btn" data-filter-group="type" data-filter-value="apply" role="radio" onclick="setMapFilter('type','apply')" aria-checked="false" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#1a8c6e;display:inline-block" aria-hidden="true"></span> 보급 신청</button>
-        <button type="button" class="map-filter-btn" data-filter-group="type" data-filter-value="recommend" role="radio" onclick="setMapFilter('type','recommend')" aria-checked="false" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#ec4899;display:inline-block" aria-hidden="true"></span> 상점 추천</button>
-        <button type="button" class="map-filter-btn" data-filter-group="type" data-filter-value="monitor" role="radio" onclick="setMapFilter('type','monitor')" aria-checked="false" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif"><span style="width:9px;height:9px;border-radius:50%;background:#3b82f6;display:inline-block" aria-hidden="true"></span> 모니터링</button>
+        <button type="button" class="map-filter-btn" data-filter-group="type" data-filter-value="apply" role="radio" onclick="setMapFilter('type','apply')" aria-checked="false" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif">보급 신청</button>
+        <button type="button" class="map-filter-btn" data-filter-group="type" data-filter-value="recommend" role="radio" onclick="setMapFilter('type','recommend')" aria-checked="false" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif">상점 추천</button>
+        <button type="button" class="map-filter-btn" data-filter-group="type" data-filter-value="monitor" role="radio" onclick="setMapFilter('type','monitor')" aria-checked="false" style="display:flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--border);border-radius:12px;padding:3px 9px;background:var(--white);cursor:pointer;font-family:'Noto Sans KR',sans-serif">모니터링</button>
       </div>
       <div role="radiogroup" aria-label="상태 필터" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
         <span style="font-size:11px;color:var(--text-muted);margin-right:2px">상태</span>
@@ -1120,7 +1121,7 @@
 const FALLBACK_MONITOR_PIN  = '';   // 서버 확인 실패 시 열지 않음
 const FALLBACK_MANAGER_PIN  = '';   // 서버 확인 실패 시 열지 않음
 // ───────────────────────────────────────────────────────
-const APP_VERSION = '2026-07-30.15';
+const APP_VERSION = '2026-08-01.1';
 let SCRIPT_URL = localStorage.getItem('scriptUrl') || 'https://script.google.com/macros/s/AKfycbxBQWn2adwedy94MWxF3NGjyEnnMHde4vm-6VRXP1PEVGr6mDKQbQm7RFG3vnmrcAQ4/exec';
 
 // ── Supabase 연결 (applications 테이블 전용) ──────────
@@ -2311,7 +2312,8 @@ function loadJournalStores() {
     wrap.innerHTML = '<p style="font-size:13px;color:var(--text-muted)">' + date + '에 ' + teamName + '의 모니터링 기록이 없어요. 직접 추가할 수 있어요.</p>';
     return;
   }
-  var actionColor = function(a) { return isSupportReviewAction(a)?'#dc2626':isRevisitAction(a)?'#d97706':'#1a8c6e'; };
+  // 지도 색 규칙과 동일하게 맞춥니다. (빨강=지원 검토 필요 / 주황=재방문 필요 / 초록=확인 완료)
+  var actionColor = function(a) { return isSupportReviewAction(a)?'#dc2626':isRevisitAction(a)?'#d97706':'#16a34a'; };
   var html = '<div style="display:flex;flex-direction:column;gap:8px">';
   records.forEach(function(r) {
     var photoHtml = '';
@@ -5120,20 +5122,26 @@ function isVerified(rec) {
   return verifiedStatuses.includes(getPublishStatus(rec));
 }
 
+// ── 지도 색 규칙 ──────────────────────────────────────
+// 점(마커) 색은 '상태'만 나타냅니다. 유형(보급 신청·상점 추천·모니터링)은 태그로 구분해요.
+// 상태 필터 버튼의 점 색과 항상 같은 값을 씁니다.
+var MAP_STATUS_COLORS = {
+  review:     '#dc2626', // 지원 검토 필요
+  revisit:    '#d97706', // 재방문 필요
+  unverified: '#9ca3af', // 미검증
+  complete:   '#16a34a'  // 확인 완료
+};
+var MAP_STATUS_TAG_CLASS = {
+  review:     'tag tag-action',
+  revisit:    'tag tag-fair',
+  unverified: 'tag tag-muted',
+  complete:   'tag tag-good'
+};
 function getMarkerColor(rec) {
   // 주민(비인증)에게는 확인 완료된 기록만 보이고 범례도 숨기므로,
-  // 유형·상태별로 색을 나누지 않고 한 가지 색으로 통일해 보여줍니다.
+  // 상태별로 색을 나누지 않고 한 가지 색으로 통일해 보여줍니다.
   if (!monitorUnlocked && !managerUnlocked) return '#1a8c6e';
-  if (isSupportReviewAction(rec.action)) return '#dc2626';
-  if (isRevisitAction(rec.action)) return '#d97706';
-  // 미검증은 회색
-  if (!isVerified(rec)) return '#9ca3af';
-  // 검증 완료
-  if (rec.type === 'apply') return '#1a8c6e';
-  if (rec.type === 'recommend') return '#ec4899';
-  if (rec.action === '조치 완료') return '#16a34a';
-  if (isCompleteAction(rec.action)) return '#3b82f6';
-  return '#1a8c6e';
+  return MAP_STATUS_COLORS[getMapStatusKey(rec)] || MAP_STATUS_COLORS.complete;
 }
 
 function getRecordTypeMeta(rec) {
@@ -5299,10 +5307,10 @@ function renderMap() {
     const typeMeta = getRecordTypeMeta(rec);
     const typeLabel = typeMeta.label;
     const typeTagStyle = typeMeta.tagClass;
+    const statusKey = getMapStatusKey(rec);
     const actionLabel = (isSupportReviewAction(rec.action) || isRevisitAction(rec.action) || isCompleteAction(rec.action)) ? rec.action : '';
-    const actionTagStyle = isSupportReviewAction(rec.action) ? 'tag tag-action'
-      : isRevisitAction(rec.action) ? 'tag tag-fair'
-      : 'tag tag-good';
+    // 태그 색도 점 색과 같은 상태 기준으로 맞춥니다. (미검증이면 회색)
+    const actionTagStyle = MAP_STATUS_TAG_CLASS[statusKey] || 'tag tag-good';
 
     const item = document.createElement('div');
     item.className = 'record-item';
@@ -5339,7 +5347,7 @@ function renderMap() {
         + (publicPoints.length ? '<div style="font-size:12px;color:#1a5c4a;margin-top:6px;background:var(--teal-light);display:inline-block;padding:2px 8px;border-radius:10px">'+escapeHtml(publicPoints.join(' · '))+'</div>' : '')
         + '</div>';
     } else {
-      item.setAttribute('aria-label', rec.name + ', ' + rec.addr + ', ' + typeLabel + (actionLabel ? ', ' + actionLabel : '') + (mapSummaryText ? ', ' + mapSummaryText : '') + '. 지도에서 위치 보기');
+      item.setAttribute('aria-label', rec.name + ', ' + rec.addr + ', ' + typeLabel + (statusKey === 'unverified' ? ', 미검증' : '') + (actionLabel ? ', ' + actionLabel : '') + (mapSummaryText ? ', ' + mapSummaryText : '') + '. 지도에서 위치 보기');
       item.innerHTML = '<div class="rec-top" style="justify-content:flex-start;gap:6px">'
         + '<span style="width:10px;height:10px;border-radius:50%;background:'+markerColor+';display:inline-block;flex-shrink:0" aria-hidden="true"></span>'
         + '<span class="rec-name">'+rec.name+'</span>'
