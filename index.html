@@ -928,8 +928,12 @@
         <input type="date" id="j_date" aria-label="활동 날짜" onchange="loadJournalStores()" />
       </div>
       <div class="field">
-        <label class="field-label" for="j_time">활동 시간<span class="req">*</span></label>
-        <input type="time" id="j_time" aria-label="활동 시간" />
+        <label class="field-label" for="j_start">활동 시작 시간<span class="req">*</span></label>
+        <input type="time" id="j_start" aria-label="활동 시작 시간" />
+      </div>
+      <div class="field">
+        <label class="field-label" for="j_end">활동 종료 시간<span class="req">*</span></label>
+        <input type="time" id="j_end" aria-label="활동 종료 시간" />
       </div>
       <div class="field">
         <label class="field-label" for="j_team">활동 팀<span class="req">*</span></label>
@@ -2257,13 +2261,13 @@ async function initJournal() {
     if (t.name === cur) opt.selected = true;
     teamSel.appendChild(opt);
   });
-  // 날짜/시간 자동 설정
+  // 날짜/시간 자동 설정 (시작 시간만 현재 시각으로 채우고, 종료 시간은 활동을 마친 뒤 직접 입력)
   var dateEl = document.getElementById('j_date');
-  var timeEl = document.getElementById('j_time');
+  var startEl = document.getElementById('j_start');
   if (dateEl && !dateEl.value) dateEl.valueAsDate = new Date();
-  if (timeEl && !timeEl.value) {
+  if (startEl && !startEl.value) {
     var now = new Date();
-    timeEl.value = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+    startEl.value = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
   }
   loadJournalStores();
   renderJournalList();
@@ -2331,18 +2335,24 @@ function loadJournalStores() {
 
 async function submitJournal() {
   var dateEl = document.getElementById('j_date');
-  var timeEl = document.getElementById('j_time');
+  var startEl = document.getElementById('j_start');
+  var endEl = document.getElementById('j_end');
   var teamEl = document.getElementById('j_team');
   var memoEl = document.getElementById('j_memo');
   var extraEl = document.getElementById('j_extra');
-  if (!dateEl || !timeEl || !teamEl) return;
+  if (!dateEl || !startEl || !endEl || !teamEl) return;
   var date = dateEl.value;
-  var time = timeEl.value;
+  var startTime = startEl.value;
+  var endTime = endEl.value;
   var teamName = teamEl.value;
   var memo = memoEl ? memoEl.value.trim() : '';
   var extra = extraEl ? extraEl.value.trim() : '';
   if (!date) { showToast('journal-toast','활동 날짜를 선택해 주세요.','error'); return; }
-  if (!time) { showToast('journal-toast','활동 시간을 입력해 주세요.','error'); return; }
+  if (!startTime) { showToast('journal-toast','활동 시작 시간을 입력해 주세요.','error'); return; }
+  if (!endTime) { showToast('journal-toast','활동 종료 시간을 입력해 주세요.','error'); return; }
+  if (endTime < startTime) { showToast('journal-toast','종료 시간이 시작 시간보다 빨라요. 다시 확인해 주세요.','error'); return; }
+  // 저장·출력에는 "14:00~16:00" 형태의 한 줄 문자열로 담습니다.
+  var time = startTime + '~' + endTime;
   if (!teamName) { showToast('journal-toast','활동 팀을 선택해 주세요.','error'); return; }
   if (!memo) { showToast('journal-toast','활동 내용을 입력해 주세요.','error'); return; }
   // 최신 체크리스트 동기화 — 팀원이 다른 기기에서 방금 제출한 기록이 빠지지 않도록
